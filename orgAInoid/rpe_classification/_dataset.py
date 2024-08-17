@@ -89,9 +89,6 @@ class OrganoidClassificationDataset:
 
                 assert len(loop_label) == 1
 
-                labels.append(loop_label[0])
-
-
                 image_paths = loop_data["image_path"].tolist()
 
                 loop_images = []
@@ -108,6 +105,7 @@ class OrganoidClassificationDataset:
 
                 if loop_images is not None:
                     images.append(np.array(loop_images))
+                    labels.append(loop_label[0])
                 else:
                     print(f"Dataset creation: skipping images {image_paths}")
 
