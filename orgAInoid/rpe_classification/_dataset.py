@@ -39,6 +39,7 @@ class OrganoidClassificationDataset:
                  unet_dir: str,
                  unet_input_size: int,
                  experiment_dir: PathLike):
+        self.dataset_id = dataset_id
         self.slices = slices
         self.start_timepoint = start_timepoint
         self.stop_timepoint = stop_timepoint
@@ -100,15 +101,13 @@ class OrganoidClassificationDataset:
                                                                      normalized = True,
                                                                      scaled = True)
                     if masked_image is not None:
-                        masked_image = masked_image.img
-                        loop_images.append(masked_image)
+                        loop_images.append(masked_image.img)
                     else:
                         loop_images = None
                         break
 
                 if loop_images is not None:
                     images.append(np.array(loop_images))
-                    labels.append(np.array(loop_label))
                 else:
                     print(f"Dataset creation: skipping images {image_paths}")
 
