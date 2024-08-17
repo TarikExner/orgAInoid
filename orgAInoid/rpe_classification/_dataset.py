@@ -101,7 +101,6 @@ class OrganoidClassificationDataset:
                                                                      scaled = True)
                     if masked_image is not None:
                         masked_image = masked_image.img
-                        masked_image = np.expand_dims(masked_image, axis = 0)
                         loop_images.append(masked_image)
                     else:
                         loop_images = None
