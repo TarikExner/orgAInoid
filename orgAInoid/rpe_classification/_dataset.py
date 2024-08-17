@@ -1,4 +1,3 @@
-from pydantic import BaseModel
 import os
 from os import PathLike
 import numpy as np
@@ -11,12 +10,11 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 from .._utils import ImageHandler
 
-class OrganoidClassificationDataset(BaseModel):
+class OrganoidClassificationDataset:
     """\
     Base class to handle datasets associated with classification.
 
     """
-    
     dataset_id: str
     start_timepoint: int
     stop_timepoint: int
@@ -32,13 +30,20 @@ class OrganoidClassificationDataset(BaseModel):
     y_test: Optional[np.ndarray] = None
 
     def __init__(self,
+                 dataset_id: str,
                  file_frame: pd.DataFrame,
+                 start_timepoint: int,
+                 stop_timepoint: int,
+                 slices: list[str],
                  image_size: int,
                  unet_dir: str,
                  unet_input_size: int,
                  experiment_dir: PathLike):
-
-        self.img_handler = ImageHandler(target_image_size = image_size,
+        self.slices = slices
+        self.start_timepoint = start_timepoint
+        self.stop_timepoint = stop_timepoint
+        self.image_dimension = image_size
+        self.img_handler = ImageHandler(target_image_size = self.image_dimension,
                                         unet_input_dir = unet_dir,
                                         unet_input_size = unet_input_size)
 
