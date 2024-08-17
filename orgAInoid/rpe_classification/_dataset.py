@@ -78,6 +78,7 @@ class OrganoidClassificationDataset:
                 (df["experiment"] == experiment) &
                 (df["well"] == well)
             ].copy()
+
             # we loop through the timepoints in order to capture all slices
             for loop in well["loop"].unique():
 
