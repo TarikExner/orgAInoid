@@ -73,10 +73,6 @@ class UNetPredictor:
         self._input_size = unet_input_size
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = self._load_unet_model()
-<<<<<<< HEAD
-=======
-
->>>>>>> c9b40246b7ad31d8e0ae2421997d6f54e0ccd252
 
     def _load_unet_model(self) -> UNet:
 
