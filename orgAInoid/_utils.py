@@ -71,8 +71,8 @@ class UNetPredictor:
                  unet_input_size: float) -> None:
         self._segmentator_input_dir = unet_input_dir
         self._input_size = unet_input_size
-        self.model = self._load_unet_model()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = self._load_unet_model()
 
     def _load_unet_model(self) -> UNet:
 
@@ -311,7 +311,7 @@ class ImageHandler:
     def get_masked_image(self,
                          img: OrganoidImage,
                          normalized: bool = False,
-                         scaled: bool = False) -> Optional[OrganoidImage]:
+                         scaled: bool = True) -> Optional[OrganoidImage]:
 
         mask: OrganoidMask = self.create_mask_from_image(img,
                                                          clean = True)
