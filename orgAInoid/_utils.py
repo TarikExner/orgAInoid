@@ -164,7 +164,7 @@ class OrganoidImage:
         self.unet_preprocessed = img
 
     def downsample(self,
-                   target_size: int):
+                   target_size: float):
         binning_factor = int(self.img.shape[0] / target_size)
         self.img = self._bin_image(self.img, binning_factor)
 
@@ -271,20 +271,17 @@ class ImageHandler:
     everything for the user. The individual steps can be accessed
     via the private methods.
 
-    Examples
-    --------
-    >>> img_fac = ImageFactory()
-    >>> 
     """
 
     def __init__(self,
-                 target_image_size: int,
-                 unet_input_dir: str,
-                 unet_input_size: int = 128):
+                 target_image_size: float,
+                 unet_input_dir: Optional[str],
+                 unet_input_size: Optional[int] = 128):
 
-        self.unet: UNetPredictor = UNetPredictor(unet_input_dir, unet_input_size)
+        if unet_input_dir is not None and unet_input_size is not None:
+            self.unet_input_size = unet_input_size
+            self.unet: UNetPredictor = UNetPredictor(unet_input_dir, unet_input_size)
         self.target_size = target_image_size
-        self.unet_input_size = unet_input_size
 
     def create_mask_from_image(self,
                                img: OrganoidImage,

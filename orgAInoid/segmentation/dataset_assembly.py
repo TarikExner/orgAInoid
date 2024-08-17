@@ -3,11 +3,23 @@ import os
 from pathlib import Path
 import cv2
 
+from .._utils import ImageHandler
 
-def _assemble_file_paths(input_dir: Path) -> tuple[list, list]:
+
+def _assemble_file_paths(input_dir: str) -> tuple[list, list]:
     files = [file for file in os.listdir(input_dir)]
-    imgs = [file for file in files if not "_mask" in file and file.endswith(".tif") and not file.startswith(".")]
-    masks = [file for file in files if "_mask" in file and file.endswith(".tif")]
+    imgs = [
+        file for file in files
+        if not "_mask" in file
+        and file.endswith(".tif")
+        and not file.startswith(".")
+    ]
+    masks = [
+        file for file in files
+        if "_mask" in file 
+        and file.endswith(".tif")
+        and not file.startswith(".")
+    ]
     
     def _get_corresponding_mask(file_name, mask_list):
         unique_id = file_name.split(".tif")[0]
@@ -25,26 +37,37 @@ def _assemble_file_paths(input_dir: Path) -> tuple[list, list]:
 
     return matched_imgs, matched_masks
 
-def assemble_data(input_dir: Path,
-                  output_dir: Path = os.getcwd()):
+def assemble_data(target_size: float,
+                  input_dir: str,
+                  output_dir: str= "./raw_data"):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     imgs, masks = _assemble_file_paths(input_dir)
     img_array = []
     mask_array = []
-    for img in imgs:
-        img_array.append(cv2.imread(img, -1).astype(np.float32))
-    for mask in masks:
-        mask_array.append(cv2.imread(mask, -1).astype(np.float32))
+
+    img_handler = ImageHandler(
+        target_image_size = target_size,
+        unet_input_dir = None,
+        unet_input_size = None
+    )
+
+    for img_path in imgs:
+        img = img_handler.read_image(img_path)
+        img.preprocess_for_unet(target_size)
+        img_array.append(img.unet_preprocessed)
+    for mask_path in masks:
+        mask = img_handler.read_image(mask_path)
+        mask.preprocess_for_unet(target_size)
+        mask_array.append(mask.unet_preprocessed)
 
     img_array = np.array(img_array)
     mask_array = np.array(mask_array)
 
-    np.save(os.path.join(output_dir, "unet_segmentation_images.npy"), img_array)
-    np.save(os.path.join(output_dir, "unet_segmentation_masks.npy"), mask_array)
-    print("Dataset assembled successfully")
+    np.save(os.path.join(output_dir, f"unet_segmentation_images_{target_size}.npy"), img_array)
+    np.save(os.path.join(output_dir, f"unet_segmentation_masks_{target_size}.npy"), mask_array)
+    print(f"Dataset assembled successfully for target size {target_size}")
 
 
 if __name__ == "__main__":
     input_dir = os.getcwd()
-    assemble_data(input_dir)
