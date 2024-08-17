@@ -71,39 +71,46 @@ class OrganoidClassificationDataset:
         images = []
         labels = []
 
-        # we loop through the timepoints in order to capture all slices
-        for loop in df["loop"].unique():
+        unique_experiment_well_combo = self._get_unique_experiment_well_combo(df, "experiment", "well")
 
-            loop_data = df[df["loop"] == loop]
+        for experiment, well in unique_experiment_well_combo:
+            well = df[
+                (df["experiment"] == experiment) &
+                (df["well"] == well)
+            ].copy()
+            # we loop through the timepoints in order to capture all slices
+            for loop in well["loop"].unique():
 
-            loop_label = list(set(loop_data["RPE"].tolist()))
+                loop_data = well[well["loop"] == loop].copy()
 
-            assert len(loop_label) == 1
+                loop_label = list(set(loop_data["RPE"].tolist()))
 
-            labels.append(loop_label[0])
+                assert len(loop_label) == 1
+
+                labels.append(loop_label[0])
 
 
-            image_paths = loop_data["image_path"].tolist()
+                image_paths = loop_data["image_path"].tolist()
 
-            loop_images = []
-            for path in image_paths:
-                image = self.img_handler.read_image(path)
-                masked_image = self.img_handler.get_masked_image(image,
-                                                                 normalized = True,
-                                                                 scaled = True)
-                if masked_image is not None:
-                    masked_image = masked_image.img
-                    masked_image = np.expand_dims(masked_image, axis = 0)
-                    loop_images.append(masked_image)
+                loop_images = []
+                for path in image_paths:
+                    image = self.img_handler.read_image(path)
+                    masked_image = self.img_handler.get_masked_image(image,
+                                                                     normalized = True,
+                                                                     scaled = True)
+                    if masked_image is not None:
+                        masked_image = masked_image.img
+                        masked_image = np.expand_dims(masked_image, axis = 0)
+                        loop_images.append(masked_image)
+                    else:
+                        loop_images = None
+                        break
+
+                if loop_images is not None:
+                    images.append(np.array(loop_images))
+                    labels.append(np.array(loop_label))
                 else:
-                    loop_images = None
-                    break
-
-            if loop_images is not None:
-                images.append(np.array(loop_images))
-                labels.append(np.array(loop_label))
-            else:
-                print(f"Dataset creation: skipping images {image_paths}")
+                    print(f"Dataset creation: skipping images {image_paths}")
 
         images = np.array(images)
         labels = np.array(labels)
