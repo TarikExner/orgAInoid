@@ -8,29 +8,14 @@ import torch
 from scipy.ndimage import zoom
 import skimage
 import os
+from os import PathLike
 
-from typing import Optional, Union
-from pathlib import Path
+from typing import Optional
 
-def _load_unet_model(unet_dir: Path,
-                     unet_input_size: int) -> UNet:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    state_dict_path = os.path.join(unet_dir, f"segmentator_{unet_input_size}_bs64.pth")
-    
-    model = UNet(1)
-    model.load_state_dict(
-        torch.load(
-            state_dict_path,
-            map_location=torch.device(device)
-        )
-    )
-    model.eval()
-    model.to(device)
-    return model
 
 def _generate_file_table(experiment_id: str,
-                         image_dir: Path,
-                         annotations_file: Path):
+                         image_dir: str,
+                         annotations_file: str):
     annotations = pd.read_csv(annotations_file)
     annotations["well"] = [
         entry.split(experiment_id)[1]
@@ -73,194 +58,286 @@ def _generate_file_table(experiment_id: str,
     
     return pd.DataFrame(file_dict)
     
-def _polynomial_upsample(image, scale_factor, order = 3):
-    return zoom(image, scale_factor, order=order)
 
-def _create_mask(image: np.ndarray,
-                 model: UNet) -> np.ndarray:
-    image_dimension = image.shape[0]
-    transforms = A.Compose([
-        A.Resize(image_dimension, image_dimension),
-        ToTensorV2()
-    ])
-    preprocessed = transforms(image = image)
-    img_tensor = preprocessed["image"].unsqueeze(0)
-    if torch.cuda.is_available():
-        img_tensor = img_tensor.to("cuda")
-    with torch.no_grad():
-        pred_mask = model(img_tensor.reshape(1,1,image_dimension,image_dimension)).squeeze()
-        pred_mask = torch.sigmoid(pred_mask)
-        pred_mask = pred_mask.cpu().detach().numpy()
-    return pred_mask
-
-def _bin_image(img: np.ndarray,
-               bin_size: int,
-               mask: bool = False):
+class UNetPredictor:
+    """\
+    Class to handle segmentation of the images.
+    The class expects pre-processed images and will
+    only return the pure mask.
     """
-    Bins the image on demand.
+
+    def __init__(self,
+                 unet_input_dir: str,
+                 unet_input_size: float) -> None:
+        self._segmentator_input_dir = unet_input_dir
+        self._input_size = unet_input_size
+        self.model = self._load_unet_model()
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    def _load_unet_model(self) -> UNet:
+
+        state_dict_path = os.path.join(
+            self._segmentator_input_dir,
+            f"segmentator_{self._input_size}_bs64.pth"
+        )
+        
+        model = UNet(1)
+        model.load_state_dict(
+            torch.load(
+                state_dict_path,
+                map_location=torch.device(self.device)
+            )
+        )
+        model.eval()
+        model.to(self.device)
+        return model
+
+    def create_mask(self,
+                    image: np.ndarray) -> np.ndarray:
+        """\
+        Creates the mask for an image.
+
+        img
+            The preprocessed image. For our UNET segmentation,
+            that means a normalized and scaled image
+
+        Returns
+        -------
+        The mask without thresholding.
+        """
+        image_dimension = image.shape[0]
+
+        assert image_dimension == self._input_size
+
+        transforms = A.Compose([
+            A.Resize(image_dimension, image_dimension),
+            ToTensorV2()
+        ])
+        preprocessed = transforms(image = image)
+        img_tensor = preprocessed["image"].unsqueeze(0).to(self.device)
+
+        with torch.no_grad():
+            pred_mask = self.model(
+                img_tensor.reshape(1,1,image_dimension,image_dimension)
+            ).squeeze()
+            pred_mask = torch.sigmoid(pred_mask)
+            pred_mask = pred_mask.cpu().detach().numpy()
+        return pred_mask
+
+
+class OrganoidImage:
+    """\
+    Class to represent an image and its corresponding methods.
     """
-    height, width = img.shape[:2]
 
-    new_height = height // bin_size
-    new_width = width // bin_size
+    def __init__(self,
+                 path: str):
+        self.img = self._read_image(path)
+        self.bitdepth = 8 * self.img.itemsize
 
-    if new_height == height and new_width == width:
-        return img
-    
-    binned_image = np.zeros((new_height, new_width), dtype=np.float32)
+    def _read_image(self,
+                    path: PathLike) -> np.ndarray:
+        """Reads an image from disk and returns it with its original bitdepth"""
+        return cv2.imread(path, -1)
 
-    for i in range(new_height):
-        for j in range(new_width):
-            binned_image[i, j] = np.mean(img[i*bin_size:(i+1)*bin_size, j*bin_size:(j+1)*bin_size])
-    if mask:
-        binned_image[binned_image < 0.5] = 0
-    return binned_image
+    def _normalize_image(self,
+                         img: np.ndarray,
+                         bitdepth: int) -> np.ndarray:
+        """Applies bit-depth normalization"""
+        return img / float(2**bitdepth)
 
-def _normalize_image(img: np.ndarray,
-                     bitdepth: int) -> np.ndarray:
-    return img / float(2**bitdepth)
+    def _min_max_scale(self,
+                       img: np.ndarray) -> np.ndarray:
+        """Applies MinMaxScaling"""
+        min_val = img.min()
+        max_val = img.max()
+        return (img - min_val) / (max_val - min_val)
 
-def _min_max_scale(img: np.ndarray) -> np.ndarray:
-    min_val = img.min()
-    max_val = img.max()
-    return (img - min_val) / (max_val - min_val)
+    def preprocess_for_unet(self,
+                            unet_input_size: int) -> None:
+        """Applies downsampling, bitdepth normalization and MinMaxScaling"""
+        img = self.img.copy()
+        binning_factor = int(img.shape[0] / unet_input_size)
+        img = self._bin_image(img, binning_factor)
+        img = self._normalize_image(img, self.bitdepth)
+        img = self._min_max_scale(img)
+        self.unet_preprocessed = img
 
-def _preprocess_image(img: np.ndarray,
-                      bitdepth: int) -> np.ndarray:
-    img = _normalize_image(img, bitdepth)
-    img = _min_max_scale(img)
-    return img
+    def downsample(self,
+                   target_size: int):
+        binning_factor = int(self.img.shape[0] / target_size)
+        self.img = self._bin_image(self.img, binning_factor)
 
-def _read_image(path: Path):
-    return cv2.imread(path, -1)
 
-def _create_mask_from_image(image: np.ndarray,
-                            model: UNet,
-                            unet_input_size: int,
-                            output_size: int) -> np.ndarray:
+    def _bin_image(self,
+                   img: np.ndarray,
+                   bin_size: int) -> np.ndarray:
+        """
+        Bins the image on demand.
+        """
+        height, width = img.shape[:2]
+
+        new_height = height // bin_size
+        new_width = width // bin_size
+
+        if new_height == height and new_width == width:
+            return img
+        
+        binned_image = np.zeros((new_height, new_width), dtype=np.float32)
+
+        for i in range(new_height):
+            for j in range(new_width):
+                binned_image[i, j] = np.mean(img[i*bin_size:(i+1)*bin_size, j*bin_size:(j+1)*bin_size])
+
+        if isinstance(self, OrganoidMask):
+            binned_image[binned_image < 0.5] = 0
+
+        return binned_image
+
+
+class OrganoidMask(OrganoidImage):
+    """\
+    Class to represent a mask. This mask is by definition binary.
+
+    Expects a raw mask with gray values between 0 and 1 that will
+    be thresholded upon initiation.
+
+    The methods are shared between OrganoidImage and OrganoidMask.
     """
-    Function creates a mask from an image.
-    First, the image is downsampled to unet_input_size
-    in order to confer with the input restrictions.
-    The corresponding mask is then upsampled to output_size
-    and the original image is brought to the same size.
-    """
-    
-    binning_factor_segmentation = int(image.shape[0] / unet_input_size)
-    binning_factor_image = int(image.shape[0] / output_size)
-    upsample_factor = int(output_size / unet_input_size)
-    
-    bitdepth = 8 * image.itemsize
 
-    image = image.astype(np.float32)
-    original_image = image.copy()
-    
-    preprocessed = _preprocess_image(image, bitdepth = bitdepth)
-    
-    binned_image = _bin_image(preprocessed, binning_factor_segmentation)
+    def __init__(self,
+                 raw_mask: np.ndarray,
+                 threshold: float = 0.5):
+        self.threshold = threshold
+        self.img = raw_mask
+        self.threshold_mask()
+        self.error_while_cleaning = False
 
-    assert binned_image.shape[0] == unet_input_size
-    
-    binned_mask = _create_mask(binned_image, model)
-    
-    mask = _polynomial_upsample(binned_mask, upsample_factor, order = 5)
+    def threshold_mask(self) -> None:
+        """Thresholds a non-binary image into a binary"""
+        self.img[self.img >= self.threshold] = 1
+        self.img[self.img < self.threshold] = 0
 
-    original_image_binned = _bin_image(original_image, binning_factor_image)
-    assert mask.shape == original_image_binned.shape
-    
-    return original_image_binned, mask
+    def polynomial_upsample(self,
+                            target_size: float,
+                            order: int = 3) -> None:
+        current_size = self.img.shape[0]
+        upsample_factor = int(target_size / current_size)
+        self.img = zoom(self.img, upsample_factor, order=order)
+        self.threshold_mask()
 
-def _threshold_mask(mask: np.ndarray,
-                    threshold: float = 0.5) -> np.ndarray:
-    mask[mask >= threshold] = 1
-    mask[mask < threshold] = 0
-    return mask
-
-def _get_masked_image(image: np.ndarray,
-                      model: UNet,
-                      unet_input_size: int,
-                      output_size: int,
-                      return_clean_only: bool = False,
-                      normalized: bool = False,
-                      scaled: bool = False,
-                      threshold: float = 0.5,
-                      min_size_perc = 5) -> np.ndarray:
-    """
-    Will mask an image. We will assume that we want a cleaned mask.
-    If the cleaning procedure is for some reason messed up,
-    we let the user decide what to return.
-    """
-    not_clean = False
-    
-    image, mask = _create_mask_from_image(image,
-                                          model = model,
-                                          unet_input_size = unet_input_size,
-                                          output_size = output_size)
-
-    if normalized:
-        bitdepth = 16 # we hard code this because the image is np.float32, that leads to super inconsistent results.
-        image = _normalize_image(image, bitdepth)
-    if scaled:
-        image = _min_max_scale(image)
-    
-    mask = _threshold_mask(mask, threshold = threshold)
-    
-    cleaned_mask = _clean_and_label_mask(mask, threshold = threshold, min_size_perc = min_size_perc)
-    
-    if isinstance(cleaned_mask, int) and cleaned_mask == -1:
-        print("removed only label in mask...")
-        not_clean = True
-    if isinstance(cleaned_mask, int) and cleaned_mask == -2:
-        print("more than one label found...")
-        not_clean = True
-
-    if not_clean is False:
-        cleaned_mask = cleaned_mask.astype(bool)
-        return image * cleaned_mask
-    if return_clean_only and not_clean is True:
-        return None
-    elif not return_clean_only and not_clean is True:
-        mask = mask.astype(bool)
-        return image * mask
-
-def _clean_and_label_mask(mask: np.ndarray,
-                          threshold: float = 0.5,
-                          min_size_perc: float = 5) -> Union[int, np.ndarray]:
-    """
-    Removes other, smaller objects.
-
-    Returns -1 if after removal nothing is there
-    Returns -2 if there are two big labels
-    Returns mask if cleanup worked or wasnt necessary
-
-    """
-    min_size = mask.shape[0]**2 * (min_size_perc / 100)
-    label_objects, num_labels = skimage.measure.label(mask,
-                                                      background = 0,
-                                                      return_num = True)
-    
-    if num_labels > 1:
-        mask = skimage.morphology.remove_small_objects(label_objects, min_size=min_size).astype(np.float64)
-        if np.max(mask) == 0:
-            return -1
-        mask /= np.max(mask)
-        mask[mask >= threshold] = 1
-        mask[mask < threshold] = 0
-        mask = mask.astype(np.uint8)
-        label_objects, num_labels = skimage.measure.label(mask, background=0, return_num=True)
+    def clean_mask(self,
+                   min_size_perc: float = 5):
+        min_size = self.img.shape[0]**2 * (min_size_perc / 100)
+        label_objects, num_labels = skimage.measure.label(
+            self.img,
+            background = 0,
+            return_num = True
+        )
         if num_labels > 1:
-            return -2
+            mask = skimage.morphology.remove_small_objects(
+                label_objects, min_size=min_size
+            ).astype(np.float32)
 
-    return label_objects
+            label_objects, num_labels = skimage.measure.label(
+                mask,
+                background=0,
+                return_num=True
+            )
+
+            if num_labels == 0:
+                print("Removed only label.")
+                self.error_while_cleaning = True
+            elif num_labels > 1:
+                print("More than one object left after removing small objects.")
+                self.error_while_cleaning = True
+        
+        self.img = label_objects.astype(np.uint8)
+
+    def label_mask(self) -> np.ndarray:
+        label_objects = skimage.measure.label(self.img, background=0)
+        return label_objects
 
 
 
+class ImageHandler:
+    """\
+    Class to handle the image processing.
 
+    For classification, we need masked images.
+    For the transformers, we need timeseries of masked images.
 
+    The class contains public convenience methods that handle
+    everything for the user. The individual steps can be accessed
+    via the private methods.
 
+    Examples
+    --------
+    >>> img_fac = ImageFactory()
+    >>> 
+    """
 
+    def __init__(self,
+                 target_image_size: int,
+                 unet_input_dir: str,
+                 unet_input_size: int = 128):
 
+        self.unet: UNetPredictor = UNetPredictor(unet_input_dir, unet_input_size)
+        self.target_size = target_image_size
+        self.unet_input_size = unet_input_size
 
+    def create_mask_from_image(self,
+                               img: OrganoidImage,
+                               clean: bool = True,
+                               min_size_perc: float = 5) -> OrganoidMask:
+
+        img.preprocess_for_unet(self.unet_input_size)
+        
+        raw_mask = self.unet.create_mask(img.unet_preprocessed)
+        mask = OrganoidMask(raw_mask)
+
+        if mask.img.shape[0] < self.target_size:
+            mask.polynomial_upsample(self.target_size)
+        else:
+            mask.downsample(self.target_size)
+
+        if clean:
+            mask.clean_mask(min_size_perc)
+
+        assert mask.img.shape == (self.target_size, self.target_size)
+
+        return mask
+
+    def get_masked_image(self,
+                         img: OrganoidImage,
+                         normalized: bool = False,
+                         scaled: bool = False) -> Optional[OrganoidImage]:
+
+        mask: OrganoidMask = self.create_mask_from_image(img,
+                                                         clean = True)
+
+        if mask.error_while_cleaning:
+            print("Masking went wrong... Returning None")
+            return None
+        
+        img.downsample(self.target_size)
+
+        if normalized:
+            img.img = img._normalize_image(img.img, bitdepth = 16)
+        if scaled:
+            img.img = img._min_max_scale(img.img)
+
+        assert mask.img.shape == img.img.shape
+        assert np.max(mask.img) == 1
+        assert np.min(mask.img) == 0
+
+        img.img = img.img * mask.img
+        
+        return img
+
+    def read_image(self,
+                   path) -> OrganoidImage:
+        return OrganoidImage(path)
 
 
 

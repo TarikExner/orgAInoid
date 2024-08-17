@@ -17,6 +17,7 @@ from .._utils import (_generate_file_table,
                       _clean_and_label_mask,
                       _threshold_mask,
                       _load_unet_model)
+from .._utils import OrganoidImage, ImageHandler
 
 from . import methods
 
@@ -76,10 +77,10 @@ PROPERTIES = [
 ]
 
 def run_morphometrics(experiment_id: str,
-                      image_dir: Path,
-                      metadata_dir: Path,
-                      output_dir: Path,
-                      unet_dir: Path = "../segmentation",
+                      image_dir: str,
+                      metadata_dir: str,
+                      output_dir: str,
+                      unet_dir: str = "../segmentation",
                       unet_input_size: int = 128):
     """\
     Convention:
@@ -95,41 +96,40 @@ def run_morphometrics(experiment_id: str,
         file_frame = pd.read_csv(overview_file, index_col = None)
     else:
         annotations_file = os.path.join(metadata_dir, f"{experiment_id}_annotations.csv")
-        file_frame = _generate_file_table(experiment_id = experiment_id,
-                                          image_dir = image_dir,
-                                          annotations_file = annotations_file)
+        file_frame = _generate_file_table(
+            experiment_id = experiment_id,
+            image_dir = image_dir,
+            annotations_file = annotations_file
+        )
         file_frame.to_csv(overview_file, index = False)
 
     file_frame = file_frame[file_frame["slice"] == "SL003"]
     file_list = file_frame["file_name"].tolist()
 
-    model = _load_unet_model(unet_dir, unet_input_size)
+    img_handler = ImageHandler(
+        target_image_size = 2048,
+        unet_input_dir = unet_dir,
+        unet_input_size = unet_input_size
+    )
 
     for file_name in file_list:
-        print(file_name)
         image_path = os.path.join(image_dir, file_name)
-        original_image = _read_image(image_path)
+        original_image = img_handler.read_image(image_path)
         if original_image is None:
             print("WARNING Corrupted image: {file_name}")
             continue
 
-        original_image, mask = _create_mask_from_image(image = original_image,
-                                                       model = model,
-                                                       unet_input_size = unet_input_size,
-                                                       output_size = 2048)
-        
-        mask = _threshold_mask(mask, threshold = 0.5)
+        mask = img_handler.create_mask_from_image(original_image,
+                                                  clean = True)
 
-        labeled_mask = _clean_and_label_mask(mask, min_size_perc = 5)
-        if isinstance(labeled_mask, int) and labeled_mask == -1:
-            print(f"Removed only label in image {file_name}... skipping.")
+        if mask.error_while_cleaning:
+            print(f"Skipping image {file_name} due to a masking error")
             continue
-        if isinstance(labeled_mask, int) and labeled_mask == -2:
-            print(f"Found more than one region in cleaned mask in image {file_name}... skipping.")
-            continue
+
+        labeled_mask = mask.label_mask()
 
         reg_table = skimage.measure.regionprops_table(labeled_mask,
-                                                      intensity_image = original_image,
+                                                      intensity_image = original_image.img,
                                                       properties = PROPERTIES,
                                                       extra_properties = EXTRA_PROPERTIES)
         reg_table["aspect_ratio"] = methods.aspect_ratio(reg_table)
@@ -147,6 +147,7 @@ def run_morphometrics(experiment_id: str,
     file_frame.to_csv(os.path.join(output_dir, f"{experiment_id}_morphometrics.csv"))
 
     return file_frame
+
 
 if __name__ == "__main__":
     run_shape_analysis()
