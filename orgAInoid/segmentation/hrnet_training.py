@@ -1,4 +1,4 @@
-from .model import DEEPLABV3
+from .model import HRNET
 from ._utils import _run_segmentation_train_loop
 
 
@@ -9,7 +9,7 @@ def run_unet_training(image_size: int = 2048,
                       model_output_dir: str = "./segmentators",
                       dataset_dir: str = "./") -> None:
 
-    model = DEEPLABV3()
+    model = HRNET()
 
     _run_segmentation_train_loop(dataset_dir = dataset_dir,
                                  image_size = image_size,
