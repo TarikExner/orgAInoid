@@ -41,6 +41,296 @@ class SimpleCNN(nn.Module):
         
         return x
 
+class SimpleCNNModel8_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel8_FC3, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1)
+        self.conv8 = nn.Conv2d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 256  # After eight pooling layers, the size is divided by 256
+        
+        # Fully connected layers with symmetrical structure
+        self.fc1 = nn.Linear(2048 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Third convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv3(x)))
+        
+        # Fourth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv4(x)))
+        
+        # Fifth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv5(x)))
+        
+        # Sixth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv6(x)))
+        
+        # Seventh convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv7(x)))
+        
+        # Eighth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv8(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
+class SimpleCNNModel8(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel8, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1)
+        self.conv8 = nn.Conv2d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 256  # After eight pooling layers, the size is divided by 256
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(2048 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
+        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
+        self.fc3 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Third convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv3(x)))
+        
+        # Fourth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv4(x)))
+        
+        # Fifth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv5(x)))
+        
+        # Sixth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv6(x)))
+        
+        # Seventh convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv7(x)))
+        
+        # Eighth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv8(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
+class SimpleCNNModel7_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel7_FC3, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 128  # After seven pooling layers, the size is divided by 128
+        
+        # Fully connected layers with symmetrical structure
+        self.fc1 = nn.Linear(1024 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Third convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv3(x)))
+        
+        # Fourth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv4(x)))
+        
+        # Fifth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv5(x)))
+        
+        # Sixth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv6(x)))
+        
+        # Seventh convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv7(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
+class SimpleCNNModel7(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel7, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 128  # After seven pooling layers, the size is divided by 128
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(1024 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
+        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
+        self.fc3 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Third convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv3(x)))
+        
+        # Fourth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv4(x)))
+        
+        # Fifth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv5(x)))
+        
+        # Sixth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv6(x)))
+        
+        # Seventh convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv7(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
+class SimpleCNNModel6_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel6_FC3, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 64  # After six pooling layers, the size is divided by 64
+        
+        # Fully connected layers with symmetrical structure
+        self.fc1 = nn.Linear(512 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Third convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv3(x)))
+        
+        # Fourth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv4(x)))
+        
+        # Fifth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv5(x)))
+        
+        # Sixth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv6(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
 class SimpleCNNModel6(nn.Module):
     def __init__(self, img_x_dim):
         super(SimpleCNNModel6, self).__init__()
@@ -93,6 +383,56 @@ class SimpleCNNModel6(nn.Module):
         
         return x
 
+class SimpleCNNModel5_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel5_FC3, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 32  # After five pooling layers, the size is divided by 32
+        
+        # Fully connected layers with symmetrical structure
+        self.fc1 = nn.Linear(256 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Third convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv3(x)))
+        
+        # Fourth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv4(x)))
+        
+        # Fifth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv5(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
 class SimpleCNNModel5(nn.Module):
     def __init__(self, img_x_dim):
         super(SimpleCNNModel5, self).__init__()
@@ -141,6 +481,52 @@ class SimpleCNNModel5(nn.Module):
         
         return x
 
+class SimpleCNNModel4_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel4_FC3, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 16  # After four pooling layers, the size is divided by 16
+        
+        # Fully connected layers with symmetrical structure
+        self.fc1 = nn.Linear(128 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Third convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv3(x)))
+        
+        # Fourth convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv4(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
 class SimpleCNNModel4(nn.Module):
     def __init__(self, img_x_dim):
         super(SimpleCNNModel4, self).__init__()
@@ -185,6 +571,48 @@ class SimpleCNNModel4(nn.Module):
         
         return x
 
+class SimpleCNNModel3_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel3_FC3, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 8  # After three pooling layers, the size is divided by 8
+        
+        # Fully connected layers with symmetrical structure
+        self.fc1 = nn.Linear(64 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Third convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv3(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
 class SimpleCNNModel3(nn.Module):
     def __init__(self, img_x_dim):
         super(SimpleCNNModel3, self).__init__()
@@ -225,6 +653,44 @@ class SimpleCNNModel3(nn.Module):
         
         return x
 
+class SimpleCNNModel2_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel2_FC3, self).__init__()
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layers
+        self.feature_map_size = img_x_dim // 4  # After two pooling layers, the size is divided by 4
+        
+        # Fully connected layers with symmetrical structure
+        self.fc1 = nn.Linear(32 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # First convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Second convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv2(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
 class SimpleCNNModel2(nn.Module):
     def __init__(self, img_x_dim):
         super(SimpleCNNModel2, self).__init__()
@@ -261,6 +727,40 @@ class SimpleCNNModel2(nn.Module):
         
         return x
 
+class SimpleCNNModel1_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(SimpleCNNModel1_FC3, self).__init__()
+        
+        # Convolutional layer
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        
+        # Max pooling layer
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        # Calculate the size of the feature map after the pooling layer
+        self.feature_map_size = img_x_dim // 2  # After one pooling layer, the size is halved
+        
+        # Fully connected layers with symmetrical structure
+        self.fc1 = nn.Linear(16 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer for binary classification
+        
+    def forward(self, x):
+        # Convolutional layer with ReLU and pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        
+        # Flatten the tensor while preserving the batch size
+        x = x.view(x.size(0), -1)  # Flattening
+        
+        # Fully connected layers with ReLU
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
 class SimpleCNNModel1(nn.Module):
     def __init__(self, img_x_dim):
         super(SimpleCNNModel1, self).__init__()
@@ -290,6 +790,32 @@ class SimpleCNNModel1(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        
+        return x
+
+
+class MLP_FC3(nn.Module):
+    def __init__(self, img_x_dim):
+        super(MLP_FC3, self).__init__()
+        
+        # Flatten the image into a vector
+        self.input_size = img_x_dim * img_x_dim  # Flattened image size for grayscale image
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(self.input_size, 256)  # First hidden layer with 256 units
+        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
+        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
+        self.fc4 = nn.Linear(64, 2)  # Output layer (2 classes for binary classification)
+        
+    def forward(self, x):
+        # Flatten the image
+        x = x.view(-1, self.input_size)
+        
+        # Fully connected layers with ReLU activations
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
         
         return x
 
