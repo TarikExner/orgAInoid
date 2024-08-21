@@ -5,7 +5,6 @@ import cv2
 
 from .._utils import ImageHandler
 
-
 def _assemble_file_paths(input_dir: str) -> tuple[list, list]:
     files = [file for file in os.listdir(input_dir)]
     imgs = [
@@ -20,14 +19,22 @@ def _assemble_file_paths(input_dir: str) -> tuple[list, list]:
         and file.endswith(".tif")
         and not file.startswith(".")
     ]
-    
+
     def _get_corresponding_mask(file_name, mask_list):
         unique_id = file_name.split(".tif")[0]
-        corresponding_mask = mask_list[mask_list.index(unique_id + "_mask.tif")]
+        try:
+            corresponding_mask = mask_list[mask_list.index(unique_id + "_mask.tif")]
+        except ValueError:
+            print(f"No mask found for {file_name}.")
+            return None
         assert unique_id in corresponding_mask
         return corresponding_mask
-        
-    matched = {file: _get_corresponding_mask(file, masks) for file in imgs}
+
+    matched = {}
+    for file in imgs:
+        mask = _get_corresponding_mask(file, masks)
+        if mask is not None:
+            matched[file] = mask
     
     matched_imgs = []
     matched_masks = []
@@ -36,6 +43,13 @@ def _assemble_file_paths(input_dir: str) -> tuple[list, list]:
         matched_masks.append(os.path.join(input_dir, mask))
 
     return matched_imgs, matched_masks
+
+def threshold_mask(img) -> np.ndarray:
+    """Thresholds a non-binary image into a binary"""
+    threshold = 0.5
+    img[img >= threshold] = 1
+    img[img < threshold] = 0
+    return img
 
 def assemble_data(target_size: float,
                   input_dir: str,
@@ -59,7 +73,9 @@ def assemble_data(target_size: float,
     for mask_path in masks:
         mask = img_handler.read_image(mask_path)
         mask.preprocess_for_unet(target_size)
-        mask_array.append(mask.unet_preprocessed)
+        mask_img = mask.unet_preprocessed
+        mask_img = threshold_mask(mask_img)
+        mask_array.append(mask_img)
 
     img_array = np.array(img_array)
     mask_array = np.array(mask_array)

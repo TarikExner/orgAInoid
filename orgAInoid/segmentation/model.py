@@ -2,23 +2,36 @@ import torch.nn as nn
 import torch
 from torch.nn.functional import relu
 from torchvision.models.segmentation import deeplabv3_resnet101
-from segmentation_models_pytorch import HRNet
-
+import timm
+import torch.nn.functional as F
+import torchvision
 
 class HRNET(nn.Module):
     def __init__(self, n_class=1, pretrained=True):
         super(HRNET, self).__init__()
         
-        # Load the HRNet model
-        self.model = HRNet(encoder_name="hrnet_w18",      # choose any HRNet variant
-                           encoder_weights="imagenet" if pretrained else None, 
-                           classes=n_class, 
-                           activation=None)  # No activation, we'll handle that in loss
+        # Load HRNet backbone from timm
+        self.backbone = timm.create_model('hrnet_w18', pretrained=pretrained, features_only=True)
         
-    def forward(self, x):
-        # Forward pass through the model
-        return self.model(x)
+        # Define a simple segmentation head
+        self.segmentation_head = nn.Sequential(
+            nn.Conv2d(self.backbone.feature_info[-1]['num_chs'], 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, n_class, kernel_size=1)
+        )
     
+    def forward(self, x):
+        # Extract features using the backbone
+        features = self.backbone(x)[-1]
+        
+        # Apply segmentation head
+        out = self.segmentation_head(features)
+        
+        # Upsample the output to match the input size
+        out = F.interpolate(out, size=x.shape[2:], mode='bilinear', align_corners=False)
+        
+        return out
+
     def save_model(self, path):
         torch.save(self.state_dict(), path)
 
@@ -26,13 +39,17 @@ class HRNET(nn.Module):
         self.load_state_dict(torch.load(path))
         self.eval()  # Set model to evaluation mode after loading
 
-
 class DEEPLABV3(nn.Module):
     def __init__(self, n_class=1, pretrained=True):
         super(DEEPLABV3, self).__init__()
         
         # Load the pre-trained DeepLabv3 model with a ResNet-101 backbone
-        self.model = deeplabv3_resnet101(pretrained=pretrained)
+        if pretrained:
+            weights = torchvision.models.segmentation.DeepLabV3_ResNet101_Weights.DEFAULT
+        else:
+            weights = None
+
+        self.model = torchvision.models.segmentation.deeplabv3_resnet101(weights=weights)
         
         # Modify the classifier to output the required number of classes
         self.model.classifier[4] = nn.Conv2d(256, n_class, kernel_size=(1, 1), stride=(1, 1))
@@ -40,13 +57,6 @@ class DEEPLABV3(nn.Module):
     def forward(self, x):
         # Forward pass through the model
         return self.model(x)['out']
-    
-    def save_model(self, path):
-        torch.save(self.state_dict(), path)
-
-    def load_model(self, path):
-        self.load_state_dict(torch.load(path))
-        self.eval()  # Set model to evaluation mode after loading
 
 
 class UNet(nn.Module):

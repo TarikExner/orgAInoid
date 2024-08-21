@@ -133,12 +133,14 @@ class OrganoidImage:
     def __init__(self,
                  path: str):
         self.img = self._read_image(path)
-        self.bitdepth = 8 * self.img.itemsize
+        
 
     def _read_image(self,
                     path: PathLike) -> np.ndarray:
         """Reads an image from disk and returns it with its original bitdepth"""
-        return cv2.imread(path, -1)
+        img = cv2.imread(path, -1)
+        self.bitdepth = 8 * img.itemsize
+        return img.astype(np.float32)
 
     def _normalize_image(self,
                          img: np.ndarray,
@@ -167,7 +169,9 @@ class OrganoidImage:
                    target_size: float):
         binning_factor = int(self.img.shape[0] / target_size)
         self.img = self._bin_image(self.img, binning_factor)
-
+        
+        if isinstance(self, OrganoidMask):
+            self.threshold_mask()
 
     def _bin_image(self,
                    img: np.ndarray,
@@ -189,8 +193,7 @@ class OrganoidImage:
             for j in range(new_width):
                 binned_image[i, j] = np.mean(img[i*bin_size:(i+1)*bin_size, j*bin_size:(j+1)*bin_size])
 
-        if isinstance(self, OrganoidMask):
-            binned_image[binned_image < 0.5] = 0
+
 
         return binned_image
 

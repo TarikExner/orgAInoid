@@ -27,7 +27,6 @@ def get_augmentation_pipeline(image_size):
         
         # Apply image-specific augmentations (only to images)
         A.OneOf([
-            A.GaussNoise(p=0.2),  # Add Gaussian noise (mild)
             A.OneOf([
                 A.MotionBlur(p=0.2),
                 A.MedianBlur(blur_limit=3, p=0.1),
@@ -76,6 +75,8 @@ class SegmentationDataset(Dataset):
         if self.model_type != 'UNet':
             image = image.repeat(3, 1, 1)  # Repeat the single channel to create an RGB image
 
+        mask = mask.unsqueeze(0)
+
         return image, mask
 
 
@@ -84,6 +85,7 @@ def _run_segmentation_train_loop(dataset_dir: str,
                                  batch_size: int,
                                  model: Union[UNet, DEEPLABV3, HRNET],
                                  sub_batch_size: int = 4,
+                                 init_lr = 0.001,
                                  score_output_dir: str = "./results",
                                  model_output_dir: str = "./segmentators"):
 
@@ -121,11 +123,13 @@ def _run_segmentation_train_loop(dataset_dir: str,
                                                   image_size = image_size,
                                                   batch_size = batch_size,
                                                   model_name = model.__class__.__name__)
-    init_lr = 0.001
+
     n_epochs = 200
     batch_size = batch_size
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    model.to(device)
 
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr = init_lr)
@@ -238,7 +242,8 @@ def create_dataloaders(dataset_dir: str,
         shuffle = True,
     	batch_size = batch_size,
         pin_memory = pin_memory,
-    	num_workers = 1
+    	num_workers = 1,
+        drop_last = True if model_name == "DEEPLABV3" else False
     )
     val_dataloader = DataLoader(
         test_dataset,
