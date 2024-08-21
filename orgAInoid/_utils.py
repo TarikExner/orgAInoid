@@ -152,7 +152,7 @@ class OrganoidImage:
                        img: np.ndarray,
                        mask_array: Optional[np.ndarray] = None) -> np.ndarray:
         """Applies MinMaxScaling"""
-        if not mask_array:
+        if mask_array is None:
             min_val = img.min()
             max_val = img.max()
             return (img - min_val) / (max_val - min_val)
