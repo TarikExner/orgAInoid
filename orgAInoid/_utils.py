@@ -233,7 +233,7 @@ class OrganoidMask(OrganoidImage):
 
     def polynomial_upsample(self,
                             target_size: float,
-                            order: int = 3) -> None:
+                            order: int = 1) -> None:
         current_size = self.img.shape[0]
         upsample_factor = int(target_size / current_size)
         self.img = zoom(self.img, upsample_factor, order=order)

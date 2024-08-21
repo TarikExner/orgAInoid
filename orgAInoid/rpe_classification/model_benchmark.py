@@ -164,7 +164,10 @@ def hyperparameter_model_search(experiment_id: str,
     dataset = read_classification_dataset(f"./raw_data/{experiment_id}.cds")
     X_train, y_train, X_test, y_test = dataset.X_train, dataset.y_train, dataset.X_test, dataset.y_test
     
-    models = [SimpleCNNModel6, SimpleCNNModel7, SimpleCNNModel8]
+    models = [
+        MLP, SimpleCNNModel1, SimpleCNNModel2, SimpleCNNModel3, SimpleCNNModel4,
+        SimpleCNNModel5, SimpleCNNModel6, SimpleCNNModel7, SimpleCNNModel8
+    ]
     
     # Learning rates to compare
     learning_rates = [0.01, 0.003, 0.001, 0.0003]
