@@ -196,10 +196,33 @@ class OrganoidClassificationDataset:
         combinations_df = pd.DataFrame(combinations, columns=columns)
         return df.merge(combinations_df, on=columns, how='inner')
 
+    def _save_metadata(self, output_dir: PathLike):
+        """Save the metadata to a central JSON file."""
+        metadata = self._create_metadata()
+
+        metadata_file = Path(output_dir) / "datasets_metadata.json"
+
+        # Load existing metadata
+        if metadata_file.exists():
+            with open(metadata_file, 'r') as f:
+                all_metadata = json.load(f)
+        else:
+            all_metadata = {}
+
+        # Check if the dataset_id already exists
+        if metadata.get("dataset_id") in all_metadata:
+            raise ValueError(f"Dataset with ID {self.dataset_id} already exists in metadata.")
+
+        # Add new metadata entry under the dataset_id key
+        all_metadata[self.dataset_id] = metadata
+
+        # Write the updated metadata back to the JSON file
+        with open(metadata_file, 'w') as f:
+            json.dump(all_metadata, f, indent=4)
+
     def _create_metadata(self) -> dict:
         """Create a dictionary containing the metadata of the dataset."""
         metadata = {
-            "dataset_id": self.dataset_id,
             "start_timepoint": self.start_timepoint,
             "stop_timepoint": self.stop_timepoint,
             "slices": self.slices,
@@ -211,28 +234,6 @@ class OrganoidClassificationDataset:
             "n_test_images": self.n_test_images,
         }
         return metadata
-
-    def _save_metadata(self, output_dir: PathLike):
-        """Save the metadata to a central JSON file."""
-        metadata = self._create_metadata()
-
-        metadata_file = Path(output_dir) / "datasets_metadata.json"
-        
-        # Load existing metadata
-        if metadata_file.exists():
-            with open(metadata_file, 'r') as f:
-                all_metadata = json.load(f)
-        else:
-            all_metadata = []
-
-        # Check if the dataset_id already exists
-        if any(entry["dataset_id"] == self.dataset_id for entry in all_metadata):
-            raise ValueError(f"Dataset with ID {self.dataset_id} already exists in metadata.")
-
-        # Append new metadata and save
-        all_metadata.append(metadata)
-        with open(metadata_file, 'w') as f:
-            json.dump(all_metadata, f, indent=4)
 
     def save(self, output_dir: PathLike):
         """Save the dataset and its metadata to disk."""
