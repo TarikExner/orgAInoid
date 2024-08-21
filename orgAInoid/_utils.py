@@ -149,11 +149,21 @@ class OrganoidImage:
         return img / float(2**bitdepth)
 
     def _min_max_scale(self,
-                       img: np.ndarray) -> np.ndarray:
+                       img: np.ndarray,
+                       mask_array: Optional[np.ndarray] = None) -> np.ndarray:
         """Applies MinMaxScaling"""
-        min_val = img.min()
-        max_val = img.max()
-        return (img - min_val) / (max_val - min_val)
+        if not mask_array:
+            min_val = img.min()
+            max_val = img.max()
+            return (img - min_val) / (max_val - min_val)
+        else:
+            mask_array = mask_array.astype(bool)
+            non_masked_pixels = img[mask_array]
+            min_val = non_masked_pixels.min()
+            max_val = non_masked_pixels.max()
+            img_rescaled = img.copy()
+            img_rescaled[mask_array] = (img_rescaled[mask_array] - min_val) / (max_val - min_val)
+            return img_rescaled
 
     def preprocess_for_unet(self,
                             unet_input_size: int) -> None:
@@ -450,7 +460,7 @@ class ImageHandler:
         if normalized:
             img.img = img._normalize_image(img.img, bitdepth = 16)
         if scaled:
-            img.img = img._min_max_scale(img.img)
+            img.img = img._min_max_scale(img.img, mask_array = mask.img)
         
         return img
 
