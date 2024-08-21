@@ -241,10 +241,10 @@ class OrganoidMask(OrganoidImage):
 
     def clean_mask(self,
                    min_size_perc: float = 5):
-        min_size = self.img.shape[0]**2 * (min_size_perc / 100)
+        min_size = int(self.img.shape[0]**2 * (min_size_perc / 100))
         label_objects, num_labels = skimage.measure.label(
             self.img,
-            background = 0,
+            background = [0],
             return_num = True
         )
         if num_labels > 1:
@@ -254,8 +254,8 @@ class OrganoidMask(OrganoidImage):
 
             label_objects, num_labels = skimage.measure.label(
                 mask,
-                background=0,
-                return_num=True
+                background = [0],
+                return_num = True
             )
 
             if num_labels == 0:
@@ -412,7 +412,7 @@ class ImageHandler:
     def create_mask_from_image(self,
                                img: OrganoidImage,
                                clean: bool = True,
-                               min_size_perc: float = 5) -> OrganoidMask:
+                               min_size_perc: float = 10) -> OrganoidMask:
 
         img.preprocess_for_unet(self.unet_input_size)
         

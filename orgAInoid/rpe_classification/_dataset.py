@@ -89,6 +89,7 @@ class OrganoidClassificationDataset:
             EDIT: For now, we will treat both images as valid input for the UNET.
 
         """
+        n_failed_images = 0
 
         images = []
         labels = []
@@ -131,6 +132,7 @@ class OrganoidClassificationDataset:
                     images.append(np.array(loop_images))
                     labels.append(loop_label[0])
                 else:
+                    n_failed_images += 1
                     print(f"Dataset creation: skipping images {image_paths}")
 
         images = np.array(images)
@@ -141,8 +143,9 @@ class OrganoidClassificationDataset:
 
         labels = self._one_hot_encode_labels(labels)
 
-        return images, labels
+        print(f"In total, {n_failed_images} images were skipped.")
 
+        return images, labels
 
     def _one_hot_encode_labels(self,
                                labels_array: np.ndarray) -> np.ndarray:
