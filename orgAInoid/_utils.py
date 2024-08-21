@@ -244,7 +244,7 @@ class OrganoidMask(OrganoidImage):
         min_size = int(self.img.shape[0]**2 * (min_size_perc / 100))
         label_objects, num_labels = skimage.measure.label(
             self.img,
-            background = [0],
+            background = 0,
             return_num = True
         )
         if num_labels > 1:
@@ -254,7 +254,7 @@ class OrganoidMask(OrganoidImage):
 
             label_objects, num_labels = skimage.measure.label(
                 mask,
-                background = [0],
+                background = 0,
                 return_num = True
             )
 
