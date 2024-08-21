@@ -286,6 +286,119 @@ class ImageHandler:
             self.unet: UNetPredictor = UNetPredictor(unet_input_dir, unet_input_size)
         self.target_size = target_image_size
 
+    def crop_to_mask_bounding_box(self,
+                                  mask: OrganoidMask,
+                                  img: OrganoidImage,
+                                  rescale=True,
+                                  crop_size=None) -> tuple[OrganoidImage, OrganoidMask]:
+        """
+        Processes the image and mask based on the given parameters.
+        
+        If `flexible` is True, it calculates the bounding box of the ROI, makes it square,
+        adds 10 pixels padding to each side, and resizes the image to 224x224.
+        
+        If `flexible` is False, it asserts that `crop_size` is provided, pads the bounding box
+        to match the specified `crop_size`, and resizes the image to 224x224.
+        
+        Parameters:
+        - mask: OrganoidMask, an object containing the binary mask image.
+        - img: Image object, the corresponding image to be processed.
+        - flexible: bool, whether to use the flexible padding method or the fixed crop size method.
+        - crop_size: int, the desired size of the square crop if `flexible` is False.
+        
+        Returns:
+        - img: Processed image object with the resized image.
+        - mask: Processed mask with the resized mask.
+        """
+        
+        # Find the coordinates of the bounding box of the ROI in the mask
+        rows = np.any(mask.img, axis=1)
+        cols = np.any(mask.img, axis=0)
+        y_min, y_max = np.where(rows)[0][[0, -1]]
+        x_min, x_max = np.where(cols)[0][[0, -1]]
+
+        # Calculate the width and height of the bounding box
+        width = x_max - x_min
+        height = y_max - y_min
+
+        if rescale:
+            # Rescale mode: Pad 10 pixels to each side and rescale
+            
+            # Make the bounding box square by expanding the shorter dimension
+            if width > height:
+                pad = (width - height) // 2
+                y_min = max(0, y_min - pad)
+                y_max = min(mask.img.shape[0], y_max + pad)
+            else:
+                pad = (height - width) // 2
+                x_min = max(0, x_min - pad)
+                x_max = min(mask.img.shape[1], x_max + pad)
+
+            # Add 10 pixels in each direction, while keeping within image bounds
+            x_min = max(0, x_min - 10)
+            x_max = min(mask.img.shape[1], x_max + 10)
+            y_min = max(0, y_min - 10)
+            y_max = min(mask.img.shape[0], y_max + 10)
+
+            # Crop the image and the mask to the bounding box
+            img_cropped = img.img[y_min:y_max, x_min:x_max]
+            mask_cropped = mask.img[y_min:y_max, x_min:x_max]
+
+        else:
+            # Fixed crop size mode: Assert crop_size is provided and pad to match crop_size
+            assert crop_size is not None, "crop_size must be provided when flexible is False"
+            
+            # Calculate padding required to reach the desired crop size
+            pad_x = max(0, (crop_size - width) // 2)
+            pad_y = max(0, (crop_size - height) // 2)
+
+            # Ensure the padding does not exceed the image boundaries
+            x_min = max(0, x_min - pad_x)
+            x_max = min(mask.img.shape[1], x_max + pad_x)
+            y_min = max(0, y_min - pad_y)
+            y_max = min(mask.img.shape[0], y_max + pad_y)
+
+            # If the cropped area is smaller than the desired size, pad the difference
+            top_pad = (crop_size - (y_max - y_min)) // 2
+            bottom_pad = crop_size - (y_max - y_min) - top_pad
+            left_pad = (crop_size - (x_max - x_min)) // 2
+            right_pad = crop_size - (x_max - x_min) - left_pad
+
+            # Apply padding to make the cropped area the desired size
+            img_cropped = img.img[y_min:y_max, x_min:x_max].copy()
+            mask_cropped = mask.img[y_min:y_max, x_min:x_max].copy()
+            
+            padding_kwargs = {
+                "top": top_pad,
+                "bottom": bottom_pad,
+                "left": left_pad,
+                "right": right_pad,
+                "borderType": cv2.BORDER_CONSTANT,
+                "value": [0]
+            }
+            img_padded = cv2.copyMakeBorder(
+                img_cropped,
+                **padding_kwargs
+            )
+            mask_padded = cv2.copyMakeBorder(
+                mask_cropped,
+                **padding_kwargs
+            )
+
+            # Update img_cropped and mask_cropped with padded versions
+            img_cropped, mask_cropped = img_padded, mask_padded
+        
+
+        # Resize the cropped image to 224x224 using appropriate interpolation
+        img_resized = cv2.resize(img_cropped, (224, 224), interpolation=cv2.INTER_AREA)
+        mask_resized = cv2.resize(mask_cropped, (224, 224), interpolation=cv2.INTER_NEAREST)
+
+        # Update the original image and mask
+        img.img = img_resized
+        mask.img = mask_resized
+
+        return img, mask
+
     def create_mask_from_image(self,
                                img: OrganoidImage,
                                clean: bool = True,
@@ -305,11 +418,15 @@ class ImageHandler:
             mask.clean_mask(min_size_perc)
 
         assert mask.img.shape == (self.target_size, self.target_size)
+        assert np.max(mask.img) == 1
+        assert np.min(mask.img) == 0
 
         return mask
 
     def get_masked_image(self,
                          img: OrganoidImage,
+                         rescale: bool = True,
+                         crop_size: Optional[int] = None,
                          normalized: bool = False,
                          scaled: bool = True) -> Optional[OrganoidImage]:
 
@@ -322,16 +439,16 @@ class ImageHandler:
         
         img.downsample(self.target_size)
 
+        assert mask.img.shape == img.img.shape
+
+        img, mask = self.crop_to_mask_bounding_box(mask, img, rescale = rescale, crop_size = crop_size)
+
+        img.img = img.img * mask.img
+
         if normalized:
             img.img = img._normalize_image(img.img, bitdepth = 16)
         if scaled:
             img.img = img._min_max_scale(img.img)
-
-        assert mask.img.shape == img.img.shape
-        assert np.max(mask.img) == 1
-        assert np.min(mask.img) == 0
-
-        img.img = img.img * mask.img
         
         return img
 

@@ -44,9 +44,11 @@ class OrganoidClassificationDataset:
         self.start_timepoint = start_timepoint
         self.stop_timepoint = stop_timepoint
         self.image_dimension = image_size
-        self.img_handler = ImageHandler(target_image_size = self.image_dimension,
-                                        unet_input_dir = unet_dir,
-                                        unet_input_size = unet_input_size)
+        self.img_handler = ImageHandler(
+            target_image_size = self.image_dimension,
+            unet_input_dir = unet_dir,
+            unet_input_size = unet_input_size
+        )
 
         self.train_df, self.test_df = self._train_test_split_dataframe(
             file_frame = file_frame,
