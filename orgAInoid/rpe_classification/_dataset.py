@@ -2,13 +2,17 @@ import os
 from os import PathLike
 import numpy as np
 import pandas as pd
-from typing import Optional
 import pickle
+from pathlib import Path
+import json
+from typing import Optional
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 from .._utils import ImageHandler
+
+
 
 class OrganoidClassificationDataset:
     """\
@@ -21,6 +25,10 @@ class OrganoidClassificationDataset:
     slices: list[str]
     image_dimension: int
 
+    cropped_bbox: bool
+    rescale_cropped_image: bool
+    crop_size: Optional[int]
+
     train_wells: Optional[np.ndarray] = None
     test_wells: Optional[np.ndarray] = None
 
@@ -29,6 +37,9 @@ class OrganoidClassificationDataset:
     X_test: Optional[np.ndarray] = None
     y_test: Optional[np.ndarray] = None
 
+    n_train_images: int
+    n_test_images: int
+
     def __init__(self,
                  dataset_id: str,
                  file_frame: pd.DataFrame,
@@ -36,6 +47,9 @@ class OrganoidClassificationDataset:
                  stop_timepoint: int,
                  slices: list[str],
                  image_size: int,
+                 crop_bbox: bool,
+                 rescale_cropped_image: bool,
+                 crop_size: Optional[int],
                  unet_dir: str,
                  unet_input_size: int,
                  experiment_dir: PathLike):
@@ -49,6 +63,9 @@ class OrganoidClassificationDataset:
             unet_input_dir = unet_dir,
             unet_input_size = unet_input_size
         )
+        self.cropped_bbox = crop_bbox
+        self.rescale_cropped_image = rescale_cropped_image
+        self.crop_size = crop_size
 
         self.train_df, self.test_df = self._train_test_split_dataframe(
             file_frame = file_frame,
@@ -59,6 +76,8 @@ class OrganoidClassificationDataset:
     def create_datasets(self):
         self.X_train, self.y_train = self._prepare_classification_data(df = self.train_df)
         self.X_test, self.y_test = self._prepare_classification_data(df = self.test_df)
+        self.n_train_images = self.X_train.shape[0]
+        self.n_test_images = self.X_test.shape[0]
 
     def _prepare_classification_data(self,
                                      df: pd.DataFrame,
@@ -98,7 +117,10 @@ class OrganoidClassificationDataset:
                     image = self.img_handler.read_image(path)
                     masked_image = self.img_handler.get_masked_image(image,
                                                                      normalized = True,
-                                                                     scaled = True)
+                                                                     scaled = True,
+                                                                     crop_bounding_box = self.cropped_bbox,
+                                                                     rescale = self.rescale_cropped_image,
+                                                                     crop_size = self.crop_size)
                     if masked_image is not None:
                         loop_images.append(masked_image.img)
                     else:
@@ -174,10 +196,53 @@ class OrganoidClassificationDataset:
         combinations_df = pd.DataFrame(combinations, columns=columns)
         return df.merge(combinations_df, on=columns, how='inner')
 
-    def save(self,
-             output_dir: PathLike):
+    def _create_metadata(self) -> dict:
+        """Create a dictionary containing the metadata of the dataset."""
+        metadata = {
+            "dataset_id": self.dataset_id,
+            "start_timepoint": self.start_timepoint,
+            "stop_timepoint": self.stop_timepoint,
+            "slices": self.slices,
+            "image_dimension": self.image_dimension,
+            "cropped_bbox": self.cropped_bbox,
+            "rescale_cropped_image": self.rescale_cropped_image,
+            "crop_size": self.crop_size,
+            "n_train_images": self.n_train_images,
+            "n_test_images": self.n_test_images,
+        }
+        return metadata
+
+    def _save_metadata(self, output_dir: PathLike):
+        """Save the metadata to a central JSON file."""
+        metadata = self._create_metadata()
+
+        metadata_file = Path(output_dir) / "datasets_metadata.json"
+        
+        # Load existing metadata
+        if metadata_file.exists():
+            with open(metadata_file, 'r') as f:
+                all_metadata = json.load(f)
+        else:
+            all_metadata = []
+
+        # Check if the dataset_id already exists
+        if any(entry["dataset_id"] == self.dataset_id for entry in all_metadata):
+            raise ValueError(f"Dataset with ID {self.dataset_id} already exists in metadata.")
+
+        # Append new metadata and save
+        all_metadata.append(metadata)
+        with open(metadata_file, 'w') as f:
+            json.dump(all_metadata, f, indent=4)
+
+    def save(self, output_dir: PathLike):
+        """Save the dataset and its metadata to disk."""
+        # Save the dataset itself
         with open(os.path.join(output_dir, f"{self.dataset_id}.cds"), "wb") as file:
             pickle.dump(self, file)
+
+        # Save the metadata
+        self._save_metadata(output_dir)
+
 
 
 def read_classification_dataset(file_name) -> OrganoidClassificationDataset:
