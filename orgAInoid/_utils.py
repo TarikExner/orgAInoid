@@ -425,6 +425,7 @@ class ImageHandler:
 
     def get_masked_image(self,
                          img: OrganoidImage,
+                         crop_bounding_box: bool = True,
                          rescale: bool = True,
                          crop_size: Optional[int] = None,
                          normalized: bool = False,
@@ -440,8 +441,9 @@ class ImageHandler:
         img.downsample(self.target_size)
 
         assert mask.img.shape == img.img.shape
-
-        img, mask = self.crop_to_mask_bounding_box(mask, img, rescale = rescale, crop_size = crop_size)
+        
+        if crop_bounding_box:
+            img, mask = self.crop_to_mask_bounding_box(mask, img, rescale = rescale, crop_size = crop_size)
 
         img.img = img.img * mask.img
 
