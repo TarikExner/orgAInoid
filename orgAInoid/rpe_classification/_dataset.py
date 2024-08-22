@@ -113,13 +113,13 @@ class OrganoidClassificationDataset:
 
             start = time.time()
 
-            well = df[
+            well_df = df[
                 (df["experiment"] == experiment) &
                 (df["well"] == well)
             ].copy()
 
             # we loop through the timepoints in order to capture all slices
-            for loop in well["loop"].unique():
+            for loop in well_df["loop"].unique():
 
                 loop_data = well[well["loop"] == loop].copy()
 
