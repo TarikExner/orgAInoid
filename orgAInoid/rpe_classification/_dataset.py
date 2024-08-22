@@ -121,7 +121,7 @@ class OrganoidClassificationDataset:
             # we loop through the timepoints in order to capture all slices
             for loop in well_df["loop"].unique():
 
-                loop_data = well[well["loop"] == loop].copy()
+                loop_data = well_df[well_df["loop"] == loop].copy()
 
                 loop_label = list(set(loop_data["RPE"].tolist()))
 
