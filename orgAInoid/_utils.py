@@ -176,13 +176,16 @@ class OrganoidImage:
         self.unet_preprocessed = img
 
     def downsample(self,
-                   target_size: float):
-        binning_factor = int(self.img.shape[0] / target_size)
-        self.img = self._bin_image(self.img, binning_factor)
-        
+                   target_size: int):
+        # binning_factor = int(self.img.shape[0] / target_size)
+        # self.img = self._bin_image(self.img, binning_factor)
         if isinstance(self, OrganoidMask):
-            self.threshold_mask()
+            self.img = cv2.resize(self.img, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
 
+            self.threshold_mask()
+        else:
+            self.img = cv2.resize(self.img, (target_size, target_size), interpolation=cv2.INTER_AREA)
+        
     def _bin_image(self,
                    img: np.ndarray,
                    bin_size: int) -> np.ndarray:
@@ -202,8 +205,6 @@ class OrganoidImage:
         for i in range(new_height):
             for j in range(new_width):
                 binned_image[i, j] = np.mean(img[i*bin_size:(i+1)*bin_size, j*bin_size:(j+1)*bin_size])
-
-
 
         return binned_image
 
