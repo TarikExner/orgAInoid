@@ -82,7 +82,7 @@ def train_transformations(image_size: int = 224) -> A.Compose:
         A.RandomRotate90(p=0.5),  # Random 90-degree rotation
         A.Rotate(limit=120, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
         A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),  # Shift and scale (rotation already handled)
-        A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1.2), p=0.5),  # Resized crop
+        A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1), p=0.5),  # Resized crop
         
         # Apply intensity modifications only to non-masked pixels
         CustomIntensityAdjustment(p=0.5),
