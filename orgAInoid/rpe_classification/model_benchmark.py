@@ -43,7 +43,7 @@ def hyperparameter_model_search(experiment_id: str,
 
     if test_mode is True:
         learning_rates = [0.003, 0.001]
-        batch_sizes = [64]
+        batch_sizes = [32]
         num_epochs = 20
 
     
