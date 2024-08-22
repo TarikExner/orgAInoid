@@ -84,8 +84,8 @@ def train_transformations(image_size: int = 224) -> A.Compose:
         A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),  # Shift and scale (rotation already handled)
         A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1), p=0.5),  # Resized crop
         
-        # Apply intensity modifications only to non-masked pixels
-        CustomIntensityAdjustment(p=0.5),
+        # # Apply intensity modifications only to non-masked pixels
+        # CustomIntensityAdjustment(p=0.5),
 
         # Normalization
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),

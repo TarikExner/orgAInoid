@@ -52,7 +52,8 @@ def hyperparameter_model_search(experiment_id: str,
 
     # Initialize the CSV file with headers
     output_file = os.path.join(output_dir, f"{experiment_id}.txt")
-    with open(output_file, "w") as file:
+    mode = "w" if not os.path.isfile(output_file) else "a"
+    with open(output_file, mode) as file:
         file.write(
             "ExperimentID,Model,LearningRate,"
             "BatchSize,Epoch,TrainLoss,ValLoss,"
