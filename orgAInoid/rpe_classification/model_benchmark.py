@@ -44,7 +44,7 @@ def hyperparameter_model_search(experiment_id: str,
     if test_mode is True:
         learning_rates = [0.001]
         batch_sizes = [64]
-        num_epochs = 1
+        num_epochs = 5
 
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -57,8 +57,7 @@ def hyperparameter_model_search(experiment_id: str,
             "ExperimentID,Model,LearningRate,"
             "BatchSize,Epoch,TrainLoss,ValLoss,"
             "TrainAccuracy,ValAccuracy,TrainF1,ValF1,"
-            "DatasetID,TimePoints,CroppedBbox,RescaledBBox,"
-            "BBoxCrop,BBoxRescale\n"
+            "DatasetID,TimePoints,CroppedBbox,RescaledBBox\n"
         )
     
     # Main loop to iterate over models, learning rates, and transformations
@@ -154,7 +153,7 @@ def hyperparameter_model_search(experiment_id: str,
                             f"{batch_size},{epoch+1},{train_loss},{val_loss},"
                             f"{train_acc},{val_acc},{train_f1},{val_f1},"
                             f"{dataset_id},{start_timepoint}-{stop_timepoint},"
-                            f"{bbox_cropped},{bbox_rescaling}\n"
+                            f"{str(bbox_cropped)},{str(bbox_rescaling)}\n"
                         )
 
         model_stop = time.time()
