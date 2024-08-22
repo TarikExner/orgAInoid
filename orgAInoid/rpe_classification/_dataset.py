@@ -149,7 +149,7 @@ class OrganoidClassificationDataset:
                     labels.append(loop_label[0])
                 else:
                     n_failed_images += 1
-                    print(f"Dataset creation: skipping images {image_paths}")
+                    print(f"Dataset creation: skipping images {experiment}: {well}")
 
         images = np.array(images)
         labels = np.array(labels)
@@ -159,7 +159,7 @@ class OrganoidClassificationDataset:
 
         labels = self._one_hot_encode_labels(labels)
 
-        print(f"In total, {n_failed_images} images were skipped.")
+        print(f"In total, {n_failed_images}/{images.shape[0]} images were skipped.")
 
         return images, labels
 
