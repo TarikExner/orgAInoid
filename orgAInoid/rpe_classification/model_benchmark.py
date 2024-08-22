@@ -15,6 +15,9 @@ def hyperparameter_model_search(experiment_id: str,
                                 output_dir = "./results",
                                 dataset_input_dir = "./raw_data",
                                 test_mode: bool = False) -> None:
+
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
     
     dataset = read_classification_dataset(
         os.path.join(dataset_input_dir, f"{dataset_id}.cds")
