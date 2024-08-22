@@ -2,6 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+from torchvision.models import (ResNet50_Weights,
+                                VGG16_BN_Weights,
+                                DenseNet121_Weights,
+                                MobileNet_V3_Large_Weights)
 
 
 class ResNet50(nn.Module):
@@ -9,7 +13,7 @@ class ResNet50(nn.Module):
         super(ResNet50, self).__init__()
         
         # Load the pre-trained ResNet50 model
-        self.resnet50 = models.resnet50(pretrained=True)
+        self.resnet50 = models.resnet50(weights=ResNet50_Weights.DEFAULT)
         
         # Modify the final fully connected layer to match the number of output classes
         self.resnet50.fc = nn.Linear(in_features=2048, out_features=num_classes)
@@ -32,7 +36,7 @@ class VGG16_BN(nn.Module):
         super(VGG16_BN, self).__init__()
         
         # Load the pre-trained VGG16_BN model
-        self.vgg16_bn = models.vgg16_bn(pretrained=True)
+        self.vgg16_bn = models.vgg16_bn(weights=VGG16_BN_Weights.DEFAULT)
         
         # Modify the classifier to match the number of output classes
         self.vgg16_bn.classifier[6] = nn.Linear(in_features=4096, out_features=num_classes)
@@ -55,7 +59,7 @@ class DenseNet121(nn.Module):
         super(DenseNet121, self).__init__()
         
         # Load the pre-trained DenseNet121 model
-        self.densenet121 = models.densenet121(pretrained=True)
+        self.densenet121 = models.densenet121(weights=DenseNet121_Weights.DEFAULT)
         
         # Modify the final fully connected layer to match the number of output classes
         self.densenet121.classifier = nn.Linear(in_features=1024, out_features=num_classes)
@@ -101,7 +105,7 @@ class MobileNetV3_Large(nn.Module):
         super(MobileNetV3_Large, self).__init__()
         
         # Load the pre-trained MobileNetV3-Large model
-        self.mobilenet_v3_large = models.mobilenet_v3_large(pretrained=True)
+        self.mobilenet_v3_large = models.mobilenet_v3_large(weights=MobileNet_V3_Large_Weights.DEFAULT)
         
         # Modify the final classifier to match the number of output classes
         self.mobilenet_v3_large.classifier[3] = nn.Linear(in_features=1280, out_features=num_classes)
