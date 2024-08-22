@@ -42,9 +42,9 @@ def hyperparameter_model_search(experiment_id: str,
     num_epochs = 100
 
     if test_mode is True:
-        learning_rates = [0.001]
+        learning_rates = [0.003, 0.001]
         batch_sizes = [64]
-        num_epochs = 5
+        num_epochs = 20
 
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
