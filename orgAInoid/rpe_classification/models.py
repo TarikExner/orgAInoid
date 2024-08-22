@@ -988,7 +988,7 @@ class MLP_FC3(nn.Module):
         
     def forward(self, x):
         # Flatten the image
-        x = x.view(-1, self.input_size)
+        x = x.view(x.size, -1)
         
         # Fully connected layers with ReLU activations
         x = F.relu(self.fc1(x))
@@ -1018,7 +1018,7 @@ class MLP(nn.Module):
         
     def forward(self, x):
         # Flatten the image
-        x = x.view(-1, self.input_size)
+        x = x.view(x.size, -1)
         
         # Fully connected layers with ReLU activations
         x = F.relu(self.fc1(x))
