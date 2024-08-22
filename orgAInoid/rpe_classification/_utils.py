@@ -64,7 +64,18 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         
         return img
 
-def classification_transformations(image_size: int = 224):
+def val_transformations() -> A.Compose:
+    return A.Compose([
+
+        # Normalization
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+
+        # Convert to PyTorch tensor
+        ToTensorV2()
+    ])
+
+
+def train_transformations(image_size: int = 224) -> A.Compose:
     return A.Compose([
         A.HorizontalFlip(p=0.5),  # Random horizontal flip
         A.VerticalFlip(p=0.5),    # Random vertical flip
@@ -85,13 +96,14 @@ def classification_transformations(image_size: int = 224):
 
 def create_dataset(img_array: np.ndarray,
                    class_array: np.ndarray,
-                   transformations: A.Compose) -> ClassificationDataset:
+                   transformations) -> ClassificationDataset:
     return ClassificationDataset(img_array, class_array, transformations)
 
 def create_dataloader(img_array: np.ndarray,
                       class_array: np.ndarray,
                       batch_size: int,
-                      shuffle: bool) -> DataLoader:
-    transformations = classification_transformations()
+                      shuffle: bool,
+                      train: bool) -> DataLoader:
+    transformations = train_transformations() if train else val_transformations
     dataset = create_dataset(img_array, class_array, transformations)
     return DataLoader(dataset, batch_size = batch_size, shuffle = shuffle)
