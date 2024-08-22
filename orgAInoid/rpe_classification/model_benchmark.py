@@ -12,9 +12,13 @@ from ._dataset import read_classification_dataset
 def hyperparameter_model_search(experiment_id: str,
                                 dataset_id: str,
                                 models: list,
-                                output_dir = "./results"):
+                                output_dir = "./results",
+                                dataset_input_dir = "./raw_data",
+                                test_mode: bool = False) -> None:
     
-    dataset = read_classification_dataset(f"./raw_data/{dataset_id}.cds")
+    dataset = read_classification_dataset(
+        os.path.join(dataset_input_dir, f"{dataset_id}.cds")
+    )
     start_timepoint = dataset.start_timepoint
     stop_timepoint = dataset.stop_timepoint
     bbox_cropped = dataset.cropped_bbox
@@ -33,6 +37,12 @@ def hyperparameter_model_search(experiment_id: str,
     
     # Number of epochs
     num_epochs = 100
+
+    if test_mode is True:
+        learning_rates = [0.001]
+        batch_sizes = [64]
+        num_epochs = 1
+
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
