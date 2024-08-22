@@ -9,7 +9,7 @@ from typing import Optional
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-
+import time
 from .._utils import ImageHandler
 
 
@@ -81,7 +81,8 @@ class OrganoidClassificationDataset:
 
     def _prepare_classification_data(self,
                                      df: pd.DataFrame,
-                                     slice_to_mask: str = "SL003") -> tuple[np.ndarray, np.ndarray]:
+                                     slice_to_mask: str = "SL003",
+                                     train_set: bool = True) -> tuple[np.ndarray, np.ndarray]:
         """\
 
         slice_to_mask
@@ -96,9 +97,21 @@ class OrganoidClassificationDataset:
 
         unique_experiment_well_combo = self._get_unique_experiment_well_combo(df, "experiment", "well")
 
+        assert self.train_wells is not None
+        assert self.test_wells is not None
+
+        n_wells = self.train_wells.shape[0] if train_set is True else self.test_wells.shape[0]
+
+        start = time.time()
+
         for i, (experiment, well) in enumerate(unique_experiment_well_combo):
 
-            print(f"{i} wells completed...")
+            stop = time.time()
+
+            if i != 0:
+                print(f"{i}/{n_wells} wells completed in {round(stop-start, 2)} seconds..")
+
+            start = time.time()
 
             well = df[
                 (df["experiment"] == experiment) &
