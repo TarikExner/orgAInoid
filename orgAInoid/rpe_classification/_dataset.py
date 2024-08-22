@@ -97,8 +97,9 @@ class OrganoidClassificationDataset:
         unique_experiment_well_combo = self._get_unique_experiment_well_combo(df, "experiment", "well")
 
         for i, (experiment, well) in enumerate(unique_experiment_well_combo):
-            if i%100 == 0:
-                print(f"{i} images completed...")
+
+            print(f"{i} wells completed...")
+
             well = df[
                 (df["experiment"] == experiment) &
                 (df["well"] == well)
