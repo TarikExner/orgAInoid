@@ -420,7 +420,7 @@ class ImageHandler:
     def create_mask_from_image(self,
                                img: OrganoidImage,
                                clean: bool = True,
-                               min_size_perc: float = 10) -> OrganoidMask:
+                               min_size_perc: float = 7.5) -> OrganoidMask:
 
         img.preprocess_for_unet(self.unet_input_size)
         
