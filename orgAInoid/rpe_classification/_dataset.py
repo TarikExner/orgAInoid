@@ -100,7 +100,7 @@ class OrganoidClassificationDataset:
         assert self.train_wells is not None
         assert self.test_wells is not None
 
-        n_wells = self.train_wells.shape[0] if train_set is True else self.test_wells.shape[0]
+        n_wells = unique_experiment_well_combo.shape[0]
 
         start = time.time()
 
