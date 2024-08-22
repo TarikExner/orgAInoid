@@ -39,7 +39,7 @@ class ClassificationDataset(Dataset):
 
 class CustomIntensityAdjustment(A.ImageOnlyTransform):
     def __init__(self, always_apply=False, p=0.5):
-        super(CustomIntensityAdjustment, self).__init__(always_apply, p)
+        super(CustomIntensityAdjustment, self).__init__(always_apply = always_apply, p = p)
         self.adjustment = A.Compose([
             A.OneOf([
                 A.RandomBrightnessContrast(p=0.5),  # Random brightness/contrast
