@@ -428,7 +428,10 @@ class ImageHandler:
             mask.clean_mask(min_size_perc)
 
         assert mask.img.shape == (self.target_size, self.target_size)
-        assert np.max(mask.img) == 1
+        try:
+            assert np.max(mask.img) == 1
+        except AssertionError:
+            assert mask.error_while_cleaning is True
         assert np.min(mask.img) == 0
 
         return mask
