@@ -59,8 +59,8 @@ def hyperparameter_model_search(experiment_id: str,
                       f"Learning Rate: {lr}, Batch Size: {batch_size}")
            
                 # Initialize the dataloaders
-                train_loader = create_dataloader(X_train, y_train, batch_size = batch_size, shuffle = True)
-                val_loader = create_dataloader(X_test, y_test, batch_size = batch_size, shuffle = False)
+                train_loader = create_dataloader(X_train, y_train, batch_size = batch_size, shuffle = True, train = True)
+                val_loader = create_dataloader(X_test, y_test, batch_size = batch_size, shuffle = False, train = False)
                 
                 # Initialize the model, criterion, and optimizer
                 model = model_class().to(device)
