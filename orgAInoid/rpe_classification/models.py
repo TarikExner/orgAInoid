@@ -138,14 +138,14 @@ class SimpleCNNModel8_FC3(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
         # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 256  # After eight pooling layers, the size is divided by 256
+        self.feature_map_size = img_x_dim // 128  # After seven pooling layers, the size is divided by 128
         
         # Fully connected layers with symmetrical structure
         self.fc1 = nn.Linear(2048 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
         self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
         self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
         self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
-        
+                
     def forward(self, x):
         # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
@@ -206,7 +206,7 @@ class SimpleCNNModel8(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
         # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 256  # After eight pooling layers, the size is divided by 256
+        self.feature_map_size = img_x_dim // 128 # After seven pooling layers, the size is divided by 128
         
         # Fully connected layers
         self.fc1 = nn.Linear(2048 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
