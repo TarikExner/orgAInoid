@@ -168,8 +168,8 @@ class SimpleCNNModel8_FC3(nn.Module):
         # Seventh convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv7(x)))
         
-        # Eighth convolutional layer with ReLU and pooling
-        x = self.pool(F.relu(self.conv8(x)))
+        # Eighth convolutional layer without pooling
+        x = F.relu(self.conv8(x))
         
         # Flatten the tensor while preserving the batch size
         x = x.view(x.size(0), -1)  # Flattening
@@ -235,8 +235,8 @@ class SimpleCNNModel8(nn.Module):
         # Seventh convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv7(x)))
         
-        # Eighth convolutional layer with ReLU and pooling
-        x = self.pool(F.relu(self.conv8(x)))
+        # Eighth convolutional layer without pooling
+        x = F.relu(self.conv8(x))
         
         # Flatten the tensor while preserving the batch size
         x = x.view(x.size(0), -1)  # Flattening
