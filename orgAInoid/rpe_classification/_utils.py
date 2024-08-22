@@ -104,6 +104,6 @@ def create_dataloader(img_array: np.ndarray,
                       batch_size: int,
                       shuffle: bool,
                       train: bool) -> DataLoader:
-    transformations = train_transformations() if train else val_transformations
+    transformations = train_transformations() if train else val_transformations()
     dataset = create_dataset(img_array, class_array, transformations)
     return DataLoader(dataset, batch_size = batch_size, shuffle = shuffle)
