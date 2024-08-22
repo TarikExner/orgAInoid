@@ -978,7 +978,7 @@ class MLP_FC3(nn.Module):
         self.binary_classification = (num_classes == 2)
         
         # Flatten the image into a vector
-        self.input_size = img_x_dim * img_x_dim  # Flattened image size for grayscale image
+        self.input_size = img_x_dim * img_x_dim * 3  # Flattened image size for grayscale image
         
         # Fully connected layers
         self.fc1 = nn.Linear(self.input_size, 256)  # First hidden layer with 256 units
@@ -1009,7 +1009,7 @@ class MLP(nn.Module):
         self.binary_classification = (num_classes == 2)
         
         # Flatten the image into a vector
-        self.input_size = img_x_dim * img_x_dim  # Flattened image size for grayscale image
+        self.input_size = img_x_dim * img_x_dim * 3  # Flattened image size for grayscale image
         
         # Fully connected layers
         self.fc1 = nn.Linear(self.input_size, 128)  # First hidden layer
