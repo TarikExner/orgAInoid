@@ -149,7 +149,7 @@ class OrganoidClassificationDataset:
                     labels.append(loop_label[0])
                 else:
                     n_failed_images += 1
-                    print(f"Dataset creation: skipping images {experiment}: {well}")
+                    print(f"Dataset creation: skipping images {experiment}: {well} : {loop}")
 
         images = np.array(images)
         labels = np.array(labels)
