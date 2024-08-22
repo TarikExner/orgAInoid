@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
+
 class ResNet50(nn.Module):
     def __init__(self, num_classes=2):
         super(ResNet50, self).__init__()
@@ -47,7 +48,6 @@ class VGG16_BN(nn.Module):
             return x  # Return logits for BCEWithLogitsLoss
         else:
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
-
 
 
 class DenseNet121(nn.Module):
