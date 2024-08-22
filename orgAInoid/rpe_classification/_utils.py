@@ -19,11 +19,17 @@ class ClassificationDataset(Dataset):
     def __getitem__(self, idx):
 
         image = self.image_arr[idx, :, :, :]
+        # Duplicate the single channel to create a 3-channel image
+        image_3ch = np.repeat(image, 3, axis=0)  # [1, 224, 224] -> [3, 224, 224]
+
+        # Transpose image to [224, 224, 3] for Albumentations
+        image_3ch = np.transpose(image_3ch, (1, 2, 0))
 
         corr_class = torch.tensor(self.classes[idx])
 
         if self.transforms is not None:
-            image = self.transforms(image)
+            augmented = self.transforms(image = image_3ch)
+            image = augmented["image"]
 
         assert isinstance(image, torch.Tensor)
         assert not torch.isnan(image).any()
