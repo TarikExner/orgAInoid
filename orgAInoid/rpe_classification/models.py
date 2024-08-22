@@ -78,7 +78,7 @@ class InceptionV3(nn.Module):
         super(InceptionV3, self).__init__()
         
         # Load the pre-trained InceptionV3 model
-        self.inception_v3 = models.inception_v3(pretrained=True, aux_logits=False)
+        self.inception_v3 = models.inception_v3(pretrained=True, aux_logits=True)
         
         # Modify the final fully connected layer to match the number of output classes
         self.inception_v3.fc = nn.Linear(in_features=2048, out_features=num_classes)
