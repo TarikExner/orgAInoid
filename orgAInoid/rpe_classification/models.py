@@ -119,7 +119,7 @@ class MobileNetV3_Large(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel8_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel8_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -187,7 +187,7 @@ class SimpleCNNModel8_FC3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel8(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel8, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -253,7 +253,7 @@ class SimpleCNNModel8(nn.Module):
 
 
 class SimpleCNNModel7_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel7_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -317,7 +317,7 @@ class SimpleCNNModel7_FC3(nn.Module):
 
 
 class SimpleCNNModel7(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel7, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -379,7 +379,7 @@ class SimpleCNNModel7(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel6_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel6_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -439,7 +439,7 @@ class SimpleCNNModel6_FC3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel6(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel6, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -497,7 +497,7 @@ class SimpleCNNModel6(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel5_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel5_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -553,7 +553,7 @@ class SimpleCNNModel5_FC3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel5(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel5, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -607,7 +607,7 @@ class SimpleCNNModel5(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel4_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel4_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -659,7 +659,7 @@ class SimpleCNNModel4_FC3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel4(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel4, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -709,7 +709,7 @@ class SimpleCNNModel4(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel3_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel3_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -757,7 +757,7 @@ class SimpleCNNModel3_FC3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -803,7 +803,7 @@ class SimpleCNNModel3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel2_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel2_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -847,7 +847,7 @@ class SimpleCNNModel2_FC3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel2(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel2, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -889,7 +889,7 @@ class SimpleCNNModel2(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel1_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel1_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -929,7 +929,7 @@ class SimpleCNNModel1_FC3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class SimpleCNNModel1(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel1, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -968,7 +968,7 @@ class SimpleCNNModel1(nn.Module):
 
 
 class MLP_FC3(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(MLP_FC3, self).__init__()
 
         self.binary_classification = (num_classes == 2)
@@ -999,7 +999,7 @@ class MLP_FC3(nn.Module):
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
 class MLP(nn.Module):
-    def __init__(self, img_x_dim, num_classes = 2):
+    def __init__(self, img_x_dim = 224, num_classes = 2):
         super(MLP, self).__init__()
 
         self.binary_classification = (num_classes == 2)

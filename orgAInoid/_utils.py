@@ -463,8 +463,12 @@ class ImageHandler:
 
         assert mask.img.shape == img.img.shape
         
-        if crop_bounding_box:
-            img, mask = self.crop_to_mask_bounding_box(mask, img, rescale = rescale, crop_size = crop_size)
+        try:
+            if crop_bounding_box:
+                img, mask = self.crop_to_mask_bounding_box(mask, img, rescale = rescale, crop_size = crop_size)
+        except Exception:
+            print("Cropping failed!")
+            return None
 
         img.img = img.img * mask.img
 

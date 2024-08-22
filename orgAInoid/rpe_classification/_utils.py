@@ -2,6 +2,10 @@ from torch.utils.data import Dataset
 import numpy as np
 import torch
 
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
+
+from torch.utils.data import DataLoader
 
 class ClassificationDataset(Dataset):
     def __init__(self, image_arr: np.ndarray, classes: np.ndarray, transforms):
@@ -27,3 +31,61 @@ class ClassificationDataset(Dataset):
 
         return (image, corr_class)
 
+class CustomIntensityAdjustment(A.ImageOnlyTransform):
+    def __init__(self, always_apply=False, p=0.5):
+        super(CustomIntensityAdjustment, self).__init__(always_apply, p)
+        self.adjustment = A.Compose([
+            A.OneOf([
+                A.RandomBrightnessContrast(p=0.5),  # Random brightness/contrast
+                A.RandomGamma(p=0.5),               # Random gamma adjustment
+            ], p=1.0)
+        ])
+
+    def apply(self, img, **params):
+        # Apply intensity changes only to non-zero pixels
+        non_zero_mask = img > 0
+        img_augmented = self.adjustment(image=img)["image"]
+        
+        # Only change the intensity of non-zero pixels
+        img = np.where(non_zero_mask, img_augmented, img)
+        
+        # Rescale the entire image to the 0-1 range
+        img_min = img.min()
+        img_max = img.max()
+        
+        if img_max > img_min:  # To avoid division by zero
+            img = (img - img_min) / (img_max - img_min)
+        
+        return img
+
+def classification_transformations(image_size: int = 224):
+    return A.Compose([
+        A.HorizontalFlip(p=0.5),  # Random horizontal flip
+        A.VerticalFlip(p=0.5),    # Random vertical flip
+        A.RandomRotate90(p=0.5),  # Random 90-degree rotation
+        A.Rotate(limit=120, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
+        A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),  # Shift and scale (rotation already handled)
+        A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1.2), p=0.5),  # Resized crop
+        
+        # Apply intensity modifications only to non-masked pixels
+        CustomIntensityAdjustment(p=0.5),
+
+        # Normalization
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+
+        # Convert to PyTorch tensor
+        ToTensorV2()
+    ])
+
+def create_dataset(img_array: np.ndarray,
+                   class_array: np.ndarray,
+                   transformations: A.Compose) -> ClassificationDataset:
+    return ClassificationDataset(img_array, class_array, transformations)
+
+def create_dataloader(img_array: np.ndarray,
+                      class_array: np.ndarray,
+                      batch_size: int,
+                      shuffle: bool) -> DataLoader:
+    transformations = classification_transformations()
+    dataset = create_dataset(img_array, class_array, transformations)
+    return DataLoader(dataset, batch_size = batch_size, shuffle = shuffle)
