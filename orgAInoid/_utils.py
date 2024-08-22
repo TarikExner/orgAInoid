@@ -169,18 +169,25 @@ class OrganoidImage:
                             unet_input_size: int) -> None:
         """Applies downsampling, bitdepth normalization and MinMaxScaling"""
         img = self.img.copy()
-        binning_factor = int(img.shape[0] / unet_input_size)
-        img = self._bin_image(img, binning_factor)
+
+        # TODO: replace _bin_image with downsample for faster conversion
+
+        # binning_factor = int(img.shape[0] / unet_input_size)
+        # img = self._bin_image(img, binning_factor)
+        img = self._downsample_for_unet(img, unet_input_size)
         img = self._normalize_image(img, self.bitdepth)
         img = self._min_max_scale(img)
         self.unet_preprocessed = img
 
+    def _downsample_for_unet(self,
+                             img: np.ndarray,
+                             unet_input_size: int) -> np.ndarray:
+        return cv2.resize(img, (unet_input_size, unet_input_size), interpolation=cv2.INTER_NEAREST)
+
+
     def downsample(self,
                    target_size: int):
-        # binning_factor = int(self.img.shape[0] / target_size)
-        # self.img = self._bin_image(self.img, binning_factor)
         if isinstance(self, OrganoidMask):
-            self.img = cv2.resize(self.img, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
 
             self.threshold_mask()
         else:
