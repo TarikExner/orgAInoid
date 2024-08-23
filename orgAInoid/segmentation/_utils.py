@@ -75,7 +75,7 @@ def _run_segmentation_train_loop(dataset_dir: str,
                                  image_size: int,
                                  batch_size: int,
                                  model: Union[UNet, DEEPLABV3, HRNET],
-                                 init_lr = 0.0001,
+                                 init_lr = 0.0003,
                                  score_output_dir: str = "./results",
                                  model_output_dir: str = "./segmentators"):
 
@@ -104,7 +104,7 @@ def _run_segmentation_train_loop(dataset_dir: str,
         optimizer,
         mode = 'min',
         factor = 0.2,
-        patience = 8,
+        patience = 20,
     )
 
     best_val_loss = float('inf')
