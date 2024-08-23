@@ -42,7 +42,7 @@ def train_transformations(image_size):
         ], p=1.0),  # Ensure these are always applied, but only to the image
 
         # Normalization and final transformations
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalization
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),  # Normalization
         ToTensorV2()  # Convert to PyTorch tensor
     ], additional_targets={'mask': 'mask'})
 
