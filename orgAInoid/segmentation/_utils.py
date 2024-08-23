@@ -104,7 +104,7 @@ def _run_segmentation_train_loop(dataset_dir: str,
         optimizer,
         mode = 'min',
         factor = 0.2,
-        patience = 20,
+        patience = 8,
     )
 
     best_val_loss = float('inf')
