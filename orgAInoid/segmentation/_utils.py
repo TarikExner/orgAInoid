@@ -75,6 +75,7 @@ def _run_segmentation_train_loop(dataset_dir: str,
                                  image_size: int,
                                  batch_size: int,
                                  model: Union[UNet, DEEPLABV3, HRNET],
+                                 n_epochs: int = 200,
                                  init_lr = 0.0003,
                                  score_output_dir: str = "./results",
                                  model_output_dir: str = "./segmentators"):
@@ -91,7 +92,6 @@ def _run_segmentation_train_loop(dataset_dir: str,
                                                   batch_size = batch_size,
                                                   model_name = model.__class__.__name__)
 
-    n_epochs = 200
     batch_size = batch_size
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
