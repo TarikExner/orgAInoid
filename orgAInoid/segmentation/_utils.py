@@ -162,15 +162,27 @@ def _run_segmentation_train_loop(dataset_dir: str,
         train_loss = 0.0
         for images, masks in train_loader:
             (images, masks) = images.to(device), masks.to(device)
+            optimizer.zero_grad()
+            output = model(images)
+            loss = criterion(output, masks)
+            loss.backward()
+            optimizer.step()
             
-            train_loss += process_sub_batches(images, masks, sub_batch_size=sub_batch_size)
+            train_loss += loss.item()
+            
+            # train_loss += process_sub_batches(images, masks, sub_batch_size=sub_batch_size)
         
         model.eval()
         val_loss = 0
         with torch.no_grad():
             for (images, masks) in val_loader:
                 (images, masks) = images.to(device), masks.to(device)
-                val_loss += process_sub_batches(images, masks, sub_batch_size=sub_batch_size, training=False)
+                output = model(images)
+                loss = criterion(output, masks)
+                
+                val_loss += loss.item()
+
+                # val_loss += process_sub_batches(images, masks, sub_batch_size=sub_batch_size, training=False)
 
         train_loss /= len(train_loader)
         val_loss /= len(val_loader)
