@@ -1,7 +1,5 @@
 import numpy as np
 import os
-from pathlib import Path
-import cv2
 
 from .._utils import ImageHandler
 
@@ -9,7 +7,7 @@ def _assemble_file_paths(input_dir: str) -> tuple[list, list]:
     files = [file for file in os.listdir(input_dir)]
     imgs = [
         file for file in files
-        if not "_mask" in file
+        if "_mask" not in file
         and file.endswith(".tif")
         and not file.startswith(".")
     ]
