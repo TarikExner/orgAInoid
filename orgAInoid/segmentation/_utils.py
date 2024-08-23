@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 from typing import Optional, Literal, Union
 
 from .model import UNet, DEEPLABV3, HRNET
-from .._utils import val_transformations
+from .._utils import val_transformations, CustomIntensityAdjustment
 
 def train_transformations(image_size):
     segmentation_augmentation = A.Compose([
@@ -25,20 +25,10 @@ def train_transformations(image_size):
         A.Rotate(limit=45, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
         A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),  # Shift and scale (rotation already handled)
         A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1.0), p=0.5),  # Resized crop
-        
-        # Apply image-specific augmentations (only to images)
-        A.OneOf([
-            A.OneOf([
-                A.MotionBlur(p=0.2),
-                A.MedianBlur(blur_limit=3, p=0.1),
-                A.GaussianBlur(blur_limit=3, p=0.1),
-            ], p=0.2),  # Apply one of the blurs
-            A.OneOf([
-                A.RandomBrightnessContrast(p=0.2),  # Random brightness/contrast
-                A.RandomGamma(p=0.2),  # Random gamma
-            ], p=0.3),
-        ], p=1.0),  # Ensure these are always applied, but only to the image
 
+        # Apply intensity modifications only to non-masked pixels
+        CustomIntensityAdjustment(p=0.5),
+        
         # Normalization and final transformations
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),  # Normalization
         ToTensorV2()  # Convert to PyTorch tensor
@@ -86,33 +76,10 @@ def _run_segmentation_train_loop(dataset_dir: str,
                                  batch_size: int,
                                  model: Union[UNet, DEEPLABV3, HRNET],
                                  sub_batch_size: int = 4,
-                                 init_lr = 0.001,
+                                 init_lr = 0.0001,
                                  score_output_dir: str = "./results",
                                  model_output_dir: str = "./segmentators"):
 
-    def process_sub_batches(images, masks, sub_batch_size=8, training=True):
-        sub_batch_losses = []
-        
-        if training:
-            optimizer.zero_grad()  # Clear gradients before processing the main batch
-        
-        for i in range(0, len(images), sub_batch_size):
-            sub_images = images[i:i + sub_batch_size]
-            sub_masks = masks[i:i + sub_batch_size]
-            
-            with autocast():
-                outputs = model(sub_images)
-                loss = criterion(outputs, sub_masks)
-            
-            if training:
-                scaler.scale(loss).backward()  # Accumulate gradients
-            sub_batch_losses.append(loss.item() * sub_images.size(0))
-        
-        if training:
-            scaler.step(optimizer)  # Update model parameters once after processing all sub-batches
-            scaler.update()
-        
-        return sum(sub_batch_losses) / len(images)
 
     if not os.path.exists(score_output_dir):
         os.mkdir(score_output_dir)
@@ -141,8 +108,6 @@ def _run_segmentation_train_loop(dataset_dir: str,
         patience = 8,
     )
 
-    scaler = GradScaler()
-    
     best_val_loss = float('inf')
 
     score_file = os.path.join(
@@ -167,8 +132,6 @@ def _run_segmentation_train_loop(dataset_dir: str,
             optimizer.step()
             
             train_loss += loss.item()
-            
-            # train_loss += process_sub_batches(images, masks, sub_batch_size=sub_batch_size)
         
         model.eval()
         val_loss = 0
@@ -180,18 +143,13 @@ def _run_segmentation_train_loop(dataset_dir: str,
                 
                 val_loss += loss.item()
 
-                # val_loss += process_sub_batches(images, masks, sub_batch_size=sub_batch_size, training=False)
-
         train_loss /= len(train_loader)
         val_loss /= len(val_loader)
 
-        # Get the current learning rate before scheduler step
         current_lr = optimizer.param_groups[0]['lr']
         
-        # Step the learning rate scheduler based on the validation loss
         scheduler.step(val_loss)
         
-        # Check if the learning rate has been reduced
         new_lr = optimizer.param_groups[0]['lr']
         if new_lr < current_lr:
             print(f"[INFO] Learning rate reduced from {current_lr} to {new_lr}")
