@@ -5,6 +5,8 @@ import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
+from .._utils import val_transformations
+
 from torch.utils.data import DataLoader
 
 class ClassificationDataset(Dataset):
@@ -63,17 +65,6 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
             img = (img - img_min) / (img_max - img_min)
         
         return img
-
-def val_transformations() -> A.Compose:
-    return A.Compose([
-
-        # Normalization
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
-
-        # Convert to PyTorch tensor
-        ToTensorV2()
-    ])
-
 
 def train_transformations(image_size: int = 224) -> A.Compose:
     return A.Compose([

@@ -15,8 +15,11 @@ from sklearn.model_selection import train_test_split
 from typing import Optional, Literal, Union
 
 from .model import UNet, DEEPLABV3, HRNET
+from .._utils import val_transformations
 
-def get_augmentation_pipeline(image_size):
+
+
+def train_transformations(image_size):
     segmentation_augmentation = A.Compose([
         A.HorizontalFlip(p=0.5),  # Random horizontal flip
         A.VerticalFlip(p=0.5),    # Random vertical flip
@@ -151,7 +154,6 @@ def _run_segmentation_train_loop(dataset_dir: str,
     if not os.path.isfile(score_file):
         with open(score_file, 'w') as f:
             f.write('model,epoch,train_loss,val_loss,batch_size\n')
-
     
     for epoch in range(n_epochs):
 
@@ -221,20 +223,18 @@ def create_dataloaders(dataset_dir: str,
 
     train_img, train_mask, test_img, test_mask = _apply_train_test_split(imgs, masks)
 
-    transforms = get_augmentation_pipeline(image_size)
-
     train_dataset = SegmentationDataset(
         images = train_img,
         masks = train_mask,
         model_type = model_name,
-    	transforms = transforms,
+    	transforms = train_transformations(image_size),
     )
     
     test_dataset = SegmentationDataset(
         images = test_img,
         masks = test_mask,
         model_type = model_name,
-    	transforms = transforms,
+    	transforms = val_transformations(),
     )
 
     train_dataloader = DataLoader(
@@ -266,5 +266,3 @@ def _apply_train_test_split(imgs: list[str], masks: list[str],
     train_img, test_img = split[:2]
     train_mask, test_mask = split[2:]
     return train_img, train_mask, test_img, test_mask
-
-
