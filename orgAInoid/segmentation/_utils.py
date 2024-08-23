@@ -151,6 +151,15 @@ def _run_segmentation_train_loop(dataset_dir: str,
         
         new_lr = optimizer.param_groups[0]['lr']
         if new_lr < current_lr:
+            # load best performing model before continuing
+            model.load_state_dict(
+                torch.load(
+                    os.path.join(
+                        model_output_dir,
+                        f'{model.__class__.__name__}_{image_size}_bs{batch_size}.pth'
+                    )
+                )
+            )
             print(f"[INFO] Learning rate reduced from {current_lr} to {new_lr}")
 
         
