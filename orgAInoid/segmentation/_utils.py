@@ -17,8 +17,6 @@ from typing import Optional, Literal, Union
 from .model import UNet, DEEPLABV3, HRNET
 from .._utils import val_transformations
 
-
-
 def train_transformations(image_size):
     segmentation_augmentation = A.Compose([
         A.HorizontalFlip(p=0.5),  # Random horizontal flip
