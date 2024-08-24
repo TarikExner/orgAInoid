@@ -1,4 +1,4 @@
-from .segmentation.model import UNet
+
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import numpy as np
@@ -11,6 +11,8 @@ import os
 from os import PathLike
 
 from typing import Optional
+
+from .segmentation import UNet
 
 
 def _generate_file_table(experiment_id: str,
