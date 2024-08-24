@@ -5,7 +5,7 @@ import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from .._utils import val_transformations, CustomIntensityAdjustment
+from .._augmentation import val_transformations, CustomIntensityAdjustment
 
 from torch.utils.data import DataLoader
 
