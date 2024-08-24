@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-from torch.cuda.amp import autocast, GradScaler
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -15,7 +14,17 @@ from sklearn.model_selection import train_test_split
 from typing import Optional, Literal, Union
 
 from .model import UNet, DEEPLABV3, HRNET
-from .._utils import val_transformations, CustomIntensityAdjustment
+from .._utils import CustomIntensityAdjustment
+
+def val_transformations() -> A.Compose:
+    return A.Compose([
+
+        # Normalization
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+
+        # Convert to PyTorch tensor
+        ToTensorV2()
+    ])
 
 def train_transformations(image_size):
     segmentation_augmentation = A.Compose([
