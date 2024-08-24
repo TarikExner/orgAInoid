@@ -14,17 +14,8 @@ from sklearn.model_selection import train_test_split
 from typing import Optional, Literal, Union
 
 from .model import UNet, DEEPLABV3, HRNET
-from .._utils import CustomIntensityAdjustment
+from .._augmentation import val_transformations, CustomIntensityAdjustment
 
-def val_transformations() -> A.Compose:
-    return A.Compose([
-
-        # Normalization
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
-
-        # Convert to PyTorch tensor
-        ToTensorV2()
-    ])
 
 def train_transformations(image_size):
     segmentation_augmentation = A.Compose([
