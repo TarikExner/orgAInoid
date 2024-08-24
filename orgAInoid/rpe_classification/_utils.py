@@ -5,9 +5,9 @@ import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from .._augmentation import val_transformations, CustomIntensityAdjustment
-
 from torch.utils.data import DataLoader
+
+from .._augmentation import val_transformations, CustomIntensityAdjustment
 
 class ClassificationDataset(Dataset):
     def __init__(self, image_arr: np.ndarray, classes: np.ndarray, transforms):
