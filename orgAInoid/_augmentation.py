@@ -28,12 +28,12 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         
         return img
 
-def val_transformations(*args, **kwargs) -> A.Compose:
+def val_transformations() -> A.Compose:
     return A.Compose([
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
         ToTensorV2()
     ])
 
-def to_normalized_tensor(*args, **kwargs) -> A.Compose:
-    return val_transformations(*args, **kwargs)
+def to_normalized_tensor() -> A.Compose:
+    return val_transformations()
 
