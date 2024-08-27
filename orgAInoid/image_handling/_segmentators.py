@@ -61,7 +61,8 @@ class MaskPredictor:
                               img: np.ndarray) -> torch.Tensor:
         if img.ndim == 2:
             img = np.expand_dims(img, axis = 0)
-        transformed_image = to_normalized_tensor(image = img)
+        transforms = to_normalized_tensor()
+        transformed_image = transforms(img)
         assert isinstance(transformed_image, torch.Tensor)
         return transformed_image
 
