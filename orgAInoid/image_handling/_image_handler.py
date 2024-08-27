@@ -48,6 +48,13 @@ class ImageHandler:
         mask: OrganoidMask = self._create_mask_from_image(img)
 
         if crop_bounding_box is True:
+            # first we have to make sure that the image is downsampled correctly.
+            if img.dimension != mask.dimension:
+                if img.dimension < mask.dimension:
+                    img.image = self.img_processor.upsample(img.image, mask.dimension)
+                else:
+                    img.image = self.img_processor.downsample(img.image, mask.dimension)
+
             try:
                 img, mask = self.img_processor.crop_to_mask_bounding_box(
                     mask,
