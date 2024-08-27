@@ -3,7 +3,7 @@ import cv2
 
 from typing import Optional
 
-from . import OrganoidImage, OrganoidMask
+from ._images import OrganoidImage, OrganoidMask
 
 class ImageProcessor:
     """\
