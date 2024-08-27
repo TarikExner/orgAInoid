@@ -18,7 +18,7 @@ from .._augmentation import val_transformations, CustomIntensityAdjustment
 
 
 def train_transformations(image_size):
-    segmentation_augmentation = A.Compose([
+    return A.Compose([
         A.HorizontalFlip(p=0.5),  # Random horizontal flip
         A.VerticalFlip(p=0.5),    # Random vertical flip
         A.RandomRotate90(p=0.5),  # Random 90-degree rotation
@@ -33,8 +33,6 @@ def train_transformations(image_size):
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),  # Normalization
         ToTensorV2()  # Convert to PyTorch tensor
     ], additional_targets={'mask': 'mask'})
-
-    return segmentation_augmentation
 
 
 class SegmentationDataset(Dataset):
@@ -241,4 +239,10 @@ def _apply_train_test_split(imgs: list[str], masks: list[str],
     )
     train_img, test_img = split[:2]
     train_mask, test_mask = split[2:]
+
+    assert isinstance(train_img, np.ndarray)
+    assert isinstance(train_mask, np.ndarray)
+    assert isinstance(test_img, np.ndarray)
+    assert isinstance(test_mask, np.ndarray)
+
     return train_img, train_mask, test_img, test_mask

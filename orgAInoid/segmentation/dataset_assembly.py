@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from .._utils import ImageHandler
+from ..image_handling import ImageProcessor, OrganoidImage, OrganoidMaskImage
 
 def _assemble_file_paths(input_dir: str) -> tuple[list, list]:
     files = [file for file in os.listdir(input_dir)]
@@ -42,14 +42,7 @@ def _assemble_file_paths(input_dir: str) -> tuple[list, list]:
 
     return matched_imgs, matched_masks
 
-def threshold_mask(img) -> np.ndarray:
-    """Thresholds a non-binary image into a binary"""
-    threshold = 0.5
-    img[img >= threshold] = 1
-    img[img < threshold] = 0
-    return img
-
-def assemble_data(target_size: float,
+def assemble_data(target_size: int,
                   input_dir: str,
                   output_dir: str= "./raw_data"):
     if not os.path.exists(output_dir):
@@ -58,28 +51,29 @@ def assemble_data(target_size: float,
     img_array = []
     mask_array = []
 
-    img_handler = ImageHandler(
-        target_image_size = target_size,
-        unet_input_dir = None,
-        unet_input_size = None
-    )
+    img_processor = ImageProcessor()
 
     for img_path in imgs:
-        img = img_handler.read_image(img_path)
-        img.preprocess_for_unet(target_size)
-        img_array.append(img.unet_preprocessed)
+        organoid_image = OrganoidImage(img_path)
+        img = organoid_image.image
+        preprocessed = img_processor.preprocess_for_segmentation(img, target_size)
+
+        img_array.append(preprocessed)
+
     for mask_path in masks:
-        mask = img_handler.read_image(mask_path)
-        mask.preprocess_for_unet(target_size)
-        mask_img = mask.unet_preprocessed
-        mask_img = threshold_mask(mask_img)
-        mask_array.append(mask_img)
+        mask_image = OrganoidMaskImage(mask_path)
+        mask = mask_image.image
+        preprocessed = img_processor.preprocess_for_segmentation(mask, target_size)
+        preprocessed = img_processor._threshold_mask(preprocessed, threshold = 0.5)
+
+        mask_array.append(preprocessed)
 
     img_array = np.array(img_array)
     mask_array = np.array(mask_array)
 
     np.save(os.path.join(output_dir, f"unet_segmentation_images_{target_size}.npy"), img_array)
     np.save(os.path.join(output_dir, f"unet_segmentation_masks_{target_size}.npy"), mask_array)
+
     print(f"Dataset assembled successfully for target size {target_size}")
 
 

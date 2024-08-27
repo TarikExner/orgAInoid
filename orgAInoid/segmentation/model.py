@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch
 from torch.nn.functional import relu
-from torchvision.models.segmentation import deeplabv3_resnet101
 import timm
 import torch.nn.functional as F
 import torchvision

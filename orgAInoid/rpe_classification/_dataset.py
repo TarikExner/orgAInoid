@@ -5,13 +5,12 @@ import pandas as pd
 import pickle
 from pathlib import Path
 import json
-from typing import Optional
+from typing import Optional, Literal
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 import time
-from .._utils import ImageHandler
-
+from ..image_handling import ImageHandler, OrganoidImage
 
 
 class OrganoidClassificationDataset:
@@ -50,8 +49,9 @@ class OrganoidClassificationDataset:
                  crop_bbox: bool,
                  rescale_cropped_image: bool,
                  crop_size: Optional[int],
-                 unet_dir: str,
-                 unet_input_size: int,
+                 segmentator_input_dir: str,
+                 segmentator_input_size: int,
+                 segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
                  experiment_dir: PathLike):
         self.dataset_id = dataset_id
         self.slices = slices
@@ -59,9 +59,9 @@ class OrganoidClassificationDataset:
         self.stop_timepoint = stop_timepoint
         self.image_dimension = image_size
         self.img_handler = ImageHandler(
-            target_image_size = self.image_dimension,
-            unet_input_dir = unet_dir,
-            unet_input_size = unet_input_size
+            segmentator_input_dir = segmentator_input_dir,
+            segmentator_input_size = segmentator_input_size,
+            segmentation_model_name = segmentation_model_name
         )
         self.cropped_bbox = crop_bbox
         self.rescale_cropped_image = rescale_cropped_image
@@ -131,15 +131,19 @@ class OrganoidClassificationDataset:
 
                 loop_images = []
                 for path in image_paths:
-                    image = self.img_handler.read_image(path)
-                    masked_image = self.img_handler.get_masked_image(image,
-                                                                     normalized = True,
-                                                                     scaled = True,
-                                                                     crop_bounding_box = self.cropped_bbox,
-                                                                     rescale = self.rescale_cropped_image,
-                                                                     crop_size = self.crop_size)
+                    image = OrganoidImage(path)
+                    masked_image = self.img_handler.get_masked_image(
+                        image,
+                        image_target_dimension = 224,
+                        mask_threshold = 0.5,
+                        clean_mask = True,
+                        scale_masked_image = True,
+                        crop_bounding_box = True,
+                        rescale_cropped_image = self.rescale_cropped_image,
+                        crop_bounding_box_dimension = self.crop_size
+                    )
                     if masked_image is not None:
-                        loop_images.append(masked_image.img)
+                        loop_images.append(masked_image)
                     else:
                         loop_images = None
                         break
