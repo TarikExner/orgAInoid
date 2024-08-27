@@ -47,6 +47,8 @@ class MaskPredictor:
         The raw mask without any thresholding.
 
         """
+        img_tensor = img_tensor.to(self.device)
+        print(img_tensor.shape)
         with torch.no_grad():
             pred_mask = self.model(img_tensor)
             pred_mask = torch.sigmoid(pred_mask)
@@ -60,10 +62,10 @@ class MaskPredictor:
     def _to_normalized_tensor(self,
                               img: np.ndarray) -> torch.Tensor:
         if img.ndim == 2:
-            img = np.expand_dims(img, axis = 0)
+            img = np.expand_dims(img, axis = 2)
         transforms = to_normalized_tensor()
-        transformed_image = transforms(image = img)
-        assert isinstance(transformed_image, torch.Tensor)
+        transformed_image = transforms(image = img)["image"]
+        assert isinstance(transformed_image, torch.Tensor), type(transformed_image)
         return transformed_image
 
     def mask_image(self,
@@ -72,6 +74,10 @@ class MaskPredictor:
         img_tensor = self._preprocess_image(img)
         mask_tensor = self._predict_mask_from_model(img_tensor)
         return mask_tensor.squeeze().detach().cpu().numpy()
+
+    def _add_dim_to_tensor(self,
+                           input_tensor):
+        return input_tensor.unsqueeze(0)
 
 
 class UNetPredictor(MaskPredictor):
@@ -91,7 +97,9 @@ class UNetPredictor(MaskPredictor):
     def _preprocess_image(self,
                           img: np.ndarray) -> torch.Tensor:
         """Function to preprocess the image for UNet segmentation"""
-        return self._to_normalized_tensor(img)
+        transformed_image = self._to_normalized_tensor(img)
+        transformed_image = self._add_dim_to_tensor(transformed_image)
+        return transformed_image
 
 class DeepLabPredictor(MaskPredictor):
     """\
@@ -112,6 +120,7 @@ class DeepLabPredictor(MaskPredictor):
         """Function to preprocess the image for UNet segmentation"""
         transformed_image = self._to_normalized_tensor(img)
         transformed_image = transformed_image.repeat(3,1,1)
+        transformed_image = self._add_dim_to_tensor(transformed_image)
         return transformed_image
 
 class HRNETPredictor(MaskPredictor):
@@ -133,5 +142,6 @@ class HRNETPredictor(MaskPredictor):
         """Function to preprocess the image for UNet segmentation"""
         transformed_image = self._to_normalized_tensor(img)
         transformed_image = transformed_image.repeat(3,1,1)
+        transformed_image = self._add_dim_to_tensor(transformed_image)
         return transformed_image
 

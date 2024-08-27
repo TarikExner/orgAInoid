@@ -49,8 +49,10 @@ class ImageProcessor:
 
     def preprocess_for_segmentation(self,
                                     img: np.ndarray,
-                                    segmentator_input_size: int) -> np.ndarray:
+                                    segmentator_input_size: int,
+                                    copy: bool = True) -> np.ndarray:
         """Applies downsampling, bitdepth normalization and MinMaxScaling"""
+        img = img.copy() if copy else img
         img = self._downsample(img, segmentator_input_size)
         img = self._min_max_scale(img)
         return img
