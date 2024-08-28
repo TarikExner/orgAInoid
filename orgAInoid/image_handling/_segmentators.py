@@ -48,7 +48,6 @@ class MaskPredictor:
 
         """
         img_tensor = img_tensor.to(self.device)
-        print(img_tensor.shape)
         with torch.no_grad():
             pred_mask = self.model(img_tensor)
             pred_mask = torch.sigmoid(pred_mask)

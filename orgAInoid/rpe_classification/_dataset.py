@@ -134,8 +134,8 @@ class OrganoidClassificationDataset:
                     image = OrganoidImage(path)
                     masked_image = self.img_handler.get_masked_image(
                         image,
-                        image_target_dimension = 224,
-                        mask_threshold = 0.5,
+                        image_target_dimension = self.image_dimension,
+                        mask_threshold = 0.3,
                         clean_mask = True,
                         scale_masked_image = True,
                         crop_bounding_box = True,
