@@ -18,7 +18,7 @@ def _generate_file_table(experiment_id: str,
     annotation_table["experiment"] = experiment_id
 
     annotations = [
-        col for col in annotation_table if col not in ["ID", "well"]
+        col for col in annotation_table if col not in ["ID", "well", "experiment"]
     ]
 
     file_name_information = [
