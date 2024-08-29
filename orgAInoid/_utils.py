@@ -40,7 +40,6 @@ def _generate_file_table(experiment_id: str,
             continue
         well = contents[0]
         metadata_dict["experiment"].append(experiment_id)
-        metadata_dict["file_name"].append(file_name)
         metadata_dict["well"].append(well)
         metadata_dict["position"].append(contents[1])
         metadata_dict["loop"].append(contents[2])
