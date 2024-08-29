@@ -92,16 +92,16 @@ class OrganoidDataset:
                                file_frame: pd.DataFrame) -> pd.DataFrame:
         """\
         Selects the necessary parts of the files, e.g. slices, loops and so forth.
-        Appends 'image_path' and 'IMAGE_ARRAY_INDEX' and sorts the values.
+        Appends 'image_path' and a placeholder 'IMAGE_ARRAY_INDEX' and sorts the values.
         """
-        file_frame["image_path"] = [
+        file_frame.loc[:, "image_path"] = [
             os.path.join(self.dataset_metadata.experiment_dir, experiment, file_name)
             for experiment, file_name
             in zip(file_frame["experiment"].tolist(), file_frame["file_name"].tolist())
         ]
         timepoints = [
             f"LO{i}" if i >= 100 else f"LO0{i}" if i>= 10 else f"LO00{i}"
-            for i in range(self.start_timepoint, self.stop_timepoint)
+            for i in range(self.dataset_metadata.start_timepoint, self.dataset_metadata.stop_timepoint)
         ]
         assert isinstance(timepoints, list)
         assert len(timepoints) != 0
@@ -149,7 +149,7 @@ class OrganoidDataset:
         # labels are stored in multiple np.ndarrays in a dictionary
         labels = {
             readout: []
-            for readout in self.metadata.readouts
+            for readout in self.dataset_metadata.readouts
         }
 
         start = time.time()
