@@ -23,6 +23,7 @@ class OrganoidClassificationDataset:
     stop_timepoint: int
     slices: list[str]
     image_dimension: int
+    readout: str
 
     cropped_bbox: bool
     rescale_cropped_image: bool
@@ -41,6 +42,7 @@ class OrganoidClassificationDataset:
 
     def __init__(self,
                  dataset_id: str,
+                 readout: str,
                  file_frame: pd.DataFrame,
                  start_timepoint: int,
                  stop_timepoint: int,
@@ -54,6 +56,8 @@ class OrganoidClassificationDataset:
                  segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
                  experiment_dir: PathLike):
         self.dataset_id = dataset_id
+        self.experiment_dir = experiment_dir
+        self.readout = readout
         self.slices = slices
         self.start_timepoint = start_timepoint
         self.stop_timepoint = stop_timepoint
@@ -67,13 +71,14 @@ class OrganoidClassificationDataset:
         self.rescale_cropped_image = rescale_cropped_image
         self.crop_size = crop_size
 
+        self.create_datasets(file_frame)
+
+    def create_datasets(self,
+                        file_frame: pd.DataFrame) -> None:
         self.train_df, self.test_df = self._train_test_split_dataframe(
             file_frame = file_frame,
-            experiment_dir = experiment_dir
+            experiment_dir = self.experiment_dir
         )
-        self.create_datasets()
-
-    def create_datasets(self):
         self.X_train, self.y_train = self._prepare_classification_data(df = self.train_df)
         self.X_test, self.y_test = self._prepare_classification_data(df = self.test_df)
         self.n_train_images = self.X_train.shape[0]
@@ -250,6 +255,7 @@ class OrganoidClassificationDataset:
             "stop_timepoint": self.stop_timepoint,
             "slices": self.slices,
             "image_dimension": self.image_dimension,
+            "readout": self.readout,
             "cropped_bbox": self.cropped_bbox,
             "rescale_cropped_image": self.rescale_cropped_image,
             "crop_size": self.crop_size,
@@ -267,7 +273,46 @@ class OrganoidClassificationDataset:
         # Save the metadata
         self._save_metadata(output_dir)
 
+class OrganoidValidationDataset(OrganoidClassificationDataset):
 
+    X_val: Optional[np.ndarray]
+    y_val: Optional[np.ndarray]
+    n_val_images: int
+
+    def __init__(self,
+                 dataset_id: str,
+                 readout: str,
+                 file_frame: pd.DataFrame,
+                 start_timepoint: int,
+                 stop_timepoint: int,
+                 slices: list[str],
+                 image_size: int,
+                 crop_bbox: bool,
+                 rescale_cropped_image: bool,
+                 crop_size: Optional[int],
+                 segmentator_input_dir: str,
+                 segmentator_input_size: int,
+                 segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
+                 experiment_dir: PathLike):
+        super().__init__(dataset_id = dataset_id,
+                         readout = readout,
+                         file_frame = file_frame,
+                         start_timepoint = start_timepoint,
+                         stop_timepoint = stop_timepoint,
+                         slices = slices,
+                         image_size = image_size,
+                         crop_bbox = crop_bbox,
+                         rescale_cropped_image = rescale_cropped_image,
+                         crop_size = crop_size,
+                         segmentator_input_dir = segmentator_input_dir,
+                         segmentator_input_size = segmentator_input_size,
+                         segmentation_model_name = segmentation_model_name,
+                         experiment_dir = experiment_dir)
+
+    def create_datasets(self,
+                        file_frame: pd.DataFrame) -> None:
+        self.X_val, self.y_val = self._prepare_classification_data(df = file_frame)
+        self.n_val_images = self.X_val.shape[0]
 
 def read_classification_dataset(file_name) -> OrganoidClassificationDataset:
     with open(file_name, "rb") as file:

@@ -1,7 +1,6 @@
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import numpy as np
-import torch
 
 
 class CustomIntensityAdjustment(A.ImageOnlyTransform):
@@ -11,6 +10,8 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
             A.OneOf([
                 A.RandomBrightnessContrast(p=0.5),
                 A.RandomGamma(p=0.5),
+                A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5),
+                A.GaussNoise(var_limit=(10.0, 50.0), p=0.5)
             ], p=1.0)
         ])
 

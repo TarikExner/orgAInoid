@@ -48,7 +48,12 @@ def train_transformations(image_size: int = 224) -> A.Compose:
         A.Rotate(limit=120, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
         A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),  # Shift and scale (rotation already handled)
         A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1), p=0.5),  # Resized crop
-        
+        # A.Affine(scale=(0.8, 1.2), translate_percent=(0.1, 0.1), rotate=(-20, 20), shear=(-15, 15), p=0.5),
+        # A.ElasticTransform(alpha=1.0, sigma=50.0, alpha_affine=50.0, p=0.5),
+        # A.GridDistortion(num_steps=5, distort_limit=0.3, p=0.5),
+        # A.Cutout(num_holes=8, max_h_size=16, max_w_size=16, p=0.5),
+
+
         # Apply intensity modifications only to non-masked pixels
         CustomIntensityAdjustment(p=0.5),
 
