@@ -6,6 +6,9 @@ def _generate_file_table(experiment_id: str,
                          annotations_file: str):
 
     annotation_table = pd.read_csv(annotations_file)
+    if annotation_table.shape[1] == 1:
+        annotation_table = pd.read_csv(annotations_file, sep = ";")
+
 
     annotation_table["well"] = [
         entry.split(experiment_id)[1]
