@@ -1,3 +1,6 @@
+from dataclasses import dataclass, field
+from enum import Enum
+
 from torch.utils.data import Dataset
 import numpy as np
 import torch
@@ -7,7 +10,51 @@ from albumentations.pytorch import ToTensorV2
 
 from torch.utils.data import DataLoader
 
+from typing import Optional
+
 from .._augmentation import val_transformations, CustomIntensityAdjustment
+
+
+class SegmentatorModel(Enum):
+    DEEPLABV3 = "DEEPLABV3"
+    UNET = "UNET"
+    HRNET = "HRNET"
+
+def _get_model_from_enum(model_name: str):
+    return [
+        model for model
+        in SegmentatorModel
+        if model.value == model_name
+    ][0]
+
+@dataclass
+class ImageMetadata:
+    dimension: int
+    cropped_bbox: bool
+    scaled_to_size: bool
+    crop_size: Optional[int]
+    segmentator_model: SegmentatorModel
+    segmentator_input_size: int
+    mask_threshold: float
+    cleaned_mask: bool
+    scale_masked_image: bool
+    crop_bounding_box: bool
+    rescale_cropped_image: bool
+    crop_bounding_box_dimension: Optional[int]
+
+@dataclass
+class DatasetMetadata:
+    dataset_id: str
+    experiment_dir: str
+    readouts: list[str]
+    start_timepoint: int
+    stop_timepoint: int
+    slices: list[str]
+    n_slices: int = field(init = False)
+
+    def __post_init__(self):
+        self.n_slices = len(self.slices)
+
 
 class ClassificationDataset(Dataset):
     def __init__(self, image_arr: np.ndarray, classes: np.ndarray, transforms):
