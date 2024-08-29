@@ -9,12 +9,12 @@ def _generate_file_table(experiment_id: str,
     if annotation_table.shape[1] == 1:
         annotation_table = pd.read_csv(annotations_file, sep = ";")
 
-
     annotation_table["well"] = [
         entry.split(experiment_id)[1]
         if not entry == f"{experiment_id}{experiment_id}" else experiment_id
         for entry in annotation_table["ID"].tolist()
     ]
+
     annotation_table["experiment"] = experiment_id
 
     annotations = [
