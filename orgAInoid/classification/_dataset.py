@@ -5,9 +5,9 @@ import pandas as pd
 import pickle
 from pathlib import Path
 import json
-from typing import Optional, Literal
+from typing import Optional, Literal, Tuple, Union
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 import time
 
@@ -74,6 +74,9 @@ class OrganoidDataset:
             rescale_cropped_image = rescale_cropped_image,
             crop_bounding_box_dimension = crop_size
         )
+
+        if not isinstance(readouts, list):
+            readouts = [readouts]
 
         self._dataset_metadata = DatasetMetadata(
             dataset_id = dataset_id,
@@ -253,236 +256,6 @@ class OrganoidDataset:
                                           col1: str,
                                           col2: str):
         return df[[col1, col2]].drop_duplicates().reset_index(drop=True).to_numpy()
-    
-    @property
-    def image_metadata(self):
-        return self._image_metadata
-
-    @property
-    def dataset_metadata(self):
-        return self._dataset_metadata
-
-    @property
-    def metadata(self):
-        return self._metadata
-
-class OrganoidValidationDataset(OrganoidDataset):
-    """\
-    Class to hold a validation dataset. This means, that
-    X and y are not subset but rather returned as is.
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-
-class OrganoidClassificationDataset:
-    dataset_id: str
-    start_timepoint: int
-    stop_timepoint: int
-    slices: list[str]
-    image_dimension: int
-    readout: str
-
-    cropped_bbox: bool
-    rescale_cropped_image: bool
-    crop_size: Optional[int]
-
-    train_wells: Optional[np.ndarray] = None
-    test_wells: Optional[np.ndarray] = None
-
-    X_train: Optional[np.ndarray] = None
-    y_train: Optional[np.ndarray] = None
-    X_test: Optional[np.ndarray] = None
-    y_test: Optional[np.ndarray] = None
-
-    n_train_images: int
-    n_test_images: int
-
-    def __init__(self,
-                 dataset_id: str,
-                 readout: str,
-                 file_frame: pd.DataFrame,
-                 start_timepoint: int,
-                 stop_timepoint: int,
-                 slices: list[str],
-                 image_size: int,
-                 crop_bbox: bool,
-                 rescale_cropped_image: bool,
-                 crop_size: Optional[int],
-                 segmentator_input_dir: str,
-                 segmentator_input_size: int,
-                 segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
-                 experiment_dir: PathLike):
-        self.dataset_id = dataset_id
-        self.experiment_dir = experiment_dir
-        self.readout = readout
-        self.slices = slices
-        self.start_timepoint = start_timepoint
-        self.stop_timepoint = stop_timepoint
-        self.image_dimension = image_size
-        self.img_handler = ImageHandler(
-            segmentator_input_dir = segmentator_input_dir,
-            segmentator_input_size = segmentator_input_size,
-            segmentation_model_name = segmentation_model_name
-        )
-        self.cropped_bbox = crop_bbox
-        self.rescale_cropped_image = rescale_cropped_image
-        self.crop_size = crop_size
-
-        self.create_datasets(file_frame)
-
-    def create_datasets(self,
-                        file_frame: pd.DataFrame) -> None:
-        self.train_df, self.test_df = self._train_test_split_dataframe(
-            file_frame = file_frame,
-            experiment_dir = self.experiment_dir
-        )
-        self.X_train, self.y_train = self._prepare_classification_data(df = self.train_df)
-        self.X_test, self.y_test = self._prepare_classification_data(df = self.test_df)
-        self.n_train_images = self.X_train.shape[0]
-        self.n_test_images = self.X_test.shape[0]
-
-    def _prepare_classification_data(self,
-                                     df: pd.DataFrame,
-                                     slice_to_mask: str = "SL003",
-                                     train_set: bool = True) -> tuple[np.ndarray, np.ndarray]:
-        """\
-
-        slice_to_mask
-            We need to make sure that we use the correct slice for masking.
-            EDIT: For now, we will treat both images as valid input for the UNET.
-
-        """
-        n_failed_images = 0
-
-        images = []
-        labels = []
-
-        unique_experiment_well_combo = self._get_unique_experiment_well_combo(df, "experiment", "well")
-
-        assert self.train_wells is not None
-        assert self.test_wells is not None
-
-        n_wells = unique_experiment_well_combo.shape[0]
-
-        start = time.time()
-
-        for i, (experiment, well) in enumerate(unique_experiment_well_combo):
-
-            stop = time.time()
-
-            if i != 0:
-                print(f"{i}/{n_wells} wells completed in {round(stop-start, 2)} seconds..")
-
-            start = time.time()
-
-            well_df = df[
-                (df["experiment"] == experiment) &
-                (df["well"] == well)
-            ].copy()
-
-            # we loop through the timepoints in order to capture all slices
-            for loop in well_df["loop"].unique():
-
-                loop_data = well_df[well_df["loop"] == loop].copy()
-
-                loop_label = list(set(loop_data["RPE"].tolist()))
-
-                assert len(loop_label) == 1
-
-                image_paths = loop_data["image_path"].tolist()
-
-                loop_images = []
-                for path in image_paths:
-                    image = OrganoidImage(path)
-                    masked_image = self.img_handler.get_masked_image(
-                        image,
-                        image_target_dimension = self.image_dimension,
-                        mask_threshold = 0.3,
-                        clean_mask = True,
-                        scale_masked_image = True,
-                        crop_bounding_box = True,
-                        rescale_cropped_image = self.rescale_cropped_image,
-                        crop_bounding_box_dimension = self.crop_size
-                    )
-                    if masked_image is not None:
-                        loop_images.append(masked_image)
-                    else:
-                        loop_images = None
-                        break
-
-                if loop_images is not None:
-                    images.append(np.array(loop_images))
-                    labels.append(loop_label[0])
-                else:
-                    n_failed_images += 1
-                    print(f"Dataset creation: skipping images {experiment}: {well} : {loop}")
-
-        images = np.array(images)
-        labels = np.array(labels)
-
-        assert images.shape[0] == labels.shape[0]
-        assert images.shape[1] == len(self.slices)
-
-        labels = self._one_hot_encode_labels(labels)
-
-        print(f"In total, {n_failed_images}/{images.shape[0]} images were skipped.")
-
-        return images, labels
-
-    def _one_hot_encode_labels(self,
-                               labels_array: np.ndarray) -> np.ndarray:
-        label_encoder = LabelEncoder()
-        integer_encoded = label_encoder.fit_transform(labels_array)
-        
-        onehot_encoder = OneHotEncoder()
-        integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
-        classification = onehot_encoder.fit_transform(integer_encoded).toarray()
-        return classification
-                    
-    def _train_test_split_dataframe(self,
-                                    file_frame: pd.DataFrame,
-                                    experiment_dir: PathLike) -> tuple[pd.DataFrame, pd.DataFrame]:
-        file_frame["image_path"] = [
-            os.path.join(experiment_dir, experiment, file_name)
-            for experiment, file_name in zip(file_frame["experiment"].tolist(), file_frame["file_name"].tolist())
-        ]
-        timepoints = [
-            f"LO{i}" if i >= 100 else f"LO0{i}" if i>= 10 else f"LO00{i}"
-            for i in range(self.start_timepoint, self.stop_timepoint)
-        ]
-        files = file_frame[file_frame["slice"].isin(self.slices)]
-        files = files.dropna()
-        files = files[files["loop"].isin(timepoints)]
-        assert isinstance(files, pd.DataFrame)
-
-        unique_wells = self._get_unique_experiment_well_combo(files, "experiment", "well")
-
-        train_wells, test_wells = train_test_split(unique_wells, test_size = 0.1, random_state = 187)
-        assert isinstance(train_wells, np.ndarray)
-        assert isinstance(test_wells, np.ndarray)
-
-        train_df = self._filter_wells(files, train_wells, ["experiment", "well"])
-        test_df = self._filter_wells(files, test_wells, ["experiment", "well"])
-
-        self.train_wells = train_df[["experiment", "well"]].to_numpy()
-        self.test_wells = test_df[["experiment", "well"]].to_numpy()
-        return train_df, test_df
-
-    def _get_unique_experiment_well_combo(self,
-                                          df: pd.DataFrame,
-                                          col1: str,
-                                          col2: str):
-        return df[[col1, col2]].drop_duplicates().reset_index(drop=True).to_numpy()
-
-    def _filter_wells(self,
-                      df: pd.DataFrame,
-                      combinations: np.ndarray,
-                      columns: list[str]):
-        combinations_df = pd.DataFrame(combinations, columns=columns)
-        return df.merge(combinations_df, on=columns, how='inner')
 
     def _save_metadata(self, output_dir: PathLike):
         """Save the metadata to a central JSON file."""
@@ -499,10 +272,11 @@ class OrganoidClassificationDataset:
 
         # Check if the dataset_id already exists
         if metadata.get("dataset_id") in all_metadata:
-            raise ValueError(f"Dataset with ID {self.dataset_id} already exists in metadata.")
+            raise ValueError(
+                f"Dataset with ID {self.dataset_metadata.dataset_id} already exists in metadata.")
 
         # Add new metadata entry under the dataset_id key
-        all_metadata[self.dataset_id] = metadata
+        all_metadata[self.dataset_metadata.dataset_id] = metadata
 
         # Write the updated metadata back to the JSON file
         with open(metadata_file, 'w') as f:
@@ -511,30 +285,191 @@ class OrganoidClassificationDataset:
     def _create_metadata(self) -> dict:
         """Create a dictionary containing the metadata of the dataset."""
         metadata = {
-            "start_timepoint": self.start_timepoint,
-            "stop_timepoint": self.stop_timepoint,
-            "slices": self.slices,
-            "image_dimension": self.image_dimension,
-            "readout": self.readout,
-            "cropped_bbox": self.cropped_bbox,
-            "rescale_cropped_image": self.rescale_cropped_image,
-            "crop_size": self.crop_size,
-            "n_train_images": self.n_train_images,
-            "n_test_images": self.n_test_images,
+            "start_timepoint": self.dataset_metadata.start_timepoint,
+            "stop_timepoint": self.dataset_metadata.stop_timepoint,
+            "slices": self.dataset_metadata.slices,
+            "image_dimension": self.image_metadata.dimension,
+            "readouts": self.dataset_metadata.readouts,
+            "cropped_bbox": self.image_metadata.cropped_bbox,
+            "rescale_cropped_image": self.image_metadata.rescale_cropped_image,
+            "crop_size": self.image_metadata.crop_size,
         }
         return metadata
 
     def save(self, output_dir: PathLike):
         """Save the dataset and its metadata to disk."""
         # Save the dataset itself
-        with open(os.path.join(output_dir, f"{self.dataset_id}.cds"), "wb") as file:
+        with open(os.path.join(output_dir, f"{self.dataset_metadata.dataset_id}.cds"), "wb") as file:
             pickle.dump(self, file)
 
         # Save the metadata
         self._save_metadata(output_dir)
+ 
+    @property
+    def image_metadata(self):
+        """Returns metadata associated with image processing"""
+        return self._image_metadata
+
+    @property
+    def dataset_metadata(self):
+        """Returns metadata associated with dataset"""
+        return self._dataset_metadata
+
+    @property
+    def metadata(self):
+        """Returns metadata associated with the data"""
+        return self._metadata
+
+    def read_classification_dataset(self,
+                                    file_name) -> "OrganoidDataset":
+        with open(file_name, "rb") as file:
+            dataset = pickle.load(file)
+        return dataset
+
+class OrganoidValidationDataset(OrganoidDataset):
+    """\
+    Class to hold a validation dataset. This means, that
+    X and y are not subset but rather returned as is.
+    """
+
+    def __init__(self,
+                 base_dataset: PathLike,
+                 readout: str):
+        dataset = self.read_classification_dataset(base_dataset)
+        self.X = dataset.X
+        self.y = dataset.y[readout]
+
+class OrganoidDatasetSplitter:
+
+    def __init__(self):
+        pass
+
+    def _filter_wells(self,
+                      df: pd.DataFrame,
+                      combinations: np.ndarray,
+                      columns: list[str]):
+        combinations_df = pd.DataFrame(combinations, columns=columns)
+        return df.merge(combinations_df, on=columns, how='inner')
+
+    def _get_array_indices_from_frame(self,
+                                      df: pd.DataFrame,
+                                      train_wells: np.ndarray,
+                                      test_wells: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        train_df = self._filter_wells(df, train_wells, ["experiment", "well"])
+        test_df = self._filter_wells(df, test_wells, ["experiment", "well"])
+
+        train_idxs = train_df["IMAGE_ARRAY_INDEX"].unique()
+        test_idxs = test_df["IMAGE_ARRAY_INDEX"].unique()
+
+        assert isinstance(train_idxs, np.ndarray)
+        assert isinstance(test_idxs, np.ndarray)
+
+        return train_idxs, test_idxs
 
 
-def read_classification_dataset(file_name) -> OrganoidDataset:
-    with open(file_name, "rb") as file:
-        dataset = pickle.load(file)
-    return dataset
+class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
+    """\
+    Class to implement a cross-validation dataset with n_splits.
+    Example usage:
+        dataset = OrganoidCrossValidationDataset()
+        for fold_number, (X_train, X_test, y_train, y_test) in enumerate(dataset):
+            [...]
+    """
+
+    def __init__(self,
+                 base_dataset: Union[PathLike, OrganoidDataset],
+                 readout: str,
+                 n_splits: int = 5):
+        self.readout = readout
+        if isinstance(base_dataset, OrganoidDataset):
+            self.dataset = base_dataset
+        else:
+            self.dataset = self.read_classification_dataset(base_dataset)
+
+        metadata = self.dataset.metadata
+        self._calculate_k_folds(n_splits, metadata)
+
+    def __iter__(self) -> 'OrganoidCrossValidationDataset':
+        self.current_fold = 0  # Reset fold index for new iteration
+        return self
+
+    def __next__(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        if self.current_fold >= len(self.fold_indices):
+            raise StopIteration
+        data = self.get_fold_data(self.current_fold)
+        self.current_fold += 1
+        return data
+
+    def get_fold_data(self, fold: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        train_idxs, test_idxs = self.fold_indices[fold]
+        X_train = self.dataset.X[train_idxs]
+        X_test = self.dataset.X[test_idxs]
+        y_train = self.dataset.y[self.readout][train_idxs]
+        y_test = self.dataset.y[self.readout][test_idxs]
+        return X_train, X_test, y_train, y_test
+
+    def _calculate_k_folds(self,
+                           n_splits: int,
+                           metadata: pd.DataFrame):
+        self.fold_indices = {
+            i: (np.array([]), np.array([]))
+            for i in range(n_splits)
+        }
+        skf = KFold(n_splits = n_splits, shuffle = True, random_state = 187)
+        unique_well_per_experiment = self._get_unique_experiment_well_combo(metadata, "experiment", "well")
+        for i, (train_wells, test_wells) in enumerate(skf.split(unique_well_per_experiment)):
+            self.fold_indices[i] = (self._get_array_indices_from_frame(metadata, train_wells, test_wells))
+
+        return
+
+
+class OrganoidTrainingDataset(OrganoidDataset, OrganoidDatasetSplitter):
+
+    def __init__(self,
+                 base_dataset: Union[PathLike, OrganoidDataset],
+                 readout: str,
+                 test_size: float = 0.1):
+        if isinstance(base_dataset, OrganoidDataset):
+            self.dataset = base_dataset
+        else:
+            self.dataset = self.read_classification_dataset(base_dataset)
+        self.readout = readout
+        metadata = self.dataset.metadata
+        self.train_idxs, self.test_idxs = self._calculate_train_test_split(
+            test_size,
+            metadata
+        )
+
+    @property
+    def X_train(self):
+        return self.dataset.X[self.train_idxs]
+
+    @property
+    def X_test(self):
+        return self.dataset.X[self.test_idxs]
+
+    @property
+    def y_train(self):
+        return self.dataset.y[self.readout][self.train_idxs]
+
+    @property
+    def y_test(self):
+        return self.dataset.y[self.readout][self.test_idxs]
+
+    @property
+    def arrays(self):
+        return self.X_train, self.X_test, self.y_train, self.y_test
+
+    def _calculate_train_test_split(self,
+                                    test_size: float,
+                                    metadata: pd.DataFrame):
+        unique_well_per_experiment = self._get_unique_experiment_well_combo(metadata, "experiment", "well")
+        train_wells, test_wells = train_test_split(
+            unique_well_per_experiment,
+            test_size = test_size,
+            random_state = 187
+        )
+        assert isinstance(train_wells, np.ndarray)
+        assert isinstance(test_wells, np.ndarray)
+
+        return self._get_array_indices_from_frame(metadata, train_wells, test_wells)
