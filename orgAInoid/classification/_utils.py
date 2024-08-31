@@ -20,12 +20,6 @@ class SegmentatorModel(Enum):
     UNET = "UNET"
     HRNET = "HRNET"
 
-def _get_model_from_enum(model_name: str):
-    return [
-        model for model
-        in SegmentatorModel
-        if model.value == model_name
-    ][0]
 
 @dataclass
 class ImageMetadata:
@@ -124,3 +118,11 @@ def create_dataloader(img_array: np.ndarray,
     transformations = train_transformations() if train else val_transformations()
     dataset = create_dataset(img_array, class_array, transformations)
     return DataLoader(dataset, batch_size = batch_size, shuffle = shuffle)
+
+def _get_model_from_enum(model_name: str):
+    return [
+        model for model
+        in SegmentatorModel
+        if model.value == model_name
+    ][0]
+

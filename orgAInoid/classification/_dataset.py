@@ -251,6 +251,13 @@ class OrganoidDataset:
         classification = onehot_encoder.fit_transform(integer_encoded).toarray()
         return classification
 
+    def add_annotations(self,
+                        annotations: Union[list[str],str],
+                        df: pd.DataFrame) -> None:
+        if not isinstance(annotations, list):
+            annotations = [annotations]
+        raise NotImplementedError
+
     def _get_unique_experiment_well_combo(self,
                                           df: pd.DataFrame,
                                           col1: str,
