@@ -393,8 +393,8 @@ class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
         else:
             self.dataset = self.read_classification_dataset(base_dataset)
 
-        metadata = self.dataset.metadata
-        self._calculate_k_folds(n_splits, metadata)
+        self._metadata = self.dataset.metadata
+        self._calculate_k_folds(n_splits, self._metadata)
 
     def __iter__(self) -> 'OrganoidCrossValidationDataset':
         self.current_fold = 0  # Reset fold index for new iteration
@@ -424,7 +424,9 @@ class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
         }
         skf = KFold(n_splits = n_splits, shuffle = True, random_state = 187)
         unique_well_per_experiment = self._get_unique_experiment_well_combo(metadata, "experiment", "well")
-        for i, (train_wells, test_wells) in enumerate(skf.split(unique_well_per_experiment)):
+        for i, (train_indices, test_indices) in enumerate(skf.split(unique_well_per_experiment)):
+            train_wells = unique_well_per_experiment[train_indices]
+            test_wells = unique_well_per_experiment[test_indices]
             self.fold_indices[i] = (self._get_array_indices_from_frame(metadata, train_wells, test_wells))
 
         return
@@ -441,10 +443,10 @@ class OrganoidTrainingDataset(OrganoidDataset, OrganoidDatasetSplitter):
         else:
             self.dataset = self.read_classification_dataset(base_dataset)
         self.readout = readout
-        metadata = self.dataset.metadata
+        self._metadata = self.dataset.metadata
         self.train_idxs, self.test_idxs = self._calculate_train_test_split(
             test_size,
-            metadata
+            self._metadata
         )
 
     @property
