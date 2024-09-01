@@ -45,9 +45,23 @@ class DatasetMetadata:
     stop_timepoint: int
     slices: list[str]
     n_slices: int = field(init = False)
+    class_balance: dict = field(default_factory=dict)
 
     def __post_init__(self):
         self.n_slices = len(self.slices)
+
+    def __repr__(self):
+        return (
+            f"DatasetMetadata("
+            f"dataset_id={self.dataset_id!r}, "
+            f"experiment_dir={self.experiment_dir!r}, "
+            f"readouts={self.readouts!r}, "
+            f"start_timepoint={self.start_timepoint}, "
+            f"stop_timepoint={self.stop_timepoint}, "
+            f"slices={self.slices!r}, "
+            f"n_slices={self.n_slices}, "
+            f"class_balance={self.class_balance!r})"
+        )
 
 
 class ClassificationDataset(Dataset):
