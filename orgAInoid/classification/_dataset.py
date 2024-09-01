@@ -93,18 +93,16 @@ class OrganoidDataset:
 
         self._create_class_counts()
 
-
     def _create_class_counts(self):
         class_balances = {}
         for readout in self.dataset_metadata.readouts:
             n_uniques = self.metadata.groupby(readout).nunique()["well"]
             class_balances[readout] = {
-                n_uniques.index[i]: n_uniques.iloc[i] / n_uniques.sum()
+                n_uniques.index[i]: round(n_uniques.iloc[i] / n_uniques.sum(), 2)
                 for i in range(n_uniques.shape[0])
             }
 
         self.dataset_metadata.class_balance = class_balances
-
         return
 
     def _preprocess_file_frame(self,
@@ -257,6 +255,28 @@ class OrganoidDataset:
 
         return images, labels
 
+
+    def add_annotations(self,
+                        annotations: Union[list[str],str],
+                        df: pd.DataFrame) -> None:
+        if not isinstance(annotations, list):
+            annotations = [annotations]
+        assert "experiment" in df.columns, "'experiment' has to be one of the columns"
+        assert "well" in df.columns, "'well' has to be one of the columns"
+        new_metadata = df[["experiment", "well"] + annotations]
+        self._metadata = self.metadata.merge(
+            new_metadata,
+            left_on = ["experiment", "well"],
+            right_on = ["experiment", "well"]
+        )
+        self._metadata = self._metadata[self._metadata["IMAGE_ARRAY_INDEX"] != -1]
+        self._metadata = self._metadata.sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+        for annotation in annotations:
+            self.dataset_metadata.readouts.append(annotation)
+            self.y[annotation] = self._one_hot_encode_labels(self._metadata[annotation].to_numpy())
+        self._create_class_counts()
+        return
+
     def _one_hot_encode_labels(self,
                                labels_array: np.ndarray) -> np.ndarray:
         label_encoder = LabelEncoder()
@@ -266,13 +286,6 @@ class OrganoidDataset:
         integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
         classification = onehot_encoder.fit_transform(integer_encoded).toarray()
         return classification
-
-    def add_annotations(self,
-                        annotations: Union[list[str],str],
-                        df: pd.DataFrame) -> None:
-        if not isinstance(annotations, list):
-            annotations = [annotations]
-        raise NotImplementedError
 
     def _get_unique_experiment_well_combo(self,
                                           df: pd.DataFrame,
