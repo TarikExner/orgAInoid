@@ -87,9 +87,25 @@ class OrganoidDataset:
             slices = slices
         )
 
-        self._metadata = self._preprocess_file_frame(file_frame)           
+        self._metadata = self._preprocess_file_frame(file_frame)         
 
         self.create_full_dataset(self._metadata)
+
+        self._create_class_counts()
+
+
+    def _create_class_counts(self):
+        class_balances = {}
+        for readout in self.dataset_metadata.readouts:
+            n_uniques = self.metadata.groupby(readout).nunique()["well"]
+            class_balances[readout] = [
+                n_uniques.iloc[i] / n_uniques.sum()
+                for i in range(n_uniques.shape[0])
+            ]
+
+        self.dataset_metadata.class_balance = class_balances
+
+        return
 
     def _preprocess_file_frame(self,
                                file_frame: pd.DataFrame) -> pd.DataFrame:
