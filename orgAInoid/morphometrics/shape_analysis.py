@@ -67,12 +67,12 @@ def run_morphometrics(experiment_id: str,
             min_size_percentage = 7.5,
             crop_bounding_box = False
         )
-        assert isinstance(mask, np.ndarray)
-        mask = OrganoidMask(mask)
 
         if img is None or mask is None:
             print(f"Skipping image {file_name} due to a masking error")
             continue
+
+        mask = OrganoidMask(mask)
 
         labeled_mask = mask.label_mask(mask.image)
 
