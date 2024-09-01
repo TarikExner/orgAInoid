@@ -1,10 +1,9 @@
 import os
 import skimage
 import pandas as pd
-import numpy as np
-
 
 from typing import Literal
+import time
 
 from . import methods
 from ._utils import PROPERTIES, EXTRA_PROPERTIES
@@ -51,10 +50,12 @@ def run_morphometrics(experiment_id: str,
         segmentator_input_size = segmentator_input_size,
         segmentation_model_name = segmentation_model_name
     )
-
+    start = time.time()
     for i, file_name in enumerate(file_list):
         if i%100 == 0 and i != 0:
-            print(f"Processed {i}/{len(file_list)} images")
+            stop = time.time()
+            print(f"Processed {i}/{len(file_list)} images in {round(stop-start,2)} seconds")
+            start = time.time()
         image_path = os.path.join(image_dir, file_name)
         original_image = OrganoidImage(image_path)
         if original_image is None:
