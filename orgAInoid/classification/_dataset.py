@@ -436,11 +436,9 @@ class OrganoidDatasetSplitter:
         )
         metadata = self._annotate_wells(
             wells_to_annotate = test_wells,
-            set_value = "train",
+            set_value = "test",
             **kwargs
         )
-        print("annotation is done")
-        print(metadata)
 
         return metadata
 
