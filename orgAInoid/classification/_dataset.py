@@ -98,10 +98,10 @@ class OrganoidDataset:
         class_balances = {}
         for readout in self.dataset_metadata.readouts:
             n_uniques = self.metadata.groupby(readout).nunique()["well"]
-            class_balances[readout] = [
-                n_uniques.iloc[i] / n_uniques.sum()
+            class_balances[readout] = {
+                n_uniques.index[i]: n_uniques.iloc[i] / n_uniques.sum()
                 for i in range(n_uniques.shape[0])
-            ]
+            }
 
         self.dataset_metadata.class_balance = class_balances
 
