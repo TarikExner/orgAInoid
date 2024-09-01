@@ -52,7 +52,9 @@ def run_morphometrics(experiment_id: str,
         segmentation_model_name = segmentation_model_name
     )
 
-    for file_name in file_list:
+    for i, file_name in enumerate(file_list):
+        if i%100 == 0 and i != 0:
+            print(f"Processed {i}/{len(file_list)} images")
         image_path = os.path.join(image_dir, file_name)
         original_image = OrganoidImage(image_path)
         if original_image is None:
