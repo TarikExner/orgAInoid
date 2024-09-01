@@ -406,6 +406,43 @@ class OrganoidDatasetSplitter:
 
         return train_idxs, test_idxs
 
+    def _annotate_wells(self,
+                        metadata: pd.DataFrame,
+                        wells_to_annotate: np.ndarray,
+                        colname: str = "set",
+                        set_value: Literal["train", "test"] = "train"):
+        for experiment, well in wells_to_annotate:
+            metadata.loc[
+                (metadata["experiment"] == experiment) &
+                (metadata["well"] == well),
+                colname
+            ] = set_value
+
+        return metadata
+
+    def _annotate_train_test_wells(self,
+                                   metadata: pd.DataFrame,
+                                   colname: str,
+                                   train_wells: np.ndarray,
+                                   test_wells: np.ndarray):
+        kwargs = {
+            "metadata": metadata,
+            "colname": colname
+
+        }
+        metadata = self._annotate_wells(
+            wells_to_annotate = train_wells,
+            set_value = "train",
+            **kwargs
+        )
+        metadata = self._annotate_wells(
+            wells_to_annotate = test_wells,
+            set_value = "train",
+            **kwargs
+        )
+
+        return metadata
+
 
 class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
     """\
@@ -460,6 +497,12 @@ class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
         for i, (train_indices, test_indices) in enumerate(skf.split(unique_well_per_experiment)):
             train_wells = unique_well_per_experiment[train_indices]
             test_wells = unique_well_per_experiment[test_indices]
+            self._metadata = self._annotate_train_test_wells(
+                self._metadata,
+                colname = f"fold{i}",
+                train_wells = train_wells,
+                test_wells = test_wells,
+            )
             self.fold_indices[i] = (self._get_array_indices_from_frame(metadata, train_wells, test_wells))
 
         return
@@ -476,7 +519,7 @@ class OrganoidTrainingDataset(OrganoidDataset, OrganoidDatasetSplitter):
         else:
             self.dataset = self.read_classification_dataset(base_dataset)
         self.readout = readout
-        self._metadata = self.dataset.metadata
+        self._metadata = self.dataset.metadata.copy()
         self.train_idxs, self.test_idxs = self._calculate_train_test_split(
             test_size,
             self._metadata
@@ -502,6 +545,7 @@ class OrganoidTrainingDataset(OrganoidDataset, OrganoidDatasetSplitter):
     def arrays(self):
         return self.X_train, self.X_test, self.y_train, self.y_test
 
+
     def _calculate_train_test_split(self,
                                     test_size: float,
                                     metadata: pd.DataFrame):
@@ -513,5 +557,12 @@ class OrganoidTrainingDataset(OrganoidDataset, OrganoidDatasetSplitter):
         )
         assert isinstance(train_wells, np.ndarray)
         assert isinstance(test_wells, np.ndarray)
+
+        self._metadata = self._annotate_train_test_wells(
+            self._metadata,
+            colname = "set",
+            train_wells = train_wells,
+            test_wells = test_wells,
+        )
 
         return self._get_array_indices_from_frame(metadata, train_wells, test_wells)
