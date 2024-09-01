@@ -269,11 +269,14 @@ class OrganoidDataset:
             left_on = ["experiment", "well"],
             right_on = ["experiment", "well"]
         )
-        self._metadata = self._metadata[self._metadata["IMAGE_ARRAY_INDEX"] != -1]
-        self._metadata = self._metadata.sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+        # Copy it to not mess up the actual metadata
+        merged = self._metadata[self._metadata["IMAGE_ARRAY_INDEX"] != -1].copy()
+        merged = self._metadata.sort_values("IMAGE_ARRAY_INDEX", ascending = True)
         for annotation in annotations:
             self.dataset_metadata.readouts.append(annotation)
-            self.y[annotation] = self._one_hot_encode_labels(self._metadata[annotation].to_numpy())
+            encoded_labels = self._one_hot_encode_labels(merged[annotation].to_numpy())
+            assert encoded_labels.shape[0] == self.X.shape[0]
+            self.y[annotation] = encoded_labels
         self._create_class_counts()
         return
 
