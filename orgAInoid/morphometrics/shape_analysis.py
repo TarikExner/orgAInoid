@@ -30,6 +30,8 @@ def run_morphometrics(experiment_id: str,
     
 
     """
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
     overview_file = os.path.join(metadata_dir, f"{experiment_id}_file_overview.csv")
     if os.path.isfile(overview_file):
         file_frame = pd.read_csv(overview_file, index_col = None)
