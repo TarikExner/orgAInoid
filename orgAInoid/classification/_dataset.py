@@ -398,7 +398,7 @@ class OrganoidDataset:
 
     def save(self, output_dir: PathLike, overwrite: bool = False):
         """Save the dataset and its metadata to disk."""
-        # Save the dataset itself
+
         file_name = os.path.join(output_dir, f"{self.dataset_metadata.dataset_id}.cds")
         if os.path.isfile(file_name) and not overwrite:
             raise ValueError("Dataset exists, set overwrite to True")
@@ -461,9 +461,13 @@ class OrganoidValidationDataset(OrganoidDataset):
     """
 
     def __init__(self,
-                 base_dataset: PathLike,
+                 base_dataset: Union[PathLike, OrganoidDataset],
                  readout: str):
-        dataset = self.read_classification_dataset(base_dataset)
+        if isinstance(base_dataset, OrganoidDataset):
+            dataset = base_dataset
+        else:
+            dataset = self.read_classification_dataset(base_dataset)
+
         self.X = dataset.X
         self.y = dataset.y[readout]
 

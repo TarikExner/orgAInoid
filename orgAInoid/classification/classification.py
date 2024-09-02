@@ -6,17 +6,21 @@ import os
 import time
 
 from ._utils import create_dataloader
-from ._dataset import read_classification_dataset
+from ._dataset import (OrganoidDataset,
+                       OrganoidTrainingDataset,
+                       OrganoidValidationDataset)
 
-def run_classification(model,
-                       learning_rate: float,
-                       batch_size: int,
-                       n_epochs: int,
-                       experiment_id: str,
-                       dataset_id: str,
-                       output_dir = "./results",
-                       model_output_dir = "./classifiers",
-                       dataset_input_dir = "./raw_data") -> None:
+def run_classification_train_test(model,
+                                  readout: str,
+                                  learning_rate: float,
+                                  batch_size: int,
+                                  n_epochs: int,
+                                  experiment_id: str,
+                                  dataset_id: str,
+                                  validation_dataset_id: str,
+                                  output_dir = "./results",
+                                  model_output_dir = "./classifiers",
+                                  dataset_input_dir = "./raw_data") -> None:
 
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -24,20 +28,32 @@ def run_classification(model,
     if not os.path.exists(model_output_dir):
         os.mkdir(model_output_dir)
     
-    dataset = read_classification_dataset(
+    full_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{dataset_id}.cds")
     )
 
-    start_timepoint = dataset.start_timepoint
-    stop_timepoint = dataset.stop_timepoint
-    bbox_cropped = dataset.cropped_bbox
-    bbox_rescaling = dataset.rescale_cropped_image
-    if hasattr(dataset, "readout"):
-        classified_variable = dataset.readout
-    else:
-        classified_variable = "RPE"
+    full_validation_dataset = OrganoidDataset.read_classification_dataset(
+        os.path.join(dataset_input_dir, f"{validation_dataset_id}.cds")
+    )
+    validation_set = OrganoidValidationDataset(
+        full_validation_dataset,
+        readout = readout
+    )
+
+    start_timepoint = full_dataset.dataset_metadata.start_timepoint
+    stop_timepoint = full_dataset.dataset_metadata.stop_timepoint
+    bbox_cropped = full_dataset.image_metadata.cropped_bbox
+    bbox_rescaling = full_dataset.image_metadata.rescale_cropped_image
+
+    dataset = OrganoidTrainingDataset(
+        full_dataset,
+        readout = readout,
+        test_size = 0.1
+    )
  
     X_train, y_train, X_test, y_test = dataset.X_train, dataset.y_train, dataset.X_test, dataset.y_test
+    X_val = validation_set.X
+    y_val = validation_set.y
     assert X_train is not None
     assert y_train is not None
     assert X_test is not None
@@ -54,8 +70,8 @@ def run_classification(model,
     with open(output_file, mode) as file:
         file.write(
             "ExperimentID,Readout,Model,LearningRate,"
-            "BatchSize,Epoch,TrainLoss,ValLoss,"
-            "TrainAccuracy,ValAccuracy,TrainF1,ValF1,"
+            "BatchSize,Epoch,TrainLoss,TestLoss,ValLoss,"
+            "TrainAccuracy,TestAccuracy,ValAccuracy,TrainF1,TestF1,ValF1,"
             "DatasetID,TimePoints,CroppedBbox,RescaledBBox\n"
         )
 
@@ -65,8 +81,18 @@ def run_classification(model,
           f"Learning Rate: {learning_rate}, Batch Size: {batch_size}")
 
     # Initialize the dataloaders
-    train_loader = create_dataloader(X_train, y_train, batch_size = batch_size, shuffle = True, train = True)
-    val_loader = create_dataloader(X_test, y_test, batch_size = batch_size, shuffle = False, train = False)
+    train_loader = create_dataloader(
+        X_train, y_train,
+        batch_size = batch_size, shuffle = True, train = True
+    )
+    test_loader = create_dataloader(
+        X_test, y_test,
+        batch_size = batch_size, shuffle = False, train = False
+    )
+    val_loader = create_dataloader(
+        X_val, y_val,
+        batch_size = batch_size, shuffle = False, train = False
+    )
 
     # Initialize the model, criterion, and optimizer
     model = model.to(device)
@@ -79,7 +105,7 @@ def run_classification(model,
         optimizer, mode='min', factor=0.5, patience=10
     )
 
-    best_val_loss = float('inf')
+    best_test_loss = float('inf')
 
     # Training loop
     for epoch in range(n_epochs):
@@ -104,6 +130,26 @@ def run_classification(model,
         train_loss /= len(train_loader)
         train_acc = accuracy_score(train_true, train_preds)
         train_f1 = f1_score(train_true, train_preds, average='macro')
+
+        # Validation loop
+        model.eval()
+        test_loss = 0
+        test_true = []
+        test_preds = []
+        
+        with torch.no_grad():
+            for data, target in test_loader:
+                data, target = data.to(device), target.to(device)
+                output = model(data)
+                loss = criterion(output.squeeze(), target.float())
+                
+                test_loss += loss.item()
+                test_preds += torch.round(torch.sigmoid(output)).cpu().tolist()
+                test_true += target.cpu().tolist()
+        
+        test_loss /= len(test_loader)
+        test_acc = accuracy_score(test_true, test_preds)
+        test_f1 = f1_score(test_true, test_preds, average='macro')
         
         # Validation loop
         model.eval()
@@ -139,7 +185,7 @@ def run_classification(model,
                 torch.load(
                     os.path.join(
                         model_output_dir,
-                        f'{model.__class__.__name__}_{classified_variable}.pth'
+                        f'{model.__class__.__name__}_{readout}.pth'
                     )
                 )
             )
@@ -151,30 +197,30 @@ def run_classification(model,
         # Print metrics
         print(
             f"[INFO] Epoch: {epoch+1}/{n_epochs}, "
-            f"Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}, "
-            f"Train Accuracy: {train_acc:.4f}, Val Accuracy: {val_acc:.4f}, "
-            f"Train F1: {train_f1:.4f}, Val F1: {val_f1:.4f}, "
+            f"Train loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Val loss: {val_loss:.4f}, "
+            f"Train Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}, Val Accuracy: {val_acc:.4f}, "
+            f"Train F1: {train_f1:.4f}, Test F1: {test_f1:.4f}, Val F1: {val_f1:.4f}, "
             f"Time: {stop-start}"
         )
 
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss
             torch.save(
                 model.state_dict(), 
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_{classified_variable}.pth'
+                    f'{model.__class__.__name__}_{readout}.pth'
                 )
             )
-            print(f'Saved best model with val loss: {best_val_loss:.4f}')
+            print(f'Saved best model with val loss: {best_test_loss:.4f}')
         
         # Write metrics to CSV file
         with open(output_file, "a") as file:
             file.write(
-                f"{experiment_id},{classified_variable},"
+                f"{experiment_id},{readout},"
                 f"{model.__class__.__name__},{learning_rate},"
-                f"{batch_size},{epoch+1},{train_loss},{val_loss},"
-                f"{train_acc},{val_acc},{train_f1},{val_f1},"
+                f"{batch_size},{epoch+1},{train_loss},{test_loss},{val_loss},"
+                f"{train_acc},{test_acc},{val_acc},{train_f1},{test_f1},{val_f1},"
                 f"{dataset_id},{start_timepoint}-{stop_timepoint},"
                 f"{bbox_cropped},{bbox_rescaling}\n"
             )
