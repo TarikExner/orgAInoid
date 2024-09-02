@@ -285,7 +285,7 @@ class OrganoidDataset:
         for key in self.y:
             self.y[key] = np.vstack([self.y[key], other.y[key]])
 
-        self._metadata = pd.concat([self.metadata, other.metadata], axis = 0)
+        self._metadata = pd.concat([self.metadata, other_md], axis = 0)
 
         self._create_class_counts()
 
