@@ -278,6 +278,7 @@ class OrganoidDataset:
         other_md = other.metadata.copy()
         other_md["IMAGE_ARRAY_INDEX"] = [
             index + pre_merge_X_shape
+            if index != -1 else index
             for index in other_md["IMAGE_ARRAY_INDEX"]
         ]
 
