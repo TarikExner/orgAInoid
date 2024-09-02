@@ -36,6 +36,42 @@ class ImageMetadata:
     rescale_cropped_image: bool
     crop_bounding_box_dimension: Optional[int]
 
+    def __repr__(self):
+        return (
+            f"ImageMetadata("
+            f"dimension={self.dimension}, "
+            f"cropped_bbox={self.cropped_bbox}, "
+            f"scaled_to_size={self.scaled_to_size}, "
+            f"crop_size={self.crop_size}, "
+            f"segmentator_model={self.segmentator_model!r}, "
+            f"segmentator_input_size={self.segmentator_input_size}, "
+            f"mask_threshold={self.mask_threshold}, "
+            f"cleaned_mask={self.cleaned_mask}, "
+            f"scale_masked_image={self.scale_masked_image}, "
+            f"crop_bounding_box={self.crop_bounding_box}, "
+            f"rescale_cropped_image={self.rescale_cropped_image}, "
+            f"crop_bounding_box_dimension={self.crop_bounding_box_dimension})"
+        )
+
+    def __eq__(self, other):
+        if not isinstance(other, ImageMetadata):
+            return NotImplemented
+        return (
+            self.dimension == other.dimension and
+            self.cropped_bbox == other.cropped_bbox and
+            self.scaled_to_size == other.scaled_to_size and
+            self.crop_size == other.crop_size and
+            self.segmentator_model == other.segmentator_model and
+            self.segmentator_input_size == other.segmentator_input_size and
+            self.mask_threshold == other.mask_threshold and
+            self.cleaned_mask == other.cleaned_mask and
+            self.scale_masked_image == other.scale_masked_image and
+            self.crop_bounding_box == other.crop_bounding_box and
+            self.rescale_cropped_image == other.rescale_cropped_image and
+            self.crop_bounding_box_dimension == other.crop_bounding_box_dimension
+        )
+
+
 @dataclass
 class DatasetMetadata:
     dataset_id: str
@@ -63,6 +99,18 @@ class DatasetMetadata:
             f"class_balance={self.class_balance!r})"
         )
 
+    def __eq__(self, other):
+        if not isinstance(other, DatasetMetadata):
+            return NotImplemented
+        return (
+            self.dataset_id == other.dataset_id and
+            self.experiment_dir == other.experiment_dir and
+            self.readouts == other.readouts and
+            self.start_timepoint == other.start_timepoint and
+            self.stop_timepoint == other.stop_timepoint and
+            self.slices == other.slices and
+            self.class_balance == other.class_balance
+        )
 
 class ClassificationDataset(Dataset):
     def __init__(self, image_arr: np.ndarray, classes: np.ndarray, transforms):

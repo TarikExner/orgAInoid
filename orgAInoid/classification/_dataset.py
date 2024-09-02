@@ -255,6 +255,37 @@ class OrganoidDataset:
 
         return images, labels
 
+    def merge(self,
+              other: "OrganoidDataset",
+              copy: bool = False) -> "OrganoidDataset":
+
+        if copy is True:
+            raise NotImplementedError("Currently not supported to copy the instance")
+
+        assert isinstance(other, "OrganoidDataset"), "Currently only one dataset is supported"
+
+        assert self.image_metadata == other.image_metadata, "Can only merge datasets with identical settings"
+        assert self.dataset_metadata == other.dataset_metadata, "Can only merge datasets with identical settings"
+        assert all(key in other.y for key in self.y), "Can only merge datasets with identical readouts"
+        
+        pre_merge_X_shape = self.X.shape[0]
+
+        # correct indices
+        other_md = other.metadata.copy()
+        other_md["IMAGE_ARRAY_INDEX"] = [
+            index + pre_merge_X_shape
+            for index in other_md["IMAGE_ARRAY_INDEX"]
+        ]
+
+        self.X = np.vstack([self.X, other.X])
+        for key in self.y:
+            self.y[key] = np.vstack([self.y[key], other.y[key]])
+
+        self._metadata = pd.concat([self.metadata, other.metadata], axis = 0)
+
+        self._create_class_counts()
+
+        return self
 
     def add_annotations(self,
                         annotations: Union[list[str],str],
