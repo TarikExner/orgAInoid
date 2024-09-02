@@ -212,7 +212,7 @@ def run_classification_train_test(model,
                     f'{model.__class__.__name__}_{readout}.pth'
                 )
             )
-            print(f'Saved best model with val loss: {best_test_loss:.4f}')
+            print(f'Saved best model with test loss: {best_test_loss:.4f}')
         
         # Write metrics to CSV file
         with open(output_file, "a") as file:
