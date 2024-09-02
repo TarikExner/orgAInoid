@@ -152,15 +152,28 @@ def train_transformations(image_size: int = 224) -> A.Compose:
     return A.Compose([
         A.HorizontalFlip(p=0.5),  # Random horizontal flip
         A.VerticalFlip(p=0.5),    # Random vertical flip
-        A.RandomRotate90(p=0.5),  # Random 90-degree rotation
-        A.Rotate(limit=120, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
-        A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),  # Shift and scale (rotation already handled)
+        A.Rotate(limit=360, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
+        A.ShiftScaleRotate(
+            shift_limit=0.0625,
+            scale_limit=0.2,
+            rotate_limit=0,  # Set rotate limit to 0 if using Rotate separately
+            p=0.5
+        ),  # Shift and scale
         A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1), p=0.5),  # Resized crop
-        # A.Affine(scale=(0.8, 1.2), translate_percent=(0.1, 0.1), rotate=(-20, 20), shear=(-15, 15), p=0.5),
-        # A.ElasticTransform(alpha=1.0, sigma=50.0, alpha_affine=50.0, p=0.5),
-        # A.GridDistortion(num_steps=5, distort_limit=0.3, p=0.5),
-        # A.Cutout(num_holes=8, max_h_size=16, max_w_size=16, p=0.5),
-
+        A.GridDistortion(num_steps=5, distort_limit=0.3, p=0.5),
+        A.Affine(
+            scale=1,
+            translate_percent=(-0.3, 0.3),
+            rotate=0,
+            shear=(-15, 15),
+            p=0.5
+        ),
+        A.CoarseDropout(
+            max_holes=20,
+            max_height=8,
+            max_width=8,
+            p=0.5
+        ),
 
         # Apply intensity modifications only to non-masked pixels
         CustomIntensityAdjustment(p=0.5),
