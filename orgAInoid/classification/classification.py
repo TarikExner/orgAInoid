@@ -99,7 +99,8 @@ def run_classification_train_test(model,
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(
         model.parameters(),
-        lr=learning_rate
+        lr=learning_rate,
+        weight_decay = 1e-4
     )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.5, patience=10
@@ -121,6 +122,8 @@ def run_classification_train_test(model,
             output = model(data)
             loss = criterion(output.squeeze(), target.float())
             loss.backward()
+
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             
             train_loss += loss.item()
