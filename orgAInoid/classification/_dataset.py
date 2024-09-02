@@ -269,7 +269,6 @@ class OrganoidDataset:
         assert isinstance(other, type(self)), "Currently only one dataset is supported"
 
         assert self.image_metadata == other.image_metadata, "Can only merge datasets with identical settings"
-        assert self.dataset_metadata == other.dataset_metadata, "Can only merge datasets with identical settings"
         assert all(key in other.y for key in self.y), "Can only merge datasets with identical readouts"
         
         pre_merge_X_shape = self.X.shape[0]
