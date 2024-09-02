@@ -170,6 +170,7 @@ def train_transformations(image_size: int = 224) -> A.Compose:
         ),
         A.CoarseDropout(
             max_holes=20,
+            min_holes=10,
             max_height=8,
             max_width=8,
             p=0.5
