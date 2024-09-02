@@ -353,7 +353,10 @@ class OrganoidDataset:
                                           col2: str):
         return df[[col1, col2]].drop_duplicates().reset_index(drop=True).to_numpy()
 
-    def _save_metadata(self, output_dir: PathLike):
+    def _save_metadata(self,
+                       output_dir: PathLike,
+                       overwrite: bool = False
+                       ):
         """Save the metadata to a central JSON file."""
         metadata = self._create_metadata()
 
@@ -367,9 +370,10 @@ class OrganoidDataset:
             all_metadata = {}
 
         # Check if the dataset_id already exists
-        if metadata.get("dataset_id") in all_metadata:
-            raise ValueError(
-                f"Dataset with ID {self.dataset_metadata.dataset_id} already exists in metadata.")
+        if not overwrite:
+            if metadata.get("dataset_id") in all_metadata:
+                raise ValueError(
+                    f"Dataset with ID {self.dataset_metadata.dataset_id} already exists in metadata.")
 
         # Add new metadata entry under the dataset_id key
         all_metadata[self.dataset_metadata.dataset_id] = metadata
@@ -392,14 +396,17 @@ class OrganoidDataset:
         }
         return metadata
 
-    def save(self, output_dir: PathLike):
+    def save(self, output_dir: PathLike, overwrite: bool = False):
         """Save the dataset and its metadata to disk."""
         # Save the dataset itself
-        with open(os.path.join(output_dir, f"{self.dataset_metadata.dataset_id}.cds"), "wb") as file:
+        file_name = os.path.join(output_dir, f"{self.dataset_metadata.dataset_id}.cds")
+        if os.path.isfile(file_name) and not overwrite:
+            raise ValueError("Dataset exists, set overwrite to True")
+        with open(file_name, "wb") as file:
             pickle.dump(self, file)
 
         # Save the metadata
-        self._save_metadata(output_dir)
+        self._save_metadata(output_dir, overwrite)
  
     @property
     def image_metadata(self):
