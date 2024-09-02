@@ -11,7 +11,8 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
                 A.RandomBrightnessContrast(p=0.5),
                 A.RandomGamma(p=0.5),
                 A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5),
-                A.GaussNoise(var_limit=(10.0, 50.0), p=0.5)
+                #A.GaussNoise(var_limit=(1,1), p=0.5),
+                A.AdvancedBlur(p=0.5)
             ], p=1.0)
         ])
 
