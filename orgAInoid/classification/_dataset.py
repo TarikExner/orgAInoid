@@ -270,7 +270,24 @@ class OrganoidDataset:
 
         assert self.image_metadata == other.image_metadata, "Can only merge datasets with identical settings"
         assert all(key in other.y for key in self.y), "Can only merge datasets with identical readouts"
-        
+
+        if not hasattr(other.dataset_metadata, "timepoints"):
+            other.dataset_metadata.timepoints = list(
+                range(
+                    other.dataset_metadata.start_timepoint,
+                    other.dataset_metadata.stop_timepoint + 1
+                )
+            )
+        if not hasattr(self.dataset_metadata, "timepoints"):
+            self.dataset_metadata.timepoints = list(
+                range(
+                    self.dataset_metadata.start_timepoint,
+                    self.dataset_metadata.stop_timepoint + 1
+                )
+            )
+
+        combined_timepoints = self.dataset_metadata.timepoints + other.dataset_metadata.timepoints
+
         pre_merge_X_shape = self.X.shape[0]
 
         # correct indices
@@ -288,6 +305,10 @@ class OrganoidDataset:
         self._metadata = pd.concat([self.metadata, other_md], axis = 0)
 
         self._create_class_counts()
+
+        self.dataset_metadata.timepoints = combined_timepoints
+        self.dataset_metadata.calculate_start_and_stop_timepoint()
+
 
         return self
 
@@ -395,7 +416,8 @@ class OrganoidDataset:
         """Returns metadata associated with the data"""
         return self._metadata
 
-    def read_classification_dataset(self,
+    @classmethod
+    def read_classification_dataset(cls,
                                     file_name) -> "OrganoidDataset":
         with open(file_name, "rb") as file:
             dataset = pickle.load(file)

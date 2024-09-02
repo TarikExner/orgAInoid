@@ -85,6 +85,11 @@ class DatasetMetadata:
 
     def __post_init__(self):
         self.n_slices = len(self.slices)
+        self.timepoints = list(range(self.start_timepoint, self.stop_timepoint + 1))
+
+    def calculate_start_and_stop_timepoint(self):
+        self.start_timepoint = min(self.timepoints)
+        self.stop_timepoint = max(self.timepoints)
 
     def __repr__(self):
         return (
