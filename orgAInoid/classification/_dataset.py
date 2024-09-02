@@ -266,7 +266,7 @@ class OrganoidDataset:
         if copy is True:
             raise NotImplementedError("Currently not supported to copy the instance")
 
-        assert isinstance(other, "OrganoidDataset"), "Currently only one dataset is supported"
+        assert isinstance(other, type(self)), "Currently only one dataset is supported"
 
         assert self.image_metadata == other.image_metadata, "Can only merge datasets with identical settings"
         assert self.dataset_metadata == other.dataset_metadata, "Can only merge datasets with identical settings"
