@@ -52,7 +52,11 @@ class OrganoidDataset:
                  segmentator_input_dir: str,
                  segmentator_input_size: int,
                  segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
-                 experiment_dir: str):
+                 experiment_dir: str,
+                 _skip_init: bool = False):
+
+        if _skip_init is True:
+            return
 
         self.img_handler = ImageHandler(
             segmentator_input_dir = segmentator_input_dir,
@@ -396,6 +400,30 @@ class OrganoidDataset:
         with open(file_name, "rb") as file:
             dataset = pickle.load(file)
         return dataset
+
+    @classmethod
+    def from_instance(cls, old_instance: "OrganoidDataset") -> "OrganoidDataset":
+        init_kwargs = {
+            "dataset_id": None,
+            "readouts": None,
+            "file_frame": None,
+            "start_timepoint": None,
+            "stop_timepoint": None,
+            "slices": None,
+            "image_size": None,
+            "crop_bbox": None,
+            "rescale_cropped_image": None,
+            "crop_size": None,
+            "segmentator_input_dir": None,
+            "segmentator_input_size": None,
+            "segmentation_model_name": None,
+            "experiment_dir": None,
+            "_skip_init": True
+        }
+        new = cls(**init_kwargs)
+        for attr, value in vars(old_instance).items():
+            setattr(new, attr, value)
+        return new
 
 class OrganoidValidationDataset(OrganoidDataset):
     """\
