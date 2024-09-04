@@ -9,14 +9,17 @@ from torchvision.models import (ResNet50_Weights,
 
 
 class ResNet50(nn.Module):
-    def __init__(self, num_classes=2, **kwargs):
+    def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
         super(ResNet50, self).__init__()
         
         # Load the pre-trained ResNet50 model
         self.resnet50 = models.resnet50(weights=ResNet50_Weights.DEFAULT, **kwargs)
         
         # Modify the final fully connected layer to match the number of output classes
-        self.resnet50.fc = nn.Linear(in_features=2048, out_features=num_classes)
+        self.resnet50.fc = nn.Sequential(
+            nn.Dropout(p=dropout),  # Add dropout layer with p=0.5
+            nn.Linear(in_features=1024, out_features=num_classes)  # Final linear layer
+        )       
         
         # Determine if it's binary classification based on num_classes
         self.binary_classification = (num_classes == 2)
@@ -32,11 +35,15 @@ class ResNet50(nn.Module):
 
 
 class VGG16_BN(nn.Module):
-    def __init__(self, num_classes=2, **kwargs):
+    def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
         super(VGG16_BN, self).__init__()
         
         # Load the pre-trained VGG16_BN model
-        self.vgg16_bn = models.vgg16_bn(weights=VGG16_BN_Weights.DEFAULT, **kwargs)
+        self.vgg16_bn = models.vgg16_bn(
+            weights=VGG16_BN_Weights.DEFAULT,
+            dropout = dropout,
+            **kwargs
+        )
         
         # Modify the classifier to match the number of output classes
         self.vgg16_bn.classifier[6] = nn.Linear(in_features=4096, out_features=num_classes)
@@ -55,15 +62,17 @@ class VGG16_BN(nn.Module):
 
 
 class DenseNet121(nn.Module):
-    def __init__(self, num_classes=2, **kwargs):
+    def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
         super(DenseNet121, self).__init__()
         
         # Load the pre-trained DenseNet121 model
         self.densenet121 = models.densenet121(weights=DenseNet121_Weights.DEFAULT, **kwargs)
         
         # Modify the final fully connected layer to match the number of output classes
-        self.densenet121.classifier = nn.Linear(in_features=1024, out_features=num_classes)
-        
+        self.densenet121.classifier = nn.Sequential(
+            nn.Dropout(p=dropout),  # Add dropout layer with p=0.5
+            nn.Linear(in_features=1024, out_features=num_classes)  # Final linear layer
+        )       
         # Determine if it's binary classification based on num_classes
         self.binary_classification = (num_classes == 2)
     
@@ -101,13 +110,14 @@ class InceptionV3(nn.Module):
 
 
 class MobileNetV3_Large(nn.Module):
-    def __init__(self, num_classes=2, **kwargs):
+    def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
         super(MobileNetV3_Large, self).__init__()
         if "dropout" not in kwargs:
             kwargs["dropout"] = 0.2
         # Load the pre-trained MobileNetV3-Large model
         self.mobilenet_v3_large = models.mobilenet_v3_large(
             weights=MobileNet_V3_Large_Weights.DEFAULT,
+            dropout = dropout,
             **kwargs
         )
         
