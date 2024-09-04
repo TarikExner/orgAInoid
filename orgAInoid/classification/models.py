@@ -18,7 +18,7 @@ class ResNet50(nn.Module):
         # Modify the final fully connected layer to match the number of output classes
         self.resnet50.fc = nn.Sequential(
             nn.Dropout(p=dropout),  # Add dropout layer with p=0.5
-            nn.Linear(in_features=1024, out_features=num_classes)  # Final linear layer
+            nn.Linear(in_features=2048, out_features=num_classes)  # Final linear layer
         )       
         
         # Determine if it's binary classification based on num_classes
@@ -62,7 +62,7 @@ class VGG16_BN(nn.Module):
 
 
 class DenseNet121(nn.Module):
-    def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
+    def __init__(self, num_classes=2, dropout = 0.2, **kwargs):
         super(DenseNet121, self).__init__()
         
         # Load the pre-trained DenseNet121 model

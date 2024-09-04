@@ -6,7 +6,6 @@ import os
 import time
 
 from ._utils import create_dataloader
-from ._dataset import read_classification_dataset
 
 
 def hyperparameter_model_search(experiment_id: str,
@@ -15,6 +14,8 @@ def hyperparameter_model_search(experiment_id: str,
                                 output_dir = "./results",
                                 dataset_input_dir = "./raw_data",
                                 test_mode: bool = False) -> None:
+
+    raise NotImplementedError("This function contains errors")
 
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)

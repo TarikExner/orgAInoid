@@ -10,8 +10,6 @@ from ._dataset import (OrganoidDataset,
                        OrganoidTrainingDataset,
                        OrganoidValidationDataset)
 
-from .._utils import VAL_ERIE
-
 def run_classification_train_test(model,
                                   readout: str,
                                   learning_rate: float,
