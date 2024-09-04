@@ -33,6 +33,47 @@ class ResNet50(nn.Module):
         else:
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
+    def freeze_layers(self, freeze_layers):
+        """
+        Freeze layers of the model up to a certain depth.
+
+        Parameters:
+        - freeze_layers (int): Number of layers to freeze, referring to the printed model representation.
+                               E.g., 0 = all layers frozen, 1 = freeze up to 'conv1', 2 = freeze up to 'bn1', etc.
+                               If -1, freeze all layers except the final FC layer.
+        """
+        layer_mapping = {
+            0: ['conv1'],
+            1: ['bn1'],
+            2: ['relu'],
+            3: ['maxpool'],
+            4: ['layer1'],
+            5: ['layer2'],
+            6: ['layer3'],
+            7: ['layer4'],
+            8: ['avgpool'],
+            9: ['fc']  # This is the output layer, so it should not be frozen.
+        }
+
+        # Convert the model's layers to a list
+        layers = list(self.resnet50.named_children())
+        
+        # Freeze layers up to the specified index
+        for i, (name, layer) in enumerate(layers):
+            if freeze_layers == -1:
+                # Freeze all layers except the last one (fc)
+                if name != 'fc':
+                    for param in layer.parameters():
+                        param.requires_grad = False
+            else:
+                # Freeze layers based on the freeze_layers index
+                if i <= freeze_layers and name in layer_mapping[i]:
+                    for param in layer.parameters():
+                        param.requires_grad = False
+
+        # Ensure the final FC layer remains trainable
+        for param in self.resnet50.fc.parameters():
+            param.requires_grad = True
 
 class VGG16_BN(nn.Module):
     def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
@@ -60,6 +101,50 @@ class VGG16_BN(nn.Module):
         else:
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
+    def freeze_layers(self, freeze_layers):
+        """
+        Freeze layers of the model up to a certain depth.
+
+        Parameters:
+        - freeze_layers (int): Number of layers to freeze, referring to the printed model representation.
+                               If -1, freeze all layers except the final FC layer.
+        """
+        # Layer mapping for VGG16_BN features
+        layer_mapping = {
+            0: ['features.0', 'features.1', 'features.2'],
+            1: ['features.3', 'features.4', 'features.5'],
+            2: ['features.6'],
+            3: ['features.7', 'features.8', 'features.9'],
+            4: ['features.10', 'features.11', 'features.12'],
+            5: ['features.13'],
+            6: ['features.14', 'features.15', 'features.16'],
+            7: ['features.17', 'features.18', 'features.19'],
+            8: ['features.20', 'features.21', 'features.22'],
+            9: ['features.23'],
+            10: ['features.24', 'features.25', 'features.26'],
+            11: ['features.27', 'features.28', 'features.29'],
+            12: ['features.30', 'features.31', 'features.32'],
+            13: ['features.33'],
+            14: ['features.34', 'features.35', 'features.36'],
+            15: ['features.37', 'features.38', 'features.39'],
+            16: ['features.40', 'features.41', 'features.42'],
+            17: ['features.43']  # Last layer of features
+        }
+
+        # Convert the model's layers to a list
+        layers = list(self.vgg16_bn.named_children())
+        
+        # Freeze layers up to the specified index
+        for i, (name, layer) in enumerate(layers):
+            if freeze_layers != -1:
+                # Freeze layers based on the freeze_layers index
+                if i <= freeze_layers and name in layer_mapping:
+                    for param in layer.parameters():
+                        param.requires_grad = False
+
+        # Ensure the final classifier layer remains trainable
+        for param in self.vgg16_bn.classifier.parameters():
+            param.requires_grad = True
 
 class DenseNet121(nn.Module):
     def __init__(self, num_classes=2, dropout = 0.2, **kwargs):
@@ -85,6 +170,39 @@ class DenseNet121(nn.Module):
         else:
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
+    def freeze_layers(self, freeze_layers):
+        # Define the layer mapping based on the architecture
+        layer_mapping = {
+            0: ['conv0', 'norm0', 'relu0', 'pool0'],
+            1: ['denseblock1'],
+            2: ['transition1'],
+            3: ['denseblock2'],
+            4: ['transition2'],
+            5: ['denseblock3'],
+            6: ['transition3'],
+            7: ['denseblock4'],
+            8: ['norm5']
+        }
+
+        # Convert the model's layers to a list
+        layers = list(self.densenet121.features.named_children())
+
+        # Freeze layers up to the specified index
+        for i, (name, layer) in enumerate(layers):
+            if freeze_layers == -1:
+                # Freeze all layers except the last block (norm5)
+                if name != 'classifier':
+                    for param in layer.parameters():
+                        param.requires_grad = False
+            else:
+                # Freeze layers based on the freeze_layers index
+                if i <= freeze_layers and name in layer_mapping[i]:
+                    for param in layer.parameters():
+                        param.requires_grad = False
+
+        # Ensure the final classifier layer remains trainable
+        for param in self.densenet121.classifier.parameters():
+            param.requires_grad = True
 
 class InceptionV3(nn.Module):
     def __init__(self, num_classes=2):
@@ -134,6 +252,49 @@ class MobileNetV3_Large(nn.Module):
             return x  # Return logits for BCEWithLogitsLoss
         else:
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
+
+    def _freeze_layers(self, freeze_layers):
+        # Define the layer mapping based on the architecture
+        layer_mapping = {
+            0: ['features', '0'],  # Conv2dNormActivation (initial convolution)
+            1: ['features', '1'],  # InvertedResidual block 1
+            2: ['features', '2'],  # InvertedResidual block 2
+            3: ['features', '3'],  # InvertedResidual block 3
+            4: ['features', '4'],  # InvertedResidual block 4
+            5: ['features', '5'],  # InvertedResidual block 5
+            6: ['features', '6'],  # InvertedResidual block 6
+            7: ['features', '7'],  # InvertedResidual block 7
+            8: ['features', '8'],  # InvertedResidual block 8
+            9: ['features', '9'],  # InvertedResidual block 9
+            10: ['features', '10'],  # InvertedResidual block 10
+            11: ['features', '11'],  # InvertedResidual block 11
+            12: ['features', '12'],  # InvertedResidual block 12
+            13: ['features', '13'],  # InvertedResidual block 13
+            14: ['features', '14'],  # InvertedResidual block 14
+            15: ['features', '15'],  # InvertedResidual block 15
+            16: ['features', '16'],  # Conv2dNormActivation (final convolution before pooling)
+        }
+
+        # Convert the model's layers to a list
+        layers = list(self.mobilenet_v3_large.features.named_children())
+
+        # Freeze layers up to the specified index
+        for i, (name, layer) in enumerate(layers):
+            if freeze_layers == -1:
+                # Freeze all layers except the classifier
+                if name != 'classifier':
+                    for param in layer.parameters():
+                        param.requires_grad = False
+            else:
+                # Freeze layers based on the freeze_layers index
+                if i <= freeze_layers and name in layer_mapping[i]:
+                    for param in layer.parameters():
+                        param.requires_grad = False
+
+        # Ensure the final classifier layer remains trainable
+        for param in self.mobilenet_v3_large.classifier.parameters():
+            param.requires_grad = True
+
 
 class SimpleCNNModel8_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
