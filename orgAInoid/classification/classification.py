@@ -10,6 +10,8 @@ from ._dataset import (OrganoidDataset,
                        OrganoidTrainingDataset,
                        OrganoidValidationDataset)
 
+from .._utils import VAL_ERIE
+
 def run_classification_train_test(model,
                                   readout: str,
                                   learning_rate: float,
@@ -100,7 +102,7 @@ def run_classification_train_test(model,
     optimizer = optim.Adam(
         model.parameters(),
         lr=learning_rate,
-        weight_decay = 1e-4
+        weight_decay = 1e-3
     )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.5, patience=10
@@ -123,16 +125,16 @@ def run_classification_train_test(model,
             loss = criterion(output.squeeze(), target.float())
             loss.backward()
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             
             train_loss += loss.item()
+
             train_preds += torch.round(torch.sigmoid(output)).cpu().tolist()
             train_true += target.cpu().tolist()
         
         train_loss /= len(train_loader)
         train_acc = accuracy_score(train_true, train_preds)
-        train_f1 = f1_score(train_true, train_preds, average='macro')
+        train_f1 = f1_score(train_true, train_preds, average='weighted')
 
         # Validation loop
         model.eval()
@@ -147,12 +149,13 @@ def run_classification_train_test(model,
                 loss = criterion(output.squeeze(), target.float())
                 
                 test_loss += loss.item()
+
                 test_preds += torch.round(torch.sigmoid(output)).cpu().tolist()
                 test_true += target.cpu().tolist()
         
         test_loss /= len(test_loader)
         test_acc = accuracy_score(test_true, test_preds)
-        test_f1 = f1_score(test_true, test_preds, average='macro')
+        test_f1 = f1_score(test_true, test_preds, average='weighted')
         
         # Validation loop
         model.eval()
@@ -167,12 +170,13 @@ def run_classification_train_test(model,
                 loss = criterion(output.squeeze(), target.float())
                 
                 val_loss += loss.item()
+
                 val_preds += torch.round(torch.sigmoid(output)).cpu().tolist()
                 val_true += target.cpu().tolist()
         
         val_loss /= len(val_loader)
         val_acc = accuracy_score(val_true, val_preds)
-        val_f1 = f1_score(val_true, val_preds, average='macro')
+        val_f1 = f1_score(val_true, val_preds, average='weighted')
 
         # Get the current learning rate before scheduler step
         current_lr = optimizer.param_groups[0]['lr']

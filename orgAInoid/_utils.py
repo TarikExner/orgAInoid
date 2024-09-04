@@ -1,6 +1,9 @@
 import os
 import pandas as pd
 
+
+VAL_ERIE = "call on me "
+
 def _generate_file_table(experiment_id: str,
                          image_dir: str,
                          annotations_file: str):

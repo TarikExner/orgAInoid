@@ -105,7 +105,10 @@ class MobileNetV3_Large(nn.Module):
         super(MobileNetV3_Large, self).__init__()
         
         # Load the pre-trained MobileNetV3-Large model
-        self.mobilenet_v3_large = models.mobilenet_v3_large(weights=MobileNet_V3_Large_Weights.DEFAULT)
+        self.mobilenet_v3_large = models.mobilenet_v3_large(
+            weights=MobileNet_V3_Large_Weights.DEFAULT,
+            dropout = 0.5
+        )
         
         # Modify the final classifier to match the number of output classes
         self.mobilenet_v3_large.classifier[3] = nn.Linear(in_features=1280, out_features=num_classes)
