@@ -112,8 +112,7 @@ class InceptionV3(nn.Module):
 class MobileNetV3_Large(nn.Module):
     def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
         super(MobileNetV3_Large, self).__init__()
-        if "dropout" not in kwargs:
-            kwargs["dropout"] = 0.2
+
         # Load the pre-trained MobileNetV3-Large model
         self.mobilenet_v3_large = models.mobilenet_v3_large(
             weights=MobileNet_V3_Large_Weights.DEFAULT,
