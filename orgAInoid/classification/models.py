@@ -253,7 +253,7 @@ class MobileNetV3_Large(nn.Module):
         else:
             return torch.softmax(x, dim=1)  # Apply softmax for CrossEntropyLoss
 
-    def _freeze_layers(self, freeze_layers):
+    def freeze_layers(self, freeze_layers):
         # Define the layer mapping based on the architecture
         layer_mapping = {
             0: ['features', '0'],  # Conv2dNormActivation (initial convolution)
