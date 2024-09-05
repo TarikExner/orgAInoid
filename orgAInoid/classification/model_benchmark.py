@@ -118,7 +118,7 @@ def learning_rate_batch_size_test(model,
         )
         for batch_size in [32, 64, 128]:
             for epoch in range(n_epochs):
-                if epoch > 0:
+                if epoch == 1:
                     model.freeze_layers(-1)
                     optimizer = optim.Adam(
                         filter(lambda p: p.requires_grad, model.parameters()),
