@@ -354,7 +354,7 @@ def freezing_test(model,
     )
     assert isinstance(learning_rate, float)
 
-    print("Ideal learning rate at {round(ideal_learning_rate, 5)}")
+    print(f"Ideal learning rate at {round(learning_rate, 5)}")
 
     optimizer = optim.Adam(
         model.parameters(),
