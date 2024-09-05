@@ -3,7 +3,9 @@ from enum import Enum
 
 from torch.utils.data import Dataset
 import numpy as np
+import pandas as pd
 import torch
+import torch.nn as nn
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -12,8 +14,23 @@ from torch.utils.data import DataLoader
 
 from typing import Optional
 
+from pytorch_lr_finder import LRFinder
+
+from .models import MobileNetV3_Large, ResNet50, SimpleCNNModel8_FC3, SimpleCNNModel8, DenseNet121, VGG16_BN
 from .._augmentation import val_transformations, CustomIntensityAdjustment
 
+
+def _get_model(model_name: str,
+               num_classes: int):
+    _model_dict = {
+        "MobileNetV3_Large": MobileNetV3_Large(num_classes = num_classes),
+        "ResNet50": ResNet50(num_classes = num_classes),
+        "DenseNet121": DenseNet121(num_classes = num_classes),
+        "SimpleCNNModel8_FC3": SimpleCNNModel8_FC3(num_classes = num_classes),
+        "SimpleCNNModel8": SimpleCNNModel8(num_classes = num_classes),
+        "VGG16_BN": VGG16_BN(num_classes = num_classes)
+    }
+    return _model_dict[model_name]
 
 class SegmentatorModel(Enum):
     DEEPLABV3 = "DEEPLABV3"
@@ -149,6 +166,70 @@ class ClassificationDataset(Dataset):
         assert not torch.isinf(image).any()
 
         return (image, corr_class)
+
+def find_ideal_learning_rate(model: str,
+                             criterion: nn.Module,
+                             optimizer: nn.Module,
+                             num_classes: int,
+                             train_loader: DataLoader,
+                             start_lr: Optional[float],
+                             end_lr: Optional[float],
+                             num_iter: Optional[int],
+                             n_tests: Optional[int] = 5) -> float:
+    start_lr = start_lr or 1e-7
+    end_lr = end_lr or 5e-2
+    num_iter = num_iter or 500
+    _model_name = model
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    full_data = pd.DataFrame()
+    for i in range(n_tests):
+        model = _get_model(_model_name, num_classes)
+        lr_finder = LRFinder(model, optimizer, criterion, device = device)
+        lr_finder.range_test(train_loader, start_lr = start_lr, end_lr = end_lr, num_iter = num_iter)
+        data = pd.DataFrame(lr_finder.history)
+        data = data.rename(columns = {"loss": f"run{i}"})
+        if i == 0:
+            full_data = data
+        else:
+            full_data = full_data.merge(data, on = "lr")
+
+        lr_finder.reset()
+    full_data["mean"] = full_data.groupby(["lr", "model"]).mean().mean(axis = 1).tolist()
+    full_data["mean"] = _smooth_curve(full_data["mean"])
+
+    return _calculate_ideal_learning_rate(full_data)
+
+    # evaluation window is set to 1e-5 to 1e-2 for now
+
+def _calculate_ideal_learning_rate(df: pd.DataFrame):
+
+    window = df[df["lr"] <= df.loc[df["mean"] == df["mean"].min(),"lr"]]
+    window_start = window.index[0]
+    inf_points = _calculate_inflection_points(window["mean"])
+    
+    # we take the last one which should be closest to the minimum of the fitted function
+    inf_point = inf_points[-1] + window_start
+
+    ideal_learning_rate = df.iloc[inf_point]["lr"]
+
+    return ideal_learning_rate
+
+
+def _smooth_curve(arr, degree: int = 5):
+    x = np.arange(arr.shape[0])
+    y = arr
+
+    coeff = np.polyfit(x, y, degree)
+
+    polynomial = np.poly1d(coeff)
+    return polynomial(x)
+
+def _calculate_inflection_points(y) -> np.ndarray:
+    x = np.arange(y.shape[0])
+    dy_dx = np.gradient(y,x)
+    d2y_dx2 = np.gradient(dy_dx, x)
+    inflection_points = np.where(np.diff(np.sign(d2y_dx2)))[0]
+    return inflection_points
 
 
 def train_transformations(image_size: int = 224) -> A.Compose:
