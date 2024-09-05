@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from torch.optim import Optimizer
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -156,7 +157,7 @@ class ClassificationDataset(Dataset):
 
 def find_ideal_learning_rate(model: nn.Module,
                              criterion: nn.Module,
-                             optimizer: nn.Module,
+                             optimizer: Optimizer,
                              train_loader: DataLoader,
                              start_lr: Optional[float] = None,
                              end_lr: Optional[float] = None,
@@ -198,7 +199,6 @@ def _calculate_ideal_learning_rate(df: pd.DataFrame):
     ideal_learning_rate = df.iloc[inf_point]["lr"]
 
     return ideal_learning_rate
-
 
 def _smooth_curve(arr, degree: int = 5):
     x = np.arange(arr.shape[0])

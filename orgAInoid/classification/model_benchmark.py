@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score, f1_score
 import os
 import time
 
-from ._utils import create_dataloader
+from ._utils import create_dataloader, find_ideal_learning_rate
 from ._dataset import (OrganoidDataset,
                        OrganoidTrainingDataset,
                        OrganoidValidationDataset)
@@ -344,6 +344,24 @@ def freezing_test(model,
         lr=learning_rate,
         weight_decay = 1e-4
     )
+
+    ideal_learning_rate = find_ideal_learning_rate(
+        model = model,
+        criterion = criterion,
+        optimizer = optimizer,
+        train_loader = train_loader,
+        n_tests = 5
+    )
+
+    print("Ideal learning rate at {round(ideal_learning_rate, 5)}")
+
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=ideal_learning_rate,
+        weight_decay = 1e-4
+    )
+
+
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.5, patience=10
     )
@@ -356,7 +374,7 @@ def freezing_test(model,
             model.freeze_layers(-1)
             optimizer = optim.Adam(
                 filter(lambda p: p.requires_grad, model.parameters()),
-                lr=learning_rate,
+                lr=ideal_learning_rate,
                 weight_decay = 1e-4
             )
             
