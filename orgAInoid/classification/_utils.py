@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from typing import Optional
 
-from pytorch_lr_finder import LRFinder
+from torch_lr_finder import LRFinder
 
 from .models import MobileNetV3_Large, ResNet50, SimpleCNNModel8_FC3, SimpleCNNModel8, DenseNet121, VGG16_BN
 from .._augmentation import val_transformations, CustomIntensityAdjustment
@@ -175,7 +175,7 @@ def find_ideal_learning_rate(model: str,
                              start_lr: Optional[float],
                              end_lr: Optional[float],
                              num_iter: Optional[int],
-                             n_tests: Optional[int] = 5) -> float:
+                             n_tests: int = 5) -> float:
     start_lr = start_lr or 1e-7
     end_lr = end_lr or 5e-2
     num_iter = num_iter or 500
