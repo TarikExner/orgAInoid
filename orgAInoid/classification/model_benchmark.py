@@ -120,6 +120,11 @@ def learning_rate_batch_size_test(model,
             for epoch in range(n_epochs):
                 if epoch > 0:
                     model.freeze_layers(-1)
+                    optimizer = optim.Adam(
+                        filter(lambda p: p.requires_grad, model.parameters()),
+                        lr=learning_rate,
+                        weight_decay = 1e-4
+                    )
                     
                 start = time.time()
                 model.train()
@@ -347,8 +352,13 @@ def freezing_test(model,
 
     # Training loop
     for epoch in range(n_epochs):
-        if epoch > 0:
+        if epoch == 1:
             model.freeze_layers(-1)
+            optimizer = optim.Adam(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                lr=learning_rate,
+                weight_decay = 1e-4
+            )
             
         start = time.time()
         model.train()
