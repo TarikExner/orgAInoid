@@ -2,7 +2,15 @@ import os
 import pandas as pd
 
 
-VAL_ERIE = "call on me "
+def generate_file_table(experiment_id: str,
+                        image_dir: str,
+                        annotations_file: str,
+                        output_file: str) -> None:
+
+    file_frame = _generate_file_table(experiment_id, image_dir, annotations_file)
+    file_frame.to_csv(output_file, index = False)
+
+    return
 
 def _generate_file_table(experiment_id: str,
                          image_dir: str,
