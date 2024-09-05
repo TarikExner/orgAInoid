@@ -9,6 +9,8 @@ import torch.nn as nn
 from torch.optim import Optimizer
 from typing import Optional, Union
 
+from torch_lr_finder import LRFinder
+
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
