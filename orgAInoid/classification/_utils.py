@@ -7,15 +7,12 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from torch.optim import Optimizer
+from typing import Optional, Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 from torch.utils.data import DataLoader
-
-from typing import Optional
-
-from torch_lr_finder import LRFinder
 
 from .._augmentation import val_transformations, CustomIntensityAdjustment
 
@@ -162,7 +159,8 @@ def find_ideal_learning_rate(model: nn.Module,
                              start_lr: Optional[float] = None,
                              end_lr: Optional[float] = None,
                              num_iter: Optional[int] = None,
-                             n_tests: int = 5) -> float:
+                             n_tests: int = 5,
+                             return_dataframe: bool = False) -> Union[float, pd.DataFrame]:
     start_lr = start_lr or 1e-7
     end_lr = end_lr or 5e-2
     num_iter = num_iter or 500
@@ -181,6 +179,9 @@ def find_ideal_learning_rate(model: nn.Module,
         lr_finder.reset()
     full_data["mean"] = full_data.groupby(["lr"]).mean().mean(axis = 1).tolist()
     full_data["mean"] = _smooth_curve(full_data["mean"])
+
+    if return_dataframe:
+        return full_data
 
     return _calculate_ideal_learning_rate(full_data)
 
