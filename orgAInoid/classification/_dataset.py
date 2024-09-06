@@ -222,7 +222,12 @@ class OrganoidDataset:
                     else:
                         loop_images = None
                         break
-
+                
+                # we check if all slices are within the array
+                if loop_images is not None:
+                    if self.dataset_metadata.n_slices != len(loop_images):
+                        loop_images = None
+                
                 if loop_images is not None:
                     images.append(np.array(loop_images))
                     self.metadata.loc[
