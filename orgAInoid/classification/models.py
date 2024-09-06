@@ -136,7 +136,12 @@ class VGG16_BN(nn.Module):
         
         # Freeze layers up to the specified index
         for i, (name, layer) in enumerate(layers):
-            if freeze_layers != -1:
+            if freeze_layers == -1:
+                # Freeze all layers except the last classifier layer
+                if name != 'classifier':
+                    for param in layer.parameters():
+                        param.requires_grad = False
+            else:
                 # Freeze layers based on the freeze_layers index
                 if i <= freeze_layers and name in layer_mapping:
                     for param in layer.parameters():
