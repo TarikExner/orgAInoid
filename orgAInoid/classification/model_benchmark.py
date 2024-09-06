@@ -246,6 +246,263 @@ def learning_rate_batch_size_test(model,
                         f"{bbox_cropped},{bbox_rescaling}\n"
                     )
 
+def freezing_test_2(model,
+                    readout: str,
+                    learning_rate: float,
+                    batch_size: int,
+                    n_epochs: int,
+                    experiment_id: str,
+                    dataset_id: str,
+                    validation_dataset_id: str,
+                    output_dir = "./results",
+                    model_output_dir = "./classifiers",
+                    dataset_input_dir = "./raw_data") -> None:
+    """
+    This test is meant to check how freezing the layers affects the overfit
+    The model layers will be frozen after the first epoch, except for the
+    final fully connected layer.
+    In contrast to the first freezing test, we freeze everything but the last
+    3 layers of the respective models before training. This will skip the 
+    initial pass through an unfrozen model and hopefully enable some more training
+    capacity.
+
+    Another important change is the change to torch.argmax for the predictions.
+    """
+
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    if not os.path.exists(model_output_dir):
+        os.mkdir(model_output_dir)
+    
+    full_dataset = OrganoidDataset.read_classification_dataset(
+        os.path.join(dataset_input_dir, f"{dataset_id}.cds")
+    )
+
+    full_validation_dataset = OrganoidDataset.read_classification_dataset(
+        os.path.join(dataset_input_dir, f"{validation_dataset_id}.cds")
+    )
+    validation_set = OrganoidValidationDataset(
+        full_validation_dataset,
+        readout = readout
+    )
+
+    start_timepoint = full_dataset.dataset_metadata.start_timepoint
+    stop_timepoint = full_dataset.dataset_metadata.stop_timepoint
+    bbox_cropped = full_dataset.image_metadata.cropped_bbox
+    bbox_rescaling = full_dataset.image_metadata.rescale_cropped_image
+
+    dataset = OrganoidTrainingDataset(
+        full_dataset,
+        readout = readout,
+        test_size = 0.1
+    )
+ 
+    X_train, y_train, X_test, y_test = dataset.X_train, dataset.y_train, dataset.X_test, dataset.y_test
+    X_val = validation_set.X
+    y_val = validation_set.y
+    assert X_train is not None
+    assert y_train is not None
+    assert X_test is not None
+    assert y_test is not None
+
+    learning_rate = learning_rate or 0.0001
+    batch_size = batch_size or 64
+    n_epochs = n_epochs or 200
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    output_file = os.path.join(output_dir, f"{experiment_id}.txt")
+    mode = "w" if not os.path.isfile(output_file) else "a"
+    with open(output_file, mode) as file:
+        file.write(
+            "ExperimentID,Readout,Model,LearningRate,"
+            "BatchSize,Epoch,TrainLoss,TestLoss,ValLoss,"
+            "TrainAccuracy,TestAccuracy,ValAccuracy,TrainF1,TestF1,ValF1,"
+            "DatasetID,TimePoints,CroppedBbox,RescaledBBox\n"
+        )
+
+
+    # Print current configuration
+    print(f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
+          f"Learning Rate: {learning_rate}, Batch Size: {batch_size}")
+
+    # Initialize the dataloaders
+    train_loader = create_dataloader(
+        X_train, y_train,
+        batch_size = batch_size, shuffle = True, train = True
+    )
+    test_loader = create_dataloader(
+        X_test, y_test,
+        batch_size = batch_size, shuffle = False, train = False
+    )
+    val_loader = create_dataloader(
+        X_val, y_val,
+        batch_size = batch_size, shuffle = False, train = False
+    )
+
+    # Initialize the model, criterion, and optimizer
+    model = model.to(device)
+    model.freeze_layers(-3)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(
+        filter(lambda p: p.requires_grad, model.parameters()),
+        lr=learning_rate,
+        weight_decay = 1e-4
+    )
+
+
+    learning_rate = find_ideal_learning_rate(
+        model = model,
+        criterion = criterion,
+        optimizer = optimizer,
+        train_loader = train_loader,
+        n_tests = 5
+    )
+
+    optimizer = optim.Adam(
+        filter(lambda p: p.requires_grad, model.parameters()),
+        lr=learning_rate,
+        weight_decay = 1e-4
+    )
+
+    print(f"Ideal learning rate at {round(learning_rate, 5)}")
+
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=10
+    )
+
+    best_test_loss = float('inf')
+
+    # Training loop
+    for epoch in range(n_epochs):
+        start = time.time()
+        model.train()
+        train_loss = 0
+        train_true = []
+        train_preds = []
+        
+        for data, target in train_loader:
+            data, target = data.to(device), target.to(device)
+            target = torch.argmax(target, dim = 1)
+
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target.float())
+            loss.backward()
+
+            optimizer.step()
+            
+            train_loss += loss.item()
+
+            train_preds += torch.argmax(output, dim = 1).cpu().tolist()
+            train_true += torch.argmax(target, dim = 1).cpu().tolist()
+        
+        train_loss /= len(train_loader)
+        train_acc = accuracy_score(train_true, train_preds)
+        train_f1 = f1_score(train_true, train_preds, average='weighted')
+
+        # Validation loop
+        model.eval()
+        test_loss = 0
+        test_true = []
+        test_preds = []
+        
+        with torch.no_grad():
+            for data, target in test_loader:
+                data, target = data.to(device), target.to(device)
+                target = torch.argmax(target, dim = 1)
+
+                output = model(data)
+                loss = criterion(output.squeeze(), target.float())
+                
+                test_loss += loss.item()
+
+                test_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                test_true += torch.argmax(target, dim = 1).cpu().tolist()
+        
+        test_loss /= len(test_loader)
+        test_acc = accuracy_score(test_true, test_preds)
+        test_f1 = f1_score(test_true, test_preds, average='weighted')
+        
+        # Validation loop
+        model.eval()
+        val_loss = 0
+        val_true = []
+        val_preds = []
+        
+        with torch.no_grad():
+            for data, target in val_loader:
+                data, target = data.to(device), target.to(device)
+                target = torch.argmax(target, dim = 1)
+
+                output = model(data)
+                loss = criterion(output.squeeze(), target.float())
+                
+                val_loss += loss.item()
+
+                val_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                val_true += torch.argmax(target, dim = 1).cpu().tolist()
+        
+        val_loss /= len(val_loader)
+        val_acc = accuracy_score(val_true, val_preds)
+        val_f1 = f1_score(val_true, val_preds, average='weighted')
+
+        # Get the current learning rate before scheduler step
+        current_lr = optimizer.param_groups[0]['lr']
+        
+        # Step the learning rate scheduler based on the validation loss
+        scheduler.step(val_loss)
+        
+        # Check if the learning rate has been reduced
+        new_lr = optimizer.param_groups[0]['lr']
+        if new_lr < current_lr:
+            # load best performing model before continuing
+            model.load_state_dict(
+                torch.load(
+                    os.path.join(
+                        model_output_dir,
+                        f'{model.__class__.__name__}_{readout}.pth'
+                    )
+                )
+            )
+            print(f"[INFO] Learning rate reduced from {current_lr} to {new_lr}")
+
+
+        stop = time.time()
+
+        # Print metrics
+        print(
+            f"[INFO] Epoch: {epoch+1}/{n_epochs}, "
+            f"Train loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Val loss: {val_loss:.4f}, "
+            f"Train Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}, Val Accuracy: {val_acc:.4f}, "
+            f"Train F1: {train_f1:.4f}, Test F1: {test_f1:.4f}, Val F1: {val_f1:.4f}, "
+            f"Time: {stop-start}"
+        )
+
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss
+            torch.save(
+                model.state_dict(), 
+                os.path.join(
+                    model_output_dir,
+                    f'{model.__class__.__name__}_{readout}.pth'
+                )
+            )
+            print(f'Saved best model with test loss: {best_test_loss:.4f}')
+        
+        # Write metrics to CSV file
+        with open(output_file, "a") as file:
+            file.write(
+                f"{experiment_id},{readout},"
+                f"{model.__class__.__name__},{learning_rate},"
+                f"{batch_size},{epoch+1},{train_loss},{test_loss},{val_loss},"
+                f"{train_acc},{test_acc},{val_acc},{train_f1},{test_f1},{val_f1},"
+                f"{dataset_id},{start_timepoint}-{stop_timepoint},"
+                f"{bbox_cropped},{bbox_rescaling}\n"
+            )
+
 
 def freezing_test(model,
                   readout: str,
@@ -338,7 +595,7 @@ def freezing_test(model,
 
     # Initialize the model, criterion, and optimizer
     model = model.to(device)
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(
         model.parameters(),
         lr=learning_rate,
@@ -386,17 +643,19 @@ def freezing_test(model,
         
         for data, target in train_loader:
             data, target = data.to(device), target.to(device)
+            target = torch.argmax(target, dim = 1)
+
             optimizer.zero_grad()
             output = model(data)
-            loss = criterion(output.squeeze(), target.float())
+            loss = criterion(output, target.float())
             loss.backward()
 
             optimizer.step()
             
             train_loss += loss.item()
 
-            train_preds += torch.round(torch.sigmoid(output)).cpu().tolist()
-            train_true += target.cpu().tolist()
+            train_preds += torch.argmax(output, dim = 1).cpu().tolist()
+            train_true += torch.argmax(target, dim = 1).cpu().tolist()
         
         train_loss /= len(train_loader)
         train_acc = accuracy_score(train_true, train_preds)
@@ -411,13 +670,15 @@ def freezing_test(model,
         with torch.no_grad():
             for data, target in test_loader:
                 data, target = data.to(device), target.to(device)
+                target = torch.argmax(target, dim = 1)
+
                 output = model(data)
                 loss = criterion(output.squeeze(), target.float())
                 
                 test_loss += loss.item()
 
-                test_preds += torch.round(torch.sigmoid(output)).cpu().tolist()
-                test_true += target.cpu().tolist()
+                test_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                test_true += torch.argmax(target, dim = 1).cpu().tolist()
         
         test_loss /= len(test_loader)
         test_acc = accuracy_score(test_true, test_preds)
@@ -432,13 +693,15 @@ def freezing_test(model,
         with torch.no_grad():
             for data, target in val_loader:
                 data, target = data.to(device), target.to(device)
+                target = torch.argmax(target, dim = 1)
+
                 output = model(data)
                 loss = criterion(output.squeeze(), target.float())
                 
                 val_loss += loss.item()
 
-                val_preds += torch.round(torch.sigmoid(output)).cpu().tolist()
-                val_true += target.cpu().tolist()
+                val_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                val_true += torch.argmax(target, dim = 1).cpu().tolist()
         
         val_loss /= len(val_loader)
         val_acc = accuracy_score(val_true, val_preds)
