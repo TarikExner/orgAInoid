@@ -161,7 +161,7 @@ def freezing_test_2(model,
             train_loss += loss.item()
 
             train_preds += torch.argmax(output, dim = 1).cpu().tolist()
-            train_true += torch.argmax(target, dim = 1).cpu().tolist()
+            train_true += target.cpu().tolist()
         
         train_loss /= len(train_loader)
         train_acc = accuracy_score(train_true, train_preds)
@@ -184,7 +184,7 @@ def freezing_test_2(model,
                 test_loss += loss.item()
 
                 test_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                test_true += torch.argmax(target, dim = 1).cpu().tolist()
+                test_true += target.cpu().tolist()
         
         test_loss /= len(test_loader)
         test_acc = accuracy_score(test_true, test_preds)
@@ -207,7 +207,7 @@ def freezing_test_2(model,
                 val_loss += loss.item()
 
                 val_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                val_true += torch.argmax(target, dim = 1).cpu().tolist()
+                val_true += target.cpu().tolist()
         
         val_loss /= len(val_loader)
         val_acc = accuracy_score(val_true, val_preds)
@@ -419,7 +419,7 @@ def freezing_test(model,
             train_loss += loss.item()
 
             train_preds += torch.argmax(output, dim = 1).cpu().tolist()
-            train_true += torch.argmax(target, dim = 1).cpu().tolist()
+            train_true += target.cpu().tolist()
         
         train_loss /= len(train_loader)
         train_acc = accuracy_score(train_true, train_preds)
@@ -442,7 +442,7 @@ def freezing_test(model,
                 test_loss += loss.item()
 
                 test_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                test_true += torch.argmax(target, dim = 1).cpu().tolist()
+                test_true += target.cpu().tolist()
         
         test_loss /= len(test_loader)
         test_acc = accuracy_score(test_true, test_preds)
@@ -465,7 +465,7 @@ def freezing_test(model,
                 val_loss += loss.item()
 
                 val_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                val_true += torch.argmax(target, dim = 1).cpu().tolist()
+                val_true += target.cpu().tolist()
         
         val_loss /= len(val_loader)
         val_acc = accuracy_score(val_true, val_preds)
