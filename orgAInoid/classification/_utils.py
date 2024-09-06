@@ -81,6 +81,7 @@ class DatasetMetadata:
     dataset_id: str
     experiment_dir: str
     readouts: list[str]
+    readouts_n_classes: list[int]
     start_timepoint: int
     stop_timepoint: int
     slices: list[str]
@@ -90,6 +91,11 @@ class DatasetMetadata:
     def __post_init__(self):
         self.n_slices = len(self.slices)
         self.timepoints = list(range(self.start_timepoint, self.stop_timepoint + 1))
+        self.n_classes_dict = {
+            readout: n_class
+            for readout, n_class
+            in zip(self.readouts, self.readouts_n_classes)
+        }
 
     def calculate_start_and_stop_timepoint(self):
         self.start_timepoint = min(self.timepoints)

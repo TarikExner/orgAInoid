@@ -35,12 +35,17 @@ class OrganoidDataset:
     We will store a dictionary to keep track of the images and their
     metadata, as this is important for proper cross-validation.
 
+    readouts_n_classes: Necessary for whenever there is only one label
+    in the dataset. It will be assumed that this label would be the
+    first class and gets encoded that way!
+
 
     """
 
     def __init__(self,
                  dataset_id: str,
                  readouts: list[str],
+                 readouts_n_classes: list[int],
                  file_frame: pd.DataFrame,
                  start_timepoint: int,
                  stop_timepoint: int,
@@ -81,11 +86,16 @@ class OrganoidDataset:
 
         if not isinstance(readouts, list):
             readouts = [readouts]
+        if not isinstance(readouts_n_classes, list):
+            readouts_n_classes = [readouts_n_classes]
+
+        assert len(readouts) == len(readouts_n_classes), "Provide n_classes for every readout"
 
         self._dataset_metadata = DatasetMetadata(
             dataset_id = dataset_id,
             experiment_dir = experiment_dir,
             readouts = readouts,
+            readouts_n_classes = readouts_n_classes,
             start_timepoint = start_timepoint,
             stop_timepoint = stop_timepoint,
             slices = slices
@@ -256,7 +266,7 @@ class OrganoidDataset:
         assert images.shape[1] == self.dataset_metadata.n_slices
 
         labels = {
-            key: self._one_hot_encode_labels(label_list)
+            key: self._one_hot_encode_labels(label_list, key)
             for key, label_list in labels.items()
         }
 
@@ -336,20 +346,35 @@ class OrganoidDataset:
         for annotation in annotations:
             self.dataset_metadata.readouts.append(annotation)
             merged_no_dups = merged[["experiment", "well", "loop", annotation]].copy().drop_duplicates()
-            encoded_labels = self._one_hot_encode_labels(merged_no_dups[annotation].to_numpy())
+            encoded_labels = self._one_hot_encode_labels(
+                merged_no_dups[annotation].to_numpy(),
+                readout = annotation
+            )
             assert encoded_labels.shape[0] == self.X.shape[0]
             self.y[annotation] = encoded_labels
         self._create_class_counts()
         return
 
     def _one_hot_encode_labels(self,
-                               labels_array: np.ndarray) -> np.ndarray:
-        label_encoder = LabelEncoder()
-        integer_encoded = label_encoder.fit_transform(labels_array)
+                               labels_array: np.ndarray,
+                               readout: str) -> np.ndarray:
+        if np.unique(labels_array).shape[0] == 1:
+            # we have only one label. That means we look up how many
+            # classes there are and provide the according array.
+            n_classes = self.dataset_metadata.n_classes_dict[readout]
+            boilerplate_list = [0 for _ in range(n_classes)]
+            boilerplate_list[0] = 1
+            classification = np.array([
+                boilerplate_list
+                for _ in labels_array
+            ])
+        else:
+            label_encoder = LabelEncoder()
+            integer_encoded = label_encoder.fit_transform(labels_array)
         
-        onehot_encoder = OneHotEncoder()
-        integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
-        classification = onehot_encoder.fit_transform(integer_encoded).toarray()
+            onehot_encoder = OneHotEncoder()
+            integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
+            classification = onehot_encoder.fit_transform(integer_encoded).toarray()
         return classification
 
     def _get_unique_experiment_well_combo(self,
