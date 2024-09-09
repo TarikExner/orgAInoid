@@ -371,7 +371,7 @@ class OrganoidDataset:
                 full_class_spectrum = np.array(["no", "yes"])
             n_appended = full_class_spectrum.shape[0]
 
-            labels_array = np.vstack([labels_array, full_class_spectrum])
+            labels_array = np.hstack([labels_array, full_class_spectrum])
 
         label_encoder = LabelEncoder()
         integer_encoded = label_encoder.fit_transform(labels_array)
