@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import time
@@ -27,11 +28,16 @@ def run_classifier_comparison(df: pd.DataFrame,
         f"pred_time_train,pred_time_test,pred_time_val,{scores}\n"
     )
     score_key = "Scores"
-
-    write_to_scores(resource_metrics,
-                    output_dir = output_dir,
-                    key = score_key,
-                    init = True)
+    score_file = os.path.join(output_dir, score_key, ".log")
+    if not os.path.isfile(score_file):
+        write_to_scores(resource_metrics,
+                        output_dir = output_dir,
+                        key = score_key,
+                        init = True)
+        already_calculated = []
+    else:
+        scores = pd.read_csv(score_file, index_col = False)
+        already_calculated = scores["algorithm"].unique().tolist()
 
     readouts = ["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
 
@@ -39,6 +45,11 @@ def run_classifier_comparison(df: pd.DataFrame,
     
     for readout in readouts:
         for classifier in CLASSIFIERS_TO_TEST_FULL:
+            if classifier in already_calculated:
+                continue
+            if classifier in ["LabelPropagation", "LabelSpreading"]:
+                print(f"Skipping {classifier} due to memory reasons!")
+                continue
             print(f"... running {classifier} on readout {readout}")
             for experiment in experiments:
 
