@@ -428,6 +428,10 @@ class OrganoidDataset:
 
     def save(self, output_dir: PathLike, overwrite: bool = False):
         """Save the dataset and its metadata to disk."""
+        
+        # we delete the img_handler because we want to be able to read
+        # everything independent of a GPU. 
+        del self.img_handler
 
         file_name = os.path.join(output_dir, f"{self.dataset_metadata.dataset_id}.cds")
         if os.path.isfile(file_name) and not overwrite:
