@@ -47,7 +47,7 @@ def run_classifier_comparison(df: pd.DataFrame,
         for classifier in CLASSIFIERS_TO_TEST_FULL:
             if classifier in already_calculated:
                 continue
-            if classifier in ["LabelPropagation", "LabelSpreading"]:
+            if classifier in ["LabelPropagation", "LabelSpreading", "CategoricalNB"]:
                 print(f"Skipping {classifier} due to memory reasons!")
                 continue
             print(f"... running {classifier} on readout {readout}")
