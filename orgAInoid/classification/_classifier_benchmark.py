@@ -4,7 +4,7 @@ import pandas as pd
 import time
 import gc
 
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.multioutput import MultiOutputClassifier
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
@@ -78,6 +78,17 @@ def run_classifier_comparison(df: pd.DataFrame,
                 train_df[data_columns] = scaler.transform(train_df[data_columns])
                 test_df[data_columns] = scaler.transform(test_df[data_columns])
                 val_df[data_columns] = scaler.transform(val_df[data_columns])
+
+                if classifier.endswith("NB"):
+                    # naive bayes methods do not allow negative values
+                    train_test_df = pd.concat([train_df, test_df], axis = 0)
+                    second_scaler = MinMaxScaler()
+                    second_scaler.fit(train_test_df[data_columns])
+
+                    train_df[data_columns] = second_scaler.transform(train_df[data_columns])
+                    test_df[data_columns] = second_scaler.transform(test_df[data_columns])
+                    val_df[data_columns] = second_scaler.transform(val_df[data_columns])
+
 
                 X_train = train_df[data_columns]
                 y_train = _one_hot_encode_labels(train_df[readout].to_numpy())
