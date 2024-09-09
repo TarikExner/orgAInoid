@@ -67,7 +67,7 @@ def run_classifier_comparison(df: pd.DataFrame,
     
     for readout in readouts:
         for classifier in CLASSIFIERS_TO_TEST_FULL:
-            print(f"... running {classifier}")
+            print(f"... running {classifier} on readout {readout}")
             for experiment in experiments:
 
                 if CLASSIFIERS_TO_TEST_FULL[classifier]["allows_multi_class"]:
