@@ -358,23 +358,30 @@ class OrganoidDataset:
     def _one_hot_encode_labels(self,
                                labels_array: np.ndarray,
                                readout: str) -> np.ndarray:
-        if np.unique(labels_array).shape[0] == 1:
-            # we have only one label. That means we look up how many
+        n_classes = self.dataset_metadata.n_classes_dict[readout]
+        n_appended = 0
+        if np.unique(labels_array).shape[0] != n_classes:
+            # we have not enough labels. That means we look up how many
             # classes there are and provide the according array.
-            n_classes = self.dataset_metadata.n_classes_dict[readout]
-            boilerplate_list = [0 for _ in range(n_classes)]
-            boilerplate_list[0] = 1
-            classification = np.array([
-                boilerplate_list
-                for _ in labels_array
-            ])
-        else:
-            label_encoder = LabelEncoder()
-            integer_encoded = label_encoder.fit_transform(labels_array)
-        
-            onehot_encoder = OneHotEncoder()
-            integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
-            classification = onehot_encoder.fit_transform(integer_encoded).toarray()
+
+            # first, we provide every item there is potentially as an array
+            if "classes" in readout:
+                full_class_spectrum = np.array(list(range(4)))
+            else:
+                full_class_spectrum = np.array(["no", "yes"])
+            n_appended = full_class_spectrum.shape[0]
+
+            labels_array = np.vstack([labels_array, full_class_spectrum])
+
+        label_encoder = LabelEncoder()
+        integer_encoded = label_encoder.fit_transform(labels_array)
+    
+        onehot_encoder = OneHotEncoder()
+        integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
+        classification = onehot_encoder.fit_transform(integer_encoded).toarray()
+
+        if n_appended != 0:
+            classification = classification[:-n_appended]
         return classification
 
     def _get_unique_experiment_well_combo(self,
