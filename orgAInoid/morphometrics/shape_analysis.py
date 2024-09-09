@@ -99,7 +99,7 @@ def run_morphometrics(experiment_id: str,
         assert reg_table_df.shape[0] == 1
         file_frame.loc[file_frame["file_name"] == file_name, reg_table_df.columns] = reg_table_df.values
 
-    file_frame.to_csv(os.path.join(output_dir, f"{experiment_id}_morphometrics.csv"))
+    file_frame.to_csv(os.path.join(output_dir, f"{experiment_id}_morphometrics.csv"), index = False)
 
     return file_frame
 
