@@ -55,11 +55,10 @@ def run_classifier_comparison(df: pd.DataFrame,
     )
     score_key = "Scores"
 
-    if not os.path.isfile(os.path.join(output_dir, f"{score_key}.log")):
-        write_to_scores(resource_metrics,
-                        output_dir = output_dir,
-                        key = score_key,
-                        init = True)
+    write_to_scores(resource_metrics,
+                    output_dir = output_dir,
+                    key = score_key,
+                    init = True)
 
     readouts = ["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
 
