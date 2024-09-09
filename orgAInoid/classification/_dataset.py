@@ -469,6 +469,7 @@ class OrganoidDataset:
         init_kwargs = {
             "dataset_id": None,
             "readouts": None,
+            "readouts_n_classes": None,
             "file_frame": None,
             "start_timepoint": None,
             "stop_timepoint": None,
