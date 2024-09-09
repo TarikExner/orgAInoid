@@ -28,7 +28,7 @@ def run_classifier_comparison(df: pd.DataFrame,
         f"pred_time_train,pred_time_test,pred_time_val,{scores}\n"
     )
     score_key = "Scores"
-    score_file = os.path.join(output_dir, score_key, ".log")
+    score_file = os.path.join(output_dir, f"{score_key}.log")
     if not os.path.isfile(score_file):
         write_to_scores(resource_metrics,
                         output_dir = output_dir,
