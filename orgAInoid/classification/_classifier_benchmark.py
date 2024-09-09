@@ -1,44 +1,17 @@
-import os
 import numpy as np
 import pandas as pd
 import time
 import gc
 
-from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from sklearn.multioutput import MultiOutputClassifier
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
 from .models import CLASSIFIERS_TO_TEST_FULL
 
+from ._utils import _one_hot_encode_labels, _apply_train_test_split
 
-def _one_hot_encode_labels(labels_array: np.ndarray) -> np.ndarray:
-    label_encoder = LabelEncoder()
-    integer_encoded = label_encoder.fit_transform(labels_array)
-    
-    onehot_encoder = OneHotEncoder()
-    integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
-    classification = onehot_encoder.fit_transform(integer_encoded).toarray()
-    return classification
 
-def _filter_wells(df: pd.DataFrame,
-                  combinations: np.ndarray,
-                  columns: list[str]):
-    combinations_df = pd.DataFrame(combinations, columns=columns)
-    return df.merge(combinations_df, on=columns, how='inner')
-
-def _apply_train_test_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    cols_to_match = ["experiment", "well"]
-    unique_well_per_exp = df[cols_to_match].drop_duplicates().reset_index(drop = True).to_numpy()
-    train_wells, test_wells = train_test_split(unique_well_per_exp, test_size = 0.1, random_state = 187)
-
-    assert isinstance(train_wells, np.ndarray)
-    assert isinstance(test_wells, np.ndarray)
-
-    train_df = _filter_wells(df, train_wells, ["experiment", "well"])
-    test_df = _filter_wells(df, test_wells, ["experiment", "well"])
-
-    return train_df, test_df
 
 def run_classifier_comparison(df: pd.DataFrame,
                               output_dir: str,
