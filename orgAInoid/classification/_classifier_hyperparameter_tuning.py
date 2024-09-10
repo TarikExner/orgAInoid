@@ -82,7 +82,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
         y = _one_hot_encode_labels(hyper_df[readout].to_numpy())
         hyperparameter_search = conduct_hyperparameter_search(
             clf,
-            grid = CLASSIFIERS_TO_TEST[classifier]["grid"],
+            grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"],
             method = "HalvingRandomSearchCV",
             X_train = X,
             y_train = y
