@@ -432,18 +432,18 @@ def find_base_model(model,
         scheduler.step(val_f1)
         
         # Check if the learning rate has been reduced
-        new_lr = optimizer.param_groups[0]['lr']
-        if new_lr < current_lr:
-            # load best performing model before continuing
-            model.load_state_dict(
-                torch.load(
-                    os.path.join(
-                        model_output_dir,
-                        f'{model.__class__.__name__}_{readout}_base_model.pth'
-                    )
-                )
-            )
-            print(f"[INFO] Learning rate reduced from {current_lr} to {new_lr}")
+        # new_lr = optimizer.param_groups[0]['lr']
+        # if new_lr < current_lr:
+        #     # load best performing model before continuing
+        #     model.load_state_dict(
+        #         torch.load(
+        #             os.path.join(
+        #                 model_output_dir,
+        #                 f'{model.__class__.__name__}_{readout}_base_model.pth'
+        #             )
+        #         )
+        #     )
+        #     print(f"[INFO] Learning rate reduced from {current_lr} to {new_lr}")
 
 
         stop = time.time()
