@@ -1638,6 +1638,12 @@ CLASSIFIERS_TO_TEST_2 = {
                                         allows_multi_class = False,
                                         multiprocessing = True,
                                         grid = GRIDS["NearestCentroid"]),
+    "ComplementNB": characterization(classifier = ComplementNB,
+                                     scalable = None,
+                                     accepts_empty_class = True,
+                                     allows_multi_class = False,
+                                     multiprocessing = True,
+                                     grid = GRIDS["ComplementNB"]),
     "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
                                                        scalable = None,
                                                        accepts_empty_class = False,
@@ -1650,12 +1656,6 @@ CLASSIFIERS_TO_TEST_2 = {
                                                    allows_multi_class = False,
                                                    multiprocessing = True,
                                                    grid = GRIDS["GradientBoostingClassifier"]),
-    "ComplementNB": characterization(classifier = ComplementNB,
-                                     scalable = None,
-                                     accepts_empty_class = True,
-                                     allows_multi_class = False,
-                                     multiprocessing = True,
-                                     grid = GRIDS["ComplementNB"]),
 }
 
 CLASSIFIERS_TO_TEST = {
