@@ -103,16 +103,24 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             y_train = y
         )
         best_params = hyperparameter_search.best_params_
+        cleaned_best_params = {}
+
+        for key, value in best_params.items():
+            if key.startswith("estimator__"):
+                cleaned_best_params[key.split("estimator__")[0]] = value
+            else:
+                cleaned_best_params[key] = value
+
         param_file_name = f"best_params_{classifier}_{readout}.dict" 
         with open(f"{os.path.join(param_dir, param_file_name)}", "wb") as file:
-            pickle.dump(best_params, file)   
+            pickle.dump(cleaned_best_params, file)   
         del X, y
         gc.collect()
 
 
         for experiment in experiments:
             clf = _get_classifier(classifier_name = classifier,
-                                  params = best_params)
+                                  params = cleaned_best_params)
 
             scaler = StandardScaler()
 
