@@ -119,6 +119,14 @@ class OrganoidDataset:
         self.dataset_metadata.class_balance = class_balances
         return
 
+    def _get_loop_names(self,
+                        start_timepoint: int,
+                        stop_timepoint: int) -> list[str]:
+        return [
+            f"LO{i}" if i >= 100 else f"LO0{i}" if i>= 10 else f"LO00{i}"
+            for i in range(start_timepoint, stop_timepoint)
+        ]
+
     def _preprocess_file_frame(self,
                                file_frame: pd.DataFrame) -> pd.DataFrame:
         """\
@@ -383,6 +391,27 @@ class OrganoidDataset:
         if n_appended != 0:
             classification = classification[:-n_appended]
         return classification
+
+    def split_timepoints(self,
+                         start_timepoint: int,
+                         stop_timepoint: int) -> None:
+        """Splits inplace"""
+        assert start_timepoint in self.dataset_metadata.timepoints
+        assert stop_timepoint in self.dataset_metadata.timepoints
+
+        loops = self._get_loop_names(start_timepoint, stop_timepoint)
+        self._metadata = self.metadata[self.metadata["loop"].isin(loops)]
+        self.dataset_metadata.start_timepoint = start_timepoint
+        self.dataset_metadata.stop_timepoint = stop_timepoint
+        self.dataset_metadata.timepoints = list(range(start_timepoint, stop_timepoint + 1))
+
+        arr_idxs = [idx for idx in self.metadata["IMAGE_ARRAY_INDEX"] if idx != -1]
+        self.X = self.X[arr_idxs]
+        for key in self.y:
+            self.y[key] = self.y[key][arr_idxs]
+
+        self._create_class_counts()
+        return
 
     def _get_unique_experiment_well_combo(self,
                                           df: pd.DataFrame,
