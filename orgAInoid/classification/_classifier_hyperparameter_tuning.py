@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from typing import Optional
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
-from .models import CLASSIFIERS_TO_TEST, CLASSIFIERS_TO_TEST_2
+from .models import CLASSIFIERS_TO_TEST, CLASSIFIERS_TO_TEST_2, CLASSIFIERS_TO_TEST_FULL
 from ._utils import _one_hot_encode_labels, _apply_train_test_split, conduct_hyperparameter_search
 
 
@@ -18,9 +18,9 @@ def _get_classifier(classifier_name,
                     hyperparameter: bool = False):
     if params is None:
         params = {}
-    if classifier_name in ["RandomForestClassifier", "ExtraTreesClassifier"] and not hyperparameter:
+    if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"] and not hyperparameter:
         params["n_jobs"] = 16
-    return CLASSIFIERS_TO_TEST[classifier_name]["classifier"](**params)
+    return CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params)
 
 
 def run_hyperparameter_tuning(df: pd.DataFrame,
