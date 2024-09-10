@@ -107,7 +107,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
 
         for key, value in best_params.items():
             if key.startswith("estimator__"):
-                cleaned_best_params[key.split("estimator__")[0]] = value
+                cleaned_best_params[key.split("estimator__")[1]] = value
             else:
                 cleaned_best_params[key] = value
 
