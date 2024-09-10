@@ -7,6 +7,7 @@ import pickle
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from typing import Optional
+from sklearn.multioutput import MultiOutputClassifier
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
 from .models import CLASSIFIERS_TO_TEST, CLASSIFIERS_TO_TEST_2, CLASSIFIERS_TO_TEST_FULL
@@ -16,11 +17,25 @@ from ._utils import _one_hot_encode_labels, _apply_train_test_split, conduct_hyp
 def _get_classifier(classifier_name,
                     params: Optional[dict] = None,
                     hyperparameter: bool = False):
+
     if params is None:
         params = {}
+
     if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"] and not hyperparameter:
         params["n_jobs"] = 16
-    return CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params)
+
+    if CLASSIFIERS_TO_TEST_FULL[classifier_name]["allows_multi_class"]:
+        if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"]:
+            clf = CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params)
+        else:
+            clf = CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params)
+    else:
+        if CLASSIFIERS_TO_TEST_FULL[classifier_name]["scalable"] is False:
+            clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params))
+        else:
+            clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params))
+
+    return clf
 
 
 def run_hyperparameter_tuning(df: pd.DataFrame,
