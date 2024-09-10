@@ -21,11 +21,10 @@ def _get_classifier(classifier_name,
     if params is None:
         params = {}
 
-    if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"] and not hyperparameter:
-        params["n_jobs"] = 16
 
     if CLASSIFIERS_TO_TEST_FULL[classifier_name]["allows_multi_class"]:
-        if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"]:
+        if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"] and not hyperparameter:
+            params["n_jobs"] = 16
             clf = CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params)
         else:
             clf = CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params)
@@ -33,7 +32,7 @@ def _get_classifier(classifier_name,
         if CLASSIFIERS_TO_TEST_FULL[classifier_name]["scalable"] is False:
             clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params))
         else:
-            clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params))
+            clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params), n_jobs = 16)
 
     return clf
 
