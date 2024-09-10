@@ -93,7 +93,8 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
         clf = _get_classifier(classifier_name = classifier,
                               hyperparameter = True)
         X = hyper_df[data_columns].to_numpy()
-        y = _one_hot_encode_labels(hyper_df[readout].to_numpy())
+        y = _one_hot_encode_labels(hyper_df[readout].to_numpy(),
+                                   readout = readout)
         hyperparameter_search = conduct_hyperparameter_search(
             clf,
             grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"],
