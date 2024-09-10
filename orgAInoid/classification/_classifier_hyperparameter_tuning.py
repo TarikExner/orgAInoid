@@ -73,7 +73,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                     key = score_key,
                     init = True)
 
-    readouts = ["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
+    readouts = ["RPE_Final", "Lens_Final"]
 
     experiments = df["experiment"].unique().tolist()
 
