@@ -147,13 +147,16 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                 val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
             X_train = train_df[data_columns]
-            y_train = _one_hot_encode_labels(train_df[readout].to_numpy())
+            y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
+                                             readout = readout)
 
             X_test = test_df[data_columns]
-            y_test = _one_hot_encode_labels(test_df[readout].to_numpy())
+            y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
+                                            readout = readout)
 
             X_val = val_df[data_columns]
-            y_val = _one_hot_encode_labels(val_df[readout].to_numpy())
+            y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
+                                           readout = readout)
             
             start = time.time()
             clf.fit(X_train, y_train)

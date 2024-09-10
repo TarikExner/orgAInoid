@@ -1095,13 +1095,38 @@ def conduct_hyperparameter_search(model,
     return grid_result
 
 
-def _one_hot_encode_labels(labels_array: np.ndarray) -> np.ndarray:
+def _one_hot_encode_labels(labels_array: np.ndarray,
+                           readout: str) -> np.ndarray:
+    n_classes_dict = {
+        "RPE_Final": 2,
+        "Lens_Final": 2,
+        "RPE_classes": 4,
+        "Lens_classes": 4
+    }
+    n_classes = n_classes_dict[readout]
+    n_appended = 0
+    if np.unique(labels_array).shape[0] != n_classes:
+        # we have not enough labels. That means we look up how many
+        # classes there are and provide the according array.
+
+        # first, we provide every item there is potentially as an array
+        if "classes" in readout:
+            full_class_spectrum = np.array(list(range(4)))
+        else:
+            full_class_spectrum = np.array(["no", "yes"])
+        n_appended = full_class_spectrum.shape[0]
+
+        labels_array = np.hstack([labels_array, full_class_spectrum])
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(labels_array)
     
     onehot_encoder = OneHotEncoder()
     integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
     classification = onehot_encoder.fit_transform(integer_encoded).toarray()
+
+    if n_appended != 0:
+        classification = classification[:-n_appended]
+
     return classification
 
 def _filter_wells(df: pd.DataFrame,
