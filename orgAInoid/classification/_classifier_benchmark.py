@@ -34,7 +34,7 @@ def run_classifier_comparison(df: pd.DataFrame,
                         output_dir = output_dir,
                         key = score_key,
                         init = True)
-        already_calculated = []
+        already_calculated = {}
     else:
         scores = pd.read_csv(score_file, index_col = False)
         scores = scores[["algorithm", "readout"]].drop_duplicates()
