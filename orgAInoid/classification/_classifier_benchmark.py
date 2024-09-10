@@ -37,7 +37,13 @@ def run_classifier_comparison(df: pd.DataFrame,
         already_calculated = []
     else:
         scores = pd.read_csv(score_file, index_col = False)
-        already_calculated = scores["algorithm"].unique().tolist()
+        scores = scores[["algorithm", "readout"]].drop_duplicates()
+        already_calculated = {}
+        for readout in scores["readout"].unique():
+            already_calculated[readout] = scores.loc[
+                scores["readout"] == readout,
+                "algorithm"
+            ].tolist()
 
     readouts = ["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
 
@@ -45,8 +51,9 @@ def run_classifier_comparison(df: pd.DataFrame,
     
     for readout in readouts:
         for classifier in CLASSIFIERS_TO_TEST_FULL:
-            if classifier in already_calculated:
-                continue
+            if readout in already_calculated:
+                if classifier in already_calculated[readout]:
+                    continue
             if classifier in ["LabelPropagation", "LabelSpreading", "CategoricalNB"]:
                 print(f"Skipping {classifier} due to memory reasons!")
                 continue

@@ -409,8 +409,21 @@ class OrganoidDataset:
         self.X = self.X[arr_idxs]
         for key in self.y:
             self.y[key] = self.y[key][arr_idxs]
+        
+        image_arr_indices = []
+        for i, idx in enumerate(self.metadata["IMAGE_ARRAY_INDEX"]):
+            if idx != -1:
+                image_arr_indices.append(i)
+            else:
+                image_arr_indices.append(-1)
+        assert len(image_arr_indices) == self.metadata.shape[0]
+        self.metadata["IMAGE_ARRAY_INDEX"] = image_arr_indices
+
+        test_frame = self.metadata[self.metadata["IMAGE_ARRAY_INDEX"] != -1]
+        assert test_frame.shape[0] == self.X.shape[0]
 
         self._create_class_counts()
+
         return
 
     def _get_unique_experiment_well_combo(self,
