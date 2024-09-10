@@ -5,11 +5,11 @@ import time
 import gc
 import pickle
 
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from typing import Optional
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
-from .models import CLASSIFIERS_TO_TEST
+from .models import CLASSIFIERS_TO_TEST, CLASSIFIERS_TO_TEST_2
 from ._utils import _one_hot_encode_labels, _apply_train_test_split, conduct_hyperparameter_search
 
 
@@ -28,6 +28,13 @@ def run_hyperparameter_tuning(df: pd.DataFrame,
                               data_columns: list[str]):
     for classifier in CLASSIFIERS_TO_TEST:
         _run_hyperparameter_tuning(df, output_dir, classifier, data_columns)
+
+def run_hyperparameter_tuning_2(df: pd.DataFrame,
+                                output_dir: str,
+                                data_columns: list[str]):
+    for classifier in CLASSIFIERS_TO_TEST_2:
+        _run_hyperparameter_tuning(df, output_dir, classifier, data_columns)
+
 
 
 def _run_hyperparameter_tuning(df: pd.DataFrame,
@@ -63,6 +70,10 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
     scaler = StandardScaler()
     hyper_df = df.copy()
     hyper_df[data_columns] = scaler.fit_transform(hyper_df[data_columns])
+
+    if classifier.endswith("NB"):
+        second_scaler = MinMaxScaler()
+        hyper_df[data_columns] = second_scaler.fit_transform(hyper_df[data_columns])
 
     for readout in readouts:
         clf = _get_classifier(classifier_name = classifier,
@@ -102,6 +113,16 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             train_df[data_columns] = scaler.transform(train_df[data_columns])
             test_df[data_columns] = scaler.transform(test_df[data_columns])
             val_df[data_columns] = scaler.transform(val_df[data_columns])
+
+            if classifier.endswith("NB"):
+                # naive bayes methods do not allow negative values
+                train_test_df = pd.concat([train_df, test_df], axis = 0)
+                second_scaler = MinMaxScaler()
+                second_scaler.fit(train_test_df[data_columns])
+
+                train_df[data_columns] = second_scaler.transform(train_df[data_columns])
+                test_df[data_columns] = second_scaler.transform(test_df[data_columns])
+                val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
             X_train = train_df[data_columns]
             y_train = _one_hot_encode_labels(train_df[readout].to_numpy())

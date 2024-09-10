@@ -1322,7 +1322,8 @@ GRIDS = {
         estimator__tol=[1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
     ),
     "NearestCentroid": dict(
-        estimator__shrink_threshold=[1 / x for x in [1e-2, 1e-1, 1, 10, 100]]
+        estimator__shrink_threshold=[1 / x for x in [1e-2, 1e-1, 1, 10, 100]],
+        estimator__metric=["euclidean", "manhattan"]
     ),
     "PassiveAggressiveClassifier": dict(
         estimator__C=[
@@ -1390,7 +1391,9 @@ GRIDS = {
         estimator__alpha=[1 / x for x in [1e-1, 1, 10, 100, 1000, 10_000, 100_000]],
         estimator__fit_prior=[True, False],
     ),
-    "GaussianNB": dict(estimator__var_smoothing = np.logspace(0, -12, num=500)),
+    "GaussianNB": dict(
+        estimator__var_smoothing = np.logspace(0, -12, num=500)
+    ),
     "BernoulliNB": dict(
         estimator__alpha=[1 / x for x in [1e-1, 1, 10, 100, 1000, 10_000, 100_000]],
         estimator__fit_prior=[True, False],
@@ -1622,6 +1625,39 @@ CLASSIFIERS_TO_TEST_FULL = {
                                          grid = GRIDS["LabelPropagation"]),
 }
 
+CLASSIFIERS_TO_TEST_2 = {
+    "GaussianNB": characterization(classifier = GaussianNB,
+                                   scalable = None,
+                                   accepts_empty_class = True,
+                                   allows_multi_class = False,
+                                   multiprocessing = True,
+                                   grid = GRIDS["GaussianNB"]),
+    "NearestCentroid": characterization(classifier = NearestCentroid,
+                                        scalable = None,
+                                        accepts_empty_class = False,
+                                        allows_multi_class = False,
+                                        multiprocessing = True,
+                                        grid = GRIDS["NearestCentroid"]),
+    "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
+                                                       scalable = None,
+                                                       accepts_empty_class = False,
+                                                       allows_multi_class = False,
+                                                       multiprocessing = True,
+                                                       grid = GRIDS["HistGradientBoostingClassifier"]),
+    "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
+                                                   scalable = None,
+                                                   accepts_empty_class = False,
+                                                   allows_multi_class = False,
+                                                   multiprocessing = True,
+                                                   grid = GRIDS["GradientBoostingClassifier"]),
+    "ComplementNB": characterization(classifier = ComplementNB,
+                                     scalable = None,
+                                     accepts_empty_class = True,
+                                     allows_multi_class = False,
+                                     multiprocessing = True,
+                                     grid = GRIDS["ComplementNB"]),
+}
+
 CLASSIFIERS_TO_TEST = {
     "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
                                                scalable = None,
@@ -1660,4 +1696,3 @@ CLASSIFIERS_TO_TEST = {
                             multiprocessing = True,
                             grid = GRIDS["KNN"])
 }
-
