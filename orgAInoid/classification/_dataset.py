@@ -411,9 +411,11 @@ class OrganoidDataset:
             self.y[key] = self.y[key][arr_idxs]
         
         image_arr_indices = []
-        for i, idx in enumerate(self.metadata["IMAGE_ARRAY_INDEX"]):
+        counter = 0
+        for idx in self.metadata["IMAGE_ARRAY_INDEX"]:
             if idx != -1:
-                image_arr_indices.append(i)
+                image_arr_indices.append(counter)
+                counter += 1
             else:
                 image_arr_indices.append(-1)
         assert len(image_arr_indices) == self.metadata.shape[0]
