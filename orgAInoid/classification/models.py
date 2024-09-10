@@ -1392,7 +1392,7 @@ GRIDS = {
         estimator__fit_prior=[True, False],
     ),
     "GaussianNB": dict(
-        estimator__var_smoothing = np.logspace(0, -12, num=500)
+        var_smoothing = np.logspace(0, -12, num=500)
     ),
     "BernoulliNB": dict(
         estimator__alpha=[1 / x for x in [1e-1, 1, 10, 100, 1000, 10_000, 100_000]],
