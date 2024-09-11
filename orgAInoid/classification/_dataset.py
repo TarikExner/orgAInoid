@@ -110,7 +110,9 @@ class OrganoidDataset:
     def _create_class_counts(self):
         class_balances = {}
         for readout in self.dataset_metadata.readouts:
-            n_uniques = self.metadata.groupby(readout).nunique()["well"]
+            _, class_counts = np.unique(self.y[readout], axis = 0, return_counts = True)
+
+            n_uniques = self.metadata.groupby(readout).nunique()["image_path"]
             class_balances[readout] = {
                 n_uniques.index[i]: round(n_uniques.iloc[i] / n_uniques.sum(), 2)
                 for i in range(n_uniques.shape[0])
