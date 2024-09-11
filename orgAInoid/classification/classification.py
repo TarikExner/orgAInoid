@@ -495,7 +495,8 @@ def find_base_model(model,
                     validation_dataset_id: str,
                     output_dir = "./results",
                     model_output_dir = "./classifiers",
-                    dataset_input_dir = "./raw_data") -> None:
+                    dataset_input_dir = "./raw_data",
+                    calculate_learning_rate: bool = True) -> None:
     """\
     Trains model on full dataset in order to find a good baseline model.
 
@@ -577,19 +578,20 @@ def find_base_model(model,
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr=learning_rate,
-        weight_decay = 1e-4
-    )
-
-    learning_rate = find_ideal_learning_rate(
-        model = model,
-        criterion = criterion,
-        optimizer = optimizer,
-        train_loader = train_loader,
-        n_tests = 5
-    )
+    
+    if calculate_learning_rate is True:
+        optimizer = optim.Adam(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=learning_rate,
+            weight_decay = 1e-4
+        )
+        learning_rate = find_ideal_learning_rate(
+            model = model,
+            criterion = criterion,
+            optimizer = optimizer,
+            train_loader = train_loader,
+            n_tests = 5
+        )
 
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
