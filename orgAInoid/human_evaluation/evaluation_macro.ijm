@@ -178,25 +178,24 @@ function analyzeImages(evaluatorID) {
             			" \n" +
             			"Then press Ok to enter the classfication dialogue!"); 	
 
-            Dialog.create("Image Analysis for: " + imgName);
-            
-            // Dropdowns for Yes/No questions
-            Dialog.addChoice("Does the organoid contain RPE?", newArray("Yes", "No"), "No");
-            Dialog.addChoice("Will the organoid develop RPE?", newArray("Yes", "No"), "No");
-            Dialog.addChoice("Current or future amount of RPE (0-3):", newArray("0", "1", "2", "3"), "0");
-    		Dialog.addMessage("________________________________________");
-            Dialog.addChoice("Does the organoid contain a lens?", newArray("Yes", "No"), "No");
-            Dialog.addChoice("Will the organoid develop a lens?", newArray("Yes", "No"), "No");
-            Dialog.addChoice("Current or future size of the lens (0-3):", newArray("0", "1", "2", "3"), "0");
-            
+			Dialog.create("Image Analysis for: " + imgName);
+			
+			Dialog.addRadioButtonGroup("Does the organoid contain RPE?", newArray("Yes", "No"), 1, 2, "No");
+			Dialog.addRadioButtonGroup("Will the organoid develop RPE?", newArray("Yes", "No"), 1, 2, "No");
+			Dialog.addRadioButtonGroup("Current or future amount of RPE (0-3):", newArray("0", "1", "2", "3"), 1, 4, "0");
+			Dialog.addMessage("________________________________________");
+			Dialog.addRadioButtonGroup("Does the organoid contain a lens?", newArray("Yes", "No"), 1, 2, "No");
+			Dialog.addRadioButtonGroup("Will the organoid develop a lens?", newArray("Yes", "No"), 1, 2, "No");
+			Dialog.addRadioButtonGroup("Current or future size of the lens (0-3):", newArray("0", "1", "2", "3"), 1, 4, "0");
+			
             Dialog.show();
            
-            containsRPE = Dialog.getChoice();
-            willDevelopRPE = Dialog.getChoice();
-            amountRPE = Dialog.getChoice();
-            containsLens = Dialog.getChoice();
-            willDevelopLens = Dialog.getChoice();
-            lensSize = Dialog.getChoice();
+			containsRPE = Dialog.getRadioButton();
+			willDevelopRPE = Dialog.getRadioButton();
+			amountRPE = Dialog.getRadioButton();
+			containsLens = Dialog.getRadioButton();
+			willDevelopLens = Dialog.getRadioButton();
+			lensSize = Dialog.getRadioButton();
 
             // Save results to the results.csv
             row = evaluatorID + "," + imgName + "," + containsRPE + "," + willDevelopRPE + "," +
