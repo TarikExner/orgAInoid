@@ -67,17 +67,19 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
         f"pred_time_train,pred_time_test,pred_time_val,{scores}\n"
     )
     score_key = "Hyperparameter_Tuning"
+    score_file = os.path.join(output_dir, f"{score_key}.log")
+    if not os.path.isfile(score_file):
+        write_to_scores(resource_metrics,
+                        output_dir = output_dir,
+                        key = score_key,
+                        init = True)
 
-    write_to_scores(resource_metrics,
-                    output_dir = output_dir,
-                    key = score_key,
-                    init = True)
-
-    readouts = ["RPE_Final", "Lens_Final"]
+    readouts = ["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
 
     experiments = df["experiment"].unique().tolist()
 
     param_dir = os.path.join(output_dir, "best_params/")
+
     if not os.path.exists(param_dir):
         os.makedirs(param_dir)
 
@@ -90,33 +92,40 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
         hyper_df[data_columns] = second_scaler.fit_transform(hyper_df[data_columns])
 
     for readout in readouts:
-        clf = _get_classifier(classifier_name = classifier,
-                              hyperparameter = True)
-        X = hyper_df[data_columns].to_numpy()
-        y = _one_hot_encode_labels(hyper_df[readout].to_numpy(),
-                                   readout = readout)
-        hyperparameter_search = conduct_hyperparameter_search(
-            clf,
-            grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"],
-            method = "HalvingRandomSearchCV",
-            X_train = X,
-            y_train = y
-        )
-        best_params = hyperparameter_search.best_params_
-        cleaned_best_params = {}
+        param_file_name = f"best_params_{classifier}_{readout}.dict"
+        param_file_dir = os.path.join(param_dir, param_file_name)
 
-        for key, value in best_params.items():
-            if key.startswith("estimator__"):
-                cleaned_best_params[key.split("estimator__")[1]] = value
-            else:
-                cleaned_best_params[key] = value
+        if not os.path.isfile(param_file_dir):
+            print(f"Calculating hyperparameters of {classifier} for {readout}.")
+            clf = _get_classifier(classifier_name = classifier,
+                                  hyperparameter = True)
+            X = hyper_df[data_columns].to_numpy()
+            y = _one_hot_encode_labels(hyper_df[readout].to_numpy(),
+                                       readout = readout)
+            hyperparameter_search = conduct_hyperparameter_search(
+                clf,
+                grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"],
+                method = "HalvingRandomSearchCV",
+                X_train = X,
+                y_train = y
+            )
+            best_params = hyperparameter_search.best_params_
+            cleaned_best_params = {}
 
-        param_file_name = f"best_params_{classifier}_{readout}.dict" 
-        with open(f"{os.path.join(param_dir, param_file_name)}", "wb") as file:
-            pickle.dump(cleaned_best_params, file)   
-        del X, y
-        gc.collect()
+            for key, value in best_params.items():
+                if key.startswith("estimator__"):
+                    cleaned_best_params[key.split("estimator__")[1]] = value
+                else:
+                    cleaned_best_params[key] = value
 
+            with open(param_file_dir, "wb") as file:
+                pickle.dump(cleaned_best_params, file)   
+            del X, y
+            gc.collect()
+        else:
+            print(f"Loading {classifier} for {readout} as it is already calculated.")
+            with open(param_file_dir, "rb") as file:
+                cleaned_best_params = pickle.load(file)
 
         for experiment in experiments:
             clf = _get_classifier(classifier_name = classifier,
