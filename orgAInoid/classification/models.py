@@ -1381,7 +1381,7 @@ GRIDS = {
         ],
         estimator__n_estimators=[10, 50, 100, 500, 1000, 5000, 10_000],
         estimator__subsample=[0.2, 0.4, 0.6, 0.8, 1],
-        estimator__criterion=["friedman_mse, squared_error", "mse"],
+        estimator__criterion=["friedman_mse, squared_error"],
         estimator__min_samples_split=[2, 4, 6, 8, 10],
         estimator__max_depth=np.arange(1, 100, 5),
         estimator__max_features=["auto", "sqrt", "log2"],
