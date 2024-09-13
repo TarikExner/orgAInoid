@@ -10,7 +10,9 @@ from typing import Optional
 from sklearn.multioutput import MultiOutputClassifier
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
-from .models import CLASSIFIERS_TO_TEST, CLASSIFIERS_TO_TEST_2, CLASSIFIERS_TO_TEST_FULL
+from .models import (CLASSIFIERS_TO_TEST_FULL,
+                     CLASSIFIERS_TO_TEST_RPE,
+                     CLASSIFIERS_TO_TEST_LENS)
 from ._utils import _one_hot_encode_labels, _apply_train_test_split, conduct_hyperparameter_search
 
 
@@ -40,16 +42,14 @@ def _get_classifier(classifier_name,
 def run_hyperparameter_tuning(df: pd.DataFrame,
                               output_dir: str,
                               data_columns: list[str]):
-    for classifier in CLASSIFIERS_TO_TEST:
+    for classifier in CLASSIFIERS_TO_TEST_RPE:
         _run_hyperparameter_tuning(df, output_dir, classifier, data_columns)
 
 def run_hyperparameter_tuning_2(df: pd.DataFrame,
                                 output_dir: str,
                                 data_columns: list[str]):
-    for classifier in CLASSIFIERS_TO_TEST_2:
+    for classifier in CLASSIFIERS_TO_TEST_LENS:
         _run_hyperparameter_tuning(df, output_dir, classifier, data_columns)
-
-
 
 def _run_hyperparameter_tuning(df: pd.DataFrame,
                                output_dir: str,
