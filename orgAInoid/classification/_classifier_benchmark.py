@@ -58,6 +58,9 @@ def run_classifier_comparison(df: pd.DataFrame,
             if classifier in ["LabelPropagation", "LabelSpreading", "CategoricalNB"]:
                 print(f"Skipping {classifier} due to memory reasons!")
                 continue
+            if readout == "RPE_classes" and classifier == "NuSVC":
+                print("Skipping NuSVC for RPE classes")
+                continue
             print(f"... running {classifier} on readout {readout}")
             for experiment in experiments:
 
