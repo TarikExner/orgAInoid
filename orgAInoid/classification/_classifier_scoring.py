@@ -92,13 +92,22 @@ def score_classifier(true_arr: np.ndarray,
                      pred_arr: np.ndarray):
     if true_arr.shape[0] != 0:
         conf_matrix = confusion_matrix(true_arr, pred_arr, labels = [0, 1]).ravel()
-        test_scores = [str(SCORES_TO_USE[score](true_arr, pred_arr))
-                       if score not in ["tn", "fp", "fn", "tp",
-                                        "fpr", "fnr", "tnr", "fpv", "fdr",
-                                        "precision_score", "recall_score", "f1_score",
-                                        "accuracy_score"] else
-                       str(SCORES_TO_USE[score](conf_matrix))
-                       for score in SCORES_TO_USE]
+        test_scores = []
+        for score in SCORES_TO_USE:
+            if score in ["tn", "fp", "fn", "tp",
+                         "fpr", "fnr", "tnr", "fpv", "fdr",
+                         "precision_score", "recall_score", "f1_score",
+                         "accuracy_score"]:
+                try:
+                    test_scores.append(str(SCORES_TO_USE[score](conf_matrix)))
+                except Exception:
+                    test_scores.append(str(-1))
+            else:
+                try:
+                    test_scores.append(str(SCORES_TO_USE[score](true_arr, pred_arr)))
+                except Exception:
+                    test_scores.append(str(-1))
+                    
     else: # y_test is empty
         test_scores = ["-1.0" for _ in SCORES_TO_USE]
     new_line = ["\n"]
