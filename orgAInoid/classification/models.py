@@ -1740,6 +1740,16 @@ CLASSIFIERS_TO_TEST_RPE = {
 
 }
 
+CLASSIFIERS_TO_TEST_RPE_CLASSES = {
+    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = False,
+                                               grid = GRIDS["DecisionTreeClassifier"]),
+
+}
+
 CLASSIFIERS_TO_TEST = {
     "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
                                                scalable = None,

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import WeightedRandomSampler
 from sklearn.metrics import accuracy_score, f1_score
 import os
 import time
@@ -500,6 +501,8 @@ def find_base_model(model,
     """\
     Trains model on full dataset in order to find a good baseline model.
 
+    We use weighted Loss.
+
     Learning Rate is adjusted based on valF1.
     """
     if not os.path.exists(output_dir):
@@ -511,10 +514,13 @@ def find_base_model(model,
     full_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{dataset_id}.cds")
     )
+    full_dataset._create_class_counts()
 
     full_validation_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{validation_dataset_id}.cds")
     )
+    full_validation_dataset._create_class_counts()
+
     validation_set = OrganoidValidationDataset(
         full_validation_dataset,
         readout = readout
@@ -560,10 +566,11 @@ def find_base_model(model,
     print(f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
           f"Learning Rate: {learning_rate}, Batch Size: {batch_size}")
 
+
     # Initialize the dataloaders
     train_loader = create_dataloader(
         X_train, y_train,
-        batch_size = batch_size, shuffle = True, train = True
+        batch_size = batch_size, shuffle = True, train = True,
     )
     test_loader = create_dataloader(
         X_test, y_test,
@@ -577,7 +584,8 @@ def find_base_model(model,
     # Initialize the model, criterion, and optimizer
     model = model.to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    class_weights = 1 / (y_train.sum(axis=0) / y_train.shape[0])
+    criterion = nn.CrossEntropyLoss(weight = class_weights)
     
     if calculate_learning_rate is True:
         optimizer = optim.Adam(

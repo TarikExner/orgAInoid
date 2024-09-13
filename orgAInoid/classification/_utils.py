@@ -333,10 +333,11 @@ def create_dataloader(img_array: np.ndarray,
                       class_array: np.ndarray,
                       batch_size: int,
                       shuffle: bool,
-                      train: bool) -> DataLoader:
+                      train: bool,
+                      **kwargs) -> DataLoader:
     transformations = train_transformations() if train else val_transformations()
     dataset = create_dataset(img_array, class_array, transformations)
-    return DataLoader(dataset, batch_size = batch_size, shuffle = shuffle)
+    return DataLoader(dataset, batch_size = batch_size, shuffle = shuffle, **kwargs)
 
 def _get_model_from_enum(model_name: str):
     return [
