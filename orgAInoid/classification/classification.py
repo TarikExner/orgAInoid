@@ -585,7 +585,7 @@ def find_base_model(model,
     model = model.to(device)
 
     class_weights = 1 / (y_train.sum(axis=0) / y_train.shape[0])
-    class_weights = torch.tensor(class_weights).to(device)
+    class_weights = torch.tensor(class_weights).float().to(device)
     criterion = nn.CrossEntropyLoss(weight = class_weights)
     
     if calculate_learning_rate is True:
