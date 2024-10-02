@@ -4,6 +4,7 @@ import torch.optim as optim
 from torch.utils.data import WeightedRandomSampler
 from sklearn.metrics import accuracy_score, f1_score
 import os
+import gc
 import pickle
 import time
 
@@ -524,6 +525,8 @@ def run_experiment_cross_validation(model,
                                      model_output_dir = model_output_dir,
                                      dataset_input_dir = dataset_input_dir,
                                      calculate_learning_rate = calculate_learning_rate)
+
+        gc.collect()
                                      
 
 
@@ -800,14 +803,16 @@ def _cross_validation_train_loop(model,
                 f"{bbox_cropped},{bbox_rescaling}\n"
             )
 
-    with open(os.path.join(output_dir, "train_losses.dict"), "wb") as file:
+    with open(os.path.join(output_dir, f"train_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
         pickle.dump(loss_dict_train, file)
 
-    with open(os.path.join(output_dir, "test_losses.dict"), "wb") as file:
+    with open(os.path.join(output_dir, f"test_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
         pickle.dump(loss_dict_test, file)
 
-    with open(os.path.join(output_dir, "val_losses.dict"), "wb") as file:
+    with open(os.path.join(output_dir, f"val_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
         pickle.dump(loss_dict_val, file)
+
+    return
 
 def find_base_model(model,
                     readout: str,
