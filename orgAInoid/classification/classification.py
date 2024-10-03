@@ -5,6 +5,7 @@ from torch.utils.data import WeightedRandomSampler
 from sklearn.metrics import accuracy_score, f1_score
 import os
 import gc
+import pandas as pd
 import pickle
 import time
 
@@ -600,6 +601,13 @@ def _cross_validation_train_loop(model,
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     output_file = os.path.join(output_dir, f"{experiment_id}.txt")
+    if os.path.isfile(output_file):
+        results = pd.read_csv(output_file)
+        results = results[results["Model"] == model.__class__.__name__].copy()
+        if val_exp in results["ValExpID"].unique():
+            print(f"Skipping {val_exp} as it is already calculated")
+            return
+
     mode = "w" if not os.path.isfile(output_file) else "a"
     with open(output_file, mode) as file:
         file.write(
@@ -637,18 +645,30 @@ def _cross_validation_train_loop(model,
     criterion = nn.CrossEntropyLoss(weight = class_weights)
     
     if calculate_learning_rate is True:
-        optimizer = optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=learning_rate,
-            weight_decay = 1e-4
-        )
-        learning_rate = find_ideal_learning_rate(
-            model = model,
-            criterion = criterion,
-            optimizer = optimizer,
-            train_loader = train_loader,
-            n_tests = 5
-        )
+        try:
+            optimizer = optim.Adam(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                lr=learning_rate,
+                weight_decay = 1e-4
+            )
+            learning_rate = find_ideal_learning_rate(
+                model = model,
+                criterion = criterion,
+                optimizer = optimizer,
+                train_loader = train_loader,
+                n_tests = 5
+            )
+        except Exception as e:
+            print(str(e))
+            print("Skipping LR calculation")
+            if model.__class__.__name__ == "DenseNet121":
+                learning_rate = 1e-5
+            elif model.__class__.__name__ == "ResNet50":
+                learning_rate = 0.0001
+            elif model.__class__.__name__ == "MobileNetV3_Large":
+                learning_rate = 0.0003
+            else:
+                learning_rate = 0.0003
 
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
