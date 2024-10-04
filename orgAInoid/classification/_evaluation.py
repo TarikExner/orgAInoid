@@ -36,10 +36,10 @@ class ModelWithTemperature(nn.Module):
         NB: Output of the neural network should be the classification logits,
             NOT the softmax (or log softmax)!
     """
-    def __init__(self, model, eval_set: Literal["test", "val"]):
+    def __init__(self, model, eval_set: Literal["test", "val"], experiment):
         super(ModelWithTemperature, self).__init__()
         self.model = model
-        self.original_name = f"{self.model.__class__.__name__}_{eval_set}"
+        self.original_name = f"{self.model.__class__.__name__}_{eval_set}_{experiment}"
         self.temperature = nn.Parameter(torch.ones(1) * 1.5)
 
     def forward(self, input):
@@ -177,7 +177,7 @@ def instantiate_model(model_name,
                                eval_set = eval_set,
                                val_exp = val_exp,
                                readout = readout)
-    model = ModelWithTemperature(model, eval_set)
+    model = ModelWithTemperature(model, eval_set, val_exp)
     model.set_temperature(val_loader)
     return model
 
@@ -260,6 +260,7 @@ def generate_ensemble(val_experiments: list[str],
         models = []
 
         for experiment in val_experiments:
+            print(f"\n{experiment}\n")
 
             # its necessary to load the val ID dataset for the TempScaling
             validation_dataset_id = f"{experiment}_full_SL3_fixed.cds"
@@ -267,6 +268,7 @@ def generate_ensemble(val_experiments: list[str],
             val_loader = _create_dataloader(val_dataset, readout)
 
             for model_name in model_names:
+                print(f"\t{model_name}")
                 if eval_set == "both":
                     models.append(instantiate_model(model_name,
                                                     eval_set = "val",
