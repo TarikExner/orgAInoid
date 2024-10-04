@@ -498,7 +498,8 @@ def run_experiment_cross_validation(model: str,
                                     output_dir = "./results",
                                     model_output_dir = "./classifiers",
                                     dataset_input_dir = "./raw_data",
-                                    calculate_learning_rate: bool = True) -> None:
+                                    calculate_learning_rate: bool = True,
+                                    num_classes: int = 2) -> None:
 
     experiments = [
         "E001",
@@ -516,11 +517,11 @@ def run_experiment_cross_validation(model: str,
 
     for experiment in experiments:
         if model == "DenseNet121":
-            _model = DenseNet121()
+            _model = DenseNet121(num_classes = num_classes)
         elif model == "ResNet50":
-            _model = ResNet50()
+            _model = ResNet50(num_classes = num_classes)
         elif model == "MobileNetV3_Large":
-            _model = MobileNetV3_Large()
+            _model = MobileNetV3_Large(num_classes = num_classes)
         else:
             raise ValueError("model not found")
         _cross_validation_train_loop(model = _model,
