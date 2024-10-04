@@ -36,7 +36,6 @@ from sklearn.base import _fit_context, is_classifier
 from sklearn.utils.multiclass import check_classification_targets
 from sklearn.utils.validation import _num_samples
 
-import numpy as np
 from sklearn.model_selection import ParameterSampler
 
 
