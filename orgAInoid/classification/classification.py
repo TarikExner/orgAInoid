@@ -13,6 +13,7 @@ from ._utils import create_dataloader, find_ideal_learning_rate
 from ._dataset import (OrganoidDataset,
                        OrganoidTrainingDataset,
                        OrganoidValidationDataset)
+from ._models import DenseNet121, ResNet50, MobileNetV3_Large
 
 def run_classification_train_test(model,
                                   readout: str,
@@ -488,7 +489,7 @@ def finetune_for_timepoints(model,
                 f"{bbox_cropped},{bbox_rescaling}\n"
             )
 
-def run_experiment_cross_validation(model,
+def run_experiment_cross_validation(model: str,
                                     readout: str,
                                     learning_rate: float,
                                     batch_size: int,
@@ -514,7 +515,15 @@ def run_experiment_cross_validation(model,
     ]
 
     for experiment in experiments:
-        _cross_validation_train_loop(model = model,
+        if model == "DenseNet121":
+            _model = DenseNet121()
+        elif model == "ResNet50":
+            _model = ResNet50()
+        elif model == "MobileNetV3_Large":
+            _model = MobileNetV3_Large()
+        else:
+            raise ValueError("model not found")
+        _cross_validation_train_loop(model = _model,
                                      readout = readout,
                                      learning_rate = learning_rate,
                                      batch_size = batch_size,
