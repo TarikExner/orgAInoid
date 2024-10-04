@@ -13,7 +13,7 @@ from ._utils import create_dataloader, find_ideal_learning_rate
 from ._dataset import (OrganoidDataset,
                        OrganoidTrainingDataset,
                        OrganoidValidationDataset)
-from ._models import DenseNet121, ResNet50, MobileNetV3_Large
+from .models import DenseNet121, ResNet50, MobileNetV3_Large
 
 def run_classification_train_test(model,
                                   readout: str,
