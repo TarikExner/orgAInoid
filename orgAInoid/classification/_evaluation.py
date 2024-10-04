@@ -366,6 +366,7 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
 
     data_columns = [col for col in frame.columns if col not in metadata_columns]  
     frame = frame.dropna(how = "all", axis = 0, subset = data_columns)
+    frame = frame[~frame["RPE_classes"].isna()]
 
     # we dont need label
     frame = frame.drop("label", axis = 1)
@@ -421,8 +422,8 @@ def classifier_evaluation(train_experiments,
                           readout,
                           classifier: str):
     X_train, y_train, val_df, data_columns = _assemble_morphometrics_dataframe(train_experiments,
-                                                                                                             val_experiment_id,
-                                                                                                             readout)
+                                                                               val_experiment_id,
+                                                                               readout)
     with open(f"../../shape_analysis/results/best_params/best_params_{classifier}_{readout}.dict", "rb") as file:
         best_params_ = pickle.load(file)
     if classifier == "NearestCentroid":
