@@ -17,7 +17,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import NearestCentroid
 
-from typing import Literal
+from typing import Literal, Optional
 
 import torch
 from torch import nn, optim
@@ -359,7 +359,8 @@ def neural_net_evaluation(cross_val_experiments: list[str],
                           readout: Literal["RPE_Final", "RPE_classes", "Lens_Final", "Lens_classes"],
                           ensemble_output_file: str,
                           model_names: list[str],
-                          eval_set: Literal["val", "test", "both"]
+                          eval_set: Literal["val", "test", "both"],
+                          weights: Optional[dict] = None
                           ):
     if not isinstance(cross_val_experiments, list):
         cross_val_experiments = [cross_val_experiments]
@@ -375,7 +376,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
         model_names = model_names,
         eval_set = eval_set
     )
-    truth_arr, ensemble_pred, single_predictions = ensemble_probability_averaging(models, val_loader)
+    truth_arr, ensemble_pred, single_predictions = ensemble_probability_averaging(models, val_loader, weights = weights)
     single_predictions = {
         key: np.hstack(single_predictions[key]) for key in single_predictions
     }
