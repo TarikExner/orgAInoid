@@ -187,19 +187,6 @@ def _read_dataset(dataset_id):
 def _create_dataloader(dataset, readout):
     return create_dataloader(dataset.X, dataset.y[readout], batch_size = 128, shuffle = False, train = False)
 
-def _predict_data(dataset, readout, model):
-    val_loader = _create_dataloader(dataset, readout)
-    pred_array = np.array([])
-    for i, (img, _) in enumerate(val_loader):
-        img = img.to("cuda")
-        output = model(img)
-        if i == 0:
-            pred_array = output.detach().cpu().numpy()
-        else:
-            pred_array = np.vstack([pred_array, output.detach().cpu().numpy()])
-
-    return pred_array
-
 def _loop_to_timepoint(loops):
     return [int(loop.strip("LO")) for loop in loops]
 
@@ -209,24 +196,98 @@ def calculate_f1_scores(df):
     f1_scores["loop"] = _loop_to_timepoint(loops)
     return f1_scores
 
-def ensemble_probability_averaging(models, dataloader):
-    device = "cuda"
+def create_weights(val_scores, method='f1', normalize=True, power=1.0, temperature=1.0):
+    """
+    Creates weights for models based on validation F1 scores using various methodologies.
+
+    Parameters:
+    - val_scores (dict): Dictionary with model names as keys and F1 scores as values.
+    - method (str): Method to use for weight calculation. Options are:
+        - 'f1': Use F1 scores directly.
+        - 'inverse': Use inverse of F1 scores.
+        - 'softmax': Use softmax of F1 scores.
+        - 'power': Use F1 scores raised to a power.
+        - 'temperature': Use softmax with temperature scaling.
+    - normalize (bool): Whether to normalize the weights to sum to 1.
+    - power (float): Exponent to use in the 'power' method.
+    - temperature (float): Temperature parameter for the 'temperature' method.
+
+    Returns:
+    - weights (dict): Dictionary with model names as keys and calculated weights as values.
+    """
+
+    # Extract model names and F1 scores
+    model_names = list(val_scores.keys())
+    f1_scores = np.array(list(val_scores.values()))
+    
+    if method == 'f1':
+        # Use F1 scores directly
+        weights_array = f1_scores.copy()
+    elif method == 'softmax':
+        # Use softmax of F1 scores
+        exp_scores = np.exp(f1_scores)
+        weights_array = exp_scores
+    elif method == 'power':
+        # Use F1 scores raised to a power
+        weights_array = np.power(f1_scores, power)
+    elif method == 'temperature':
+        # Use softmax with temperature scaling
+        exp_scores = np.exp(f1_scores / temperature)
+        weights_array = exp_scores
+    else:
+        raise ValueError(f"Unknown method '{method}'. Available methods are 'f1', 'inverse', 'softmax', 'power', 'temperature'.")
+    
+    if normalize:
+        total_weight = weights_array.sum()
+        weights_array = weights_array / total_weight
+    
+    # Create weights dictionary
+    weights = {model_name: weight for model_name, weight in zip(model_names, weights_array)}
+    
+    return weights
+
+def ensemble_probability_averaging(models, dataloader, weights=None):
+    """\
+    Weights is a dictionary where the keys are the model names
+    and the values is the val_f1_score.
+    """
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     all_labels = []
     all_preds = []
     single_predictions = {model.original_name: [] for model in models}
+    
     with torch.no_grad():
         for inputs, labels in tqdm(dataloader):
             inputs = inputs.to(device)
             prob_sum = 0
+            total_weight = 0
+            
             for model in models:
                 logits = model(inputs)
-                single_predictions[model.original_name].append(torch.argmax(logits, dim = 1).detach().cpu().numpy())
+                preds_single = torch.argmax(logits, dim=1).detach().cpu().numpy()
+                single_predictions[model.original_name].append(preds_single)
                 probs = F.softmax(logits, dim=1)
-                prob_sum += probs
-            probs_avg = prob_sum / len(models)
+                
+                if weights is not None:
+                    # for now, lets allow keyerrors
+                    weight = weights[model.original_name]
+                    # weight = weights.get(model.original_name, 1.0)
+                else:
+                    # If no weights provided, use equal weighting
+                    weight = 1.0
+                
+                # Accumulate the weighted probabilities
+                prob_sum += weight * probs
+                total_weight += weight
+            
+            # Normalize the accumulated probabilities
+            probs_avg = prob_sum / total_weight
+            # Determine the ensemble predictions
             preds = torch.argmax(probs_avg, dim=1)
+            # Collect labels and predictions
             all_labels.extend(labels.cpu().numpy())
             all_preds.extend(preds.cpu().numpy())
+    
     return all_labels, all_preds, single_predictions
 
 def accumulative_prediction(pred_values):

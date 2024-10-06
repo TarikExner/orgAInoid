@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import WeightedRandomSampler
 from sklearn.metrics import accuracy_score, f1_score
 import os
 import gc
