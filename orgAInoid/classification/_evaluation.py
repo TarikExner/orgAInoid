@@ -165,12 +165,13 @@ def instantiate_model(model_name,
                       val_exp: str,
                       readout: Literal["RPE_Final", "RPE_classes", "Lens_Final", "Lens_classes"],
                       val_loader: DataLoader):
+    num_classes = 4 if "classes" in readout else 2
     if model_name == "DenseNet121":
-        model = DenseNet121()
+        model = DenseNet121(num_classes = num_classes)
     elif model_name == "ResNet50":
-        model = ResNet50()
+        model = ResNet50(num_classes = num_classes)
     elif model_name == "MobileNetV3_Large":
-        model = MobileNetV3_Large()
+        model = MobileNetV3_Large(num_classes = num_classes)
     else:
         raise ValueError("Unknown Model.")
     model = _instantiate_model(model = model,
@@ -310,10 +311,8 @@ def generate_ensemble(val_experiments: list[str],
                       model_names: list[str],
                       readout: Literal["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]):
     if os.path.isfile(output_file):
-
         with open(output_file, "rb") as file:
             models = pickle.load(file)
-
         return models
 
     else:
