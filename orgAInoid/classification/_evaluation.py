@@ -480,8 +480,11 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
 
     y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
                                    readout = readout)
-
-    val_df["truth"] = np.argmax(y_val, axis = 1)
+    
+    truth_values = pd.DataFrame(data = np.argmax(y_val, axis = 1),
+                                columns = ["truth"])
+    val_df = pd.concat([val_df, truth_values], axis = 1)
+    # val_df["truth"] = np.argmax(y_val, axis = 1)
 
     return X_train, y_train, val_df, data_columns
 
@@ -503,7 +506,10 @@ def classifier_evaluation(train_experiments,
         raise NotImplementedError("Classifier not implemented")
 
     clf.fit(X_train, y_train)
-    val_df["pred"] = np.argmax(clf.predict(val_df[data_columns]), axis = 1)
+    pred_values = pd.DataFrame(data = np.argmax(clf.predict(val_df[data_columns]), axis = 1),
+                               columns = ["pred"])
+    val_df = pd.concat([val_df, pred_values])
+    # val_df["pred"] = np.argmax(clf.predict(val_df[data_columns]), axis = 1)
 
     val_df = val_df.sort_values(["experiment", "well", "loop", "slice"], ascending = [True, True, True, True])
 
