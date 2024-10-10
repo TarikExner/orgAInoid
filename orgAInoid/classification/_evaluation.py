@@ -409,7 +409,9 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     df = pd.concat([df, pred_values], axis = 1)
     # df["pred"] = ensemble_pred
 
-    conf_matrix = confusion_matrix(df["truth"].to_numpy(), df["pred"].to_numpy())
+    conf_matrix = confusion_matrix(df["truth"].to_numpy(),
+                                   df["pred"].to_numpy(),
+                                   labels = np.sort(df["pred"].unique().tolist()))
     ensemble_f1 = calculate_f1_scores(df)
     ensemble_f1 = ensemble_f1.rename(columns = {"F1": "Ensemble"}).set_index("loop")
     f1_dfs.append(ensemble_f1)
@@ -524,7 +526,7 @@ def classifier_evaluation(train_experiments,
 
     val_df = val_df.sort_values(["experiment", "well", "loop", "slice"], ascending = [True, True, True, True])
 
-    return calculate_f1_scores(val_df), confusion_matrix(val_df["truth"].to_numpy(), val_df["pred"].to_numpy())
+    return calculate_f1_scores(val_df), confusion_matrix(val_df["truth"].to_numpy(), val_df["pred"].to_numpy(), labels = np.sort(val_df["pred"].unique().tolist()))
 
 
 
