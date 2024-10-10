@@ -429,14 +429,16 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
         'Lens_Norin', 'Lens_Cassian', 'Confidence_score_lens', 'Lens_area',
         'Lens_classes', 'label'
     ]
-
+    
+    frame = None
     for i, exp in enumerate(train_experiments):
         data = pd.read_csv(f"../../shape_analysis/results/{exp}_morphometrics.csv")
         if i == 0:
             frame = data
         else:
             frame = pd.concat([frame, data], axis = 0)
-          
+    assert frame is not None
+    
     # we remove columns and rows that only contain NA
     frame = frame.dropna(how = "all", axis = 1)
 
@@ -455,36 +457,27 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
     scaler = StandardScaler()
 
     non_val_df = df[df["experiment"] != val_experiment_id].copy()
+    val_df = df[df["experiment"] == val_experiment_id].copy()
+
     assert isinstance(non_val_df, pd.DataFrame)
+    assert isinstance(val_df, pd.DataFrame)
 
     scaler.fit(non_val_df[data_columns])
 
-    val_df = df[df["experiment"] == val_experiment_id].copy()
-    assert isinstance(val_df, pd.DataFrame)
-    train_df, test_df = _apply_train_test_split(non_val_df)
-
-    train_df[data_columns] = scaler.transform(train_df[data_columns])
-    test_df[data_columns] = scaler.transform(test_df[data_columns])
+    non_val_df[data_columns] = scaler.transform(non_val_df[data_columns])
     val_df[data_columns] = scaler.transform(val_df[data_columns])
 
     # naive bayes methods do not allow negative values
-    train_test_df = pd.concat([train_df, test_df], axis = 0)
     second_scaler = MinMaxScaler()
-    second_scaler.fit(train_test_df[data_columns])
+    second_scaler.fit(non_val_df[data_columns])
 
-    train_df[data_columns] = second_scaler.transform(train_df[data_columns])
-    test_df[data_columns] = second_scaler.transform(test_df[data_columns])
+    non_val_df[data_columns] = second_scaler.transform(non_val_df[data_columns])
     val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
-    X_train = train_df[data_columns]
-    y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
+    X_train = non_val_df[data_columns]
+    y_train = _one_hot_encode_labels(non_val_df[readout].to_numpy(),
                                      readout = readout)
 
-    X_test = test_df[data_columns]
-    y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
-                                    readout = readout)
-
-    X_val = val_df[data_columns]
     y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
                                    readout = readout)
 
@@ -514,7 +507,7 @@ def classifier_evaluation(train_experiments,
 
     val_df = val_df.sort_values(["experiment", "well", "loop", "slice"], ascending = [True, True, True, True])
 
-    return calculate_f1_scores(val_df)
+    return calculate_f1_scores(val_df), confusion_matrix(val_df["truth"].to_numpy(), val_df["pred"].to_numpy())
 
 
 
