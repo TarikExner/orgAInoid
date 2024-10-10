@@ -482,8 +482,10 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
                                    readout = readout)
     
     truth_values = pd.DataFrame(data = np.argmax(y_val, axis = 1),
-                                columns = ["truth"])
+                                columns = ["truth"],
+                                index = val_df.index)
     assert truth_values.shape[0] == val_df.shape[0]
+    print(truth_values.shape, val_df.shape)
     val_df = pd.concat([val_df, truth_values], axis = 1)
     # val_df["truth"] = np.argmax(y_val, axis = 1)
 
