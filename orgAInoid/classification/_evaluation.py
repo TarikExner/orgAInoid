@@ -5,7 +5,7 @@ import pandas as pd
 
 from tqdm import tqdm
 
-from ._dataset import OrganoidDataset
+from ._dataset import OrganoidDataset, OrganoidTrainingDataset
 from ._utils import create_dataloader, _apply_train_test_split, _one_hot_encode_labels
 
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -182,7 +182,7 @@ def instantiate_model(model_name,
     model.set_temperature(val_loader)
     return model
 
-def _read_dataset(dataset_id):
+def _read_dataset(dataset_id) -> Union[OrganoidDataset, OrganoidTrainingDataset]:
     return OrganoidDataset.read_classification_dataset(f"../raw_data/{dataset_id}")
 
 def _create_dataloader(dataset, readout):
@@ -329,7 +329,8 @@ def generate_ensemble(val_experiments: list[str],
 
             for model_name in model_names:
                 print(f"\t{model_name}")
-                if eval_set == "both":
+                # if eval_set == "both":
+                if True:
                     models.append(instantiate_model(model_name,
                                                     eval_set = "val",
                                                     val_exp = experiment,
@@ -361,12 +362,20 @@ def neural_net_evaluation(cross_val_experiments: list[str],
                           eval_set: Literal["val", "test", "both"],
                           weights: Optional[dict] = None
                           ):
+
     if not isinstance(cross_val_experiments, list):
         cross_val_experiments = [cross_val_experiments]
 
-    validation_dataset_id = f"{val_experiment_id}_full_SL3_fixed.cds"
-    val_dataset = _read_dataset(validation_dataset_id)
-    val_loader = _create_dataloader(val_dataset, readout)
+    if eval_set != "test":
+        validation_dataset_id = f"{val_experiment_id}_full_SL3_fixed.cds"
+        val_dataset = _read_dataset(validation_dataset_id)
+        val_loader = _create_dataloader(val_dataset, readout)
+    else:
+        validation_dataset_id = f"M{val_experiment_id}_full_SL3_fixed.cds"
+        val_dataset = OrganoidDataset.read_classification_dataset(validation_dataset_id)
+        val_dataset = OrganoidTrainingDataset(val_dataset, readout = readout)
+        _, X_test, _, y_test = val_dataset.arrays
+        val_loader = create_dataloader(X_test, y_test, batch_size = 128, shuffle = False, train = False)
 
     models = generate_ensemble(
         val_experiments = cross_val_experiments,
