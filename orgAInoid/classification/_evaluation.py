@@ -393,13 +393,21 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     df = val_dataset.metadata.loc[val_dataset.metadata["IMAGE_ARRAY_INDEX"] != -1, :]
     if eval_set == "test":
         df = df[df["set"] == "test"]
-
-    df["truth"] = np.array([np.argmax(el) for el in truth_arr])
+    
+    truth_values = pd.DataFrame(data = np.array([np.argmax(el) for el in truth_arr]),
+                                columns = ["truth"],
+                                index = df.index)
+    df = pd.concat([df, truth_values], axis = 1)
+    # df["truth"] = np.array([np.argmax(el) for el in truth_arr])
 
     f1_dfs = []
 
     # ensemble F1
-    df["pred"] = ensemble_pred
+    pred_values = pd.DataFrame(data = ensemble_pred,
+                                columns = ["truth"],
+                                index = df.index)
+    df = pd.concat([df, pred_values], axis = 1)
+    # df["pred"] = ensemble_pred
 
     conf_matrix = confusion_matrix(df["truth"].to_numpy(), df["pred"].to_numpy())
     ensemble_f1 = calculate_f1_scores(df)
@@ -407,7 +415,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     f1_dfs.append(ensemble_f1)
 
     for model in single_predictions:
-        df["pred"] = single_predictions[model]
+        df.loc[:, "pred"] = single_predictions[model]
         f1 = calculate_f1_scores(df)
         f1 = f1.rename(columns = {"F1": model}).set_index("loop")
         f1_dfs.append(f1)
