@@ -404,7 +404,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
 
     # ensemble F1
     pred_values = pd.DataFrame(data = ensemble_pred,
-                                columns = ["truth"],
+                                columns = ["pred"],
                                 index = df.index)
     df = pd.concat([df, pred_values], axis = 1)
     # df["pred"] = ensemble_pred
