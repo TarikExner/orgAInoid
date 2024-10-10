@@ -17,7 +17,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import NearestCentroid
 
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 import torch
 from torch import nn, optim
