@@ -511,7 +511,7 @@ def classifier_evaluation(train_experiments,
     pred_values = pd.DataFrame(data = np.argmax(clf.predict(val_df[data_columns]), axis = 1),
                                columns = ["pred"],
                                index = val_df.index)
-    val_df = pd.concat([val_df, pred_values])
+    val_df = pd.concat([val_df, pred_values], axis = 1)
     # val_df["pred"] = np.argmax(clf.predict(val_df[data_columns]), axis = 1)
 
     val_df = val_df.sort_values(["experiment", "well", "loop", "slice"], ascending = [True, True, True, True])
