@@ -104,14 +104,16 @@ class OrganoidDataset:
         self._metadata = self._preprocess_file_frame(file_frame)         
 
         self.create_full_dataset(self._metadata)
+        
+        assert self.X.shape[0] == self.metadata.shape[0]
+        for readout in self.y:
+            assert self.y[readout].shape[0] == self.metadata.shape[0]
 
         self._create_class_counts()
 
     def _create_class_counts(self):
         class_balances = {}
         for readout in self.dataset_metadata.readouts:
-            _, class_counts = np.unique(self.y[readout], axis = 0, return_counts = True)
-
             n_uniques = self.metadata.groupby(readout).nunique()["image_path"]
             class_balances[readout] = {
                 n_uniques.index[i]: round(n_uniques.iloc[i] / n_uniques.sum(), 2)
@@ -171,6 +173,7 @@ class OrganoidDataset:
     def create_full_dataset(self,
                             file_frame: pd.DataFrame) -> None:
         self.X, self.y = self._prepare_classification_data(df = file_frame)
+        self._metadata = self.metadata[self.metadata["IMAGE_ARRAY_INDEX"] != -1]
         self.n_images = self.X.shape
 
     def _prepare_classification_data(self,
@@ -581,6 +584,9 @@ class OrganoidDatasetSplitter:
 
         train_idxs = train_df["IMAGE_ARRAY_INDEX"].unique()
         test_idxs = test_df["IMAGE_ARRAY_INDEX"].unique()
+
+        assert -1 not in train_idxs
+        assert -1 not in test_idxs
 
         assert isinstance(train_idxs, np.ndarray)
         assert isinstance(test_idxs, np.ndarray)
