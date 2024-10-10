@@ -391,7 +391,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
         
 
     df = val_dataset.metadata.loc[val_dataset.metadata["IMAGE_ARRAY_INDEX"] != -1, :]
-    if eval_set != "test":
+    if eval_set == "test":
         df = df[df["set"] == "test"]
 
     df["truth"] = np.array([np.argmax(el) for el in truth_arr])
