@@ -10,7 +10,7 @@ from ._utils import create_dataloader, _apply_train_test_split, _one_hot_encode_
 
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix
 from sklearn.preprocessing import OneHotEncoder
 
 from sklearn.multioutput import MultiOutputClassifier
@@ -400,6 +400,8 @@ def neural_net_evaluation(cross_val_experiments: list[str],
 
     # ensemble F1
     df["pred"] = ensemble_pred
+
+    conf_matrix = confusion_matrix(df["truth"].to_numpy(), df["pred"].to_numpy())
     ensemble_f1 = calculate_f1_scores(df)
     ensemble_f1 = ensemble_f1.rename(columns = {"F1": "Ensemble"}).set_index("loop")
     f1_dfs.append(ensemble_f1)
@@ -415,7 +417,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
                                                      value_name = "F1",
                                                      var_name = "Neural Net")
 
-    return neural_net_f1
+    return neural_net_f1, conf_matrix
 
 def _assemble_morphometrics_dataframe(train_experiments: list[str],
                                       val_experiment_id: str,
