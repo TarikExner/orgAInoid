@@ -454,7 +454,6 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
     data_columns = [col for col in frame.columns if col not in metadata_columns]
 
     df = frame
-    scaler = StandardScaler()
 
     non_val_df = df[df["experiment"] != val_experiment_id].copy()
     val_df = df[df["experiment"] == val_experiment_id].copy()
@@ -462,19 +461,20 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
     assert isinstance(non_val_df, pd.DataFrame)
     assert isinstance(val_df, pd.DataFrame)
 
+    scaler = StandardScaler()
     scaler.fit(non_val_df[data_columns])
-
-    non_val_df[data_columns] = scaler.transform(non_val_df[data_columns])
-    val_df[data_columns] = scaler.transform(val_df[data_columns])
 
     # naive bayes methods do not allow negative values
     second_scaler = MinMaxScaler()
     second_scaler.fit(non_val_df[data_columns])
 
+    non_val_df[data_columns] = scaler.transform(non_val_df[data_columns])
+    val_df[data_columns] = scaler.transform(val_df[data_columns])
+
     non_val_df[data_columns] = second_scaler.transform(non_val_df[data_columns])
     val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
-    X_train = non_val_df[data_columns]
+    X_train = non_val_df[data_columns].copy()
     y_train = _one_hot_encode_labels(non_val_df[readout].to_numpy(),
                                      readout = readout)
 
