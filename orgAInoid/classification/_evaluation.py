@@ -483,8 +483,12 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
     
     truth_values = pd.DataFrame(data = np.argmax(y_val, axis = 1),
                                 columns = ["truth"])
+    assert truth_values.shape[0] == val_df.shape[0]
     val_df = pd.concat([val_df, truth_values], axis = 1)
     # val_df["truth"] = np.argmax(y_val, axis = 1)
+
+    if any(val_df.isna()):
+        print("found NA")
 
     return X_train, y_train, val_df, data_columns
 
