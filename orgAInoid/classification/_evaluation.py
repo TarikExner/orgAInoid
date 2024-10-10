@@ -371,7 +371,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
         val_dataset = _read_dataset(validation_dataset_id)
         val_loader = _create_dataloader(val_dataset, readout)
     else:
-        validation_dataset_id = f"M{val_experiment_id}_full_SL3_fixed.cds"
+        validation_dataset_id = f"../raw_data/M{val_experiment_id}_full_SL3_fixed.cds"
         val_dataset = OrganoidDataset.read_classification_dataset(validation_dataset_id)
         val_dataset = OrganoidTrainingDataset(val_dataset, readout = readout)
         _, X_test, _, y_test = val_dataset.arrays
