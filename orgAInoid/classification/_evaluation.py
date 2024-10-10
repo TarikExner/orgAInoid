@@ -362,7 +362,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
                           eval_set: Literal["val", "test", "both"],
                           weights: Optional[dict] = None
                           ):
-
+    labels = [0,1] if readout in ["RPE_Final", "Lens_Final"] else [0,1,2,3]
     if not isinstance(cross_val_experiments, list):
         cross_val_experiments = [cross_val_experiments]
 
@@ -411,7 +411,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
 
     conf_matrix = confusion_matrix(df["truth"].to_numpy(),
                                    df["pred"].to_numpy(),
-                                   labels = np.sort(df["pred"].unique().tolist()))
+                                   labels = labels)
     ensemble_f1 = calculate_f1_scores(df)
     ensemble_f1 = ensemble_f1.rename(columns = {"F1": "Ensemble"}).set_index("loop")
     f1_dfs.append(ensemble_f1)
@@ -505,6 +505,7 @@ def classifier_evaluation(train_experiments,
                           val_experiment_id,
                           readout,
                           classifier: str):
+    labels = [0,1] if readout in ["RPE_Final", "Lens_Final"] else [0,1,2,3]
     X_train, y_train, val_df, data_columns = _assemble_morphometrics_dataframe(train_experiments,
                                                                                val_experiment_id,
                                                                                readout)
@@ -526,7 +527,7 @@ def classifier_evaluation(train_experiments,
 
     val_df = val_df.sort_values(["experiment", "well", "loop", "slice"], ascending = [True, True, True, True])
 
-    return calculate_f1_scores(val_df), confusion_matrix(val_df["truth"].to_numpy(), val_df["pred"].to_numpy(), labels = np.sort(val_df["pred"].unique().tolist()))
+    return calculate_f1_scores(val_df), confusion_matrix(val_df["truth"].to_numpy(), val_df["pred"].to_numpy(), labels = labels)
 
 
 
