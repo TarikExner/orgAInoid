@@ -498,7 +498,8 @@ def run_experiment_cross_validation(model: str,
                                     model_output_dir = "./classifiers",
                                     dataset_input_dir = "./raw_data",
                                     calculate_learning_rate: bool = True,
-                                    num_classes: int = 2) -> None:
+                                    num_classes: int = 2,
+                                    weighted_loss: bool = True) -> None:
 
     experiments = [
         "E001",
@@ -534,7 +535,8 @@ def run_experiment_cross_validation(model: str,
                                      output_dir = output_dir,
                                      model_output_dir = model_output_dir,
                                      dataset_input_dir = dataset_input_dir,
-                                     calculate_learning_rate = calculate_learning_rate)
+                                     calculate_learning_rate = calculate_learning_rate,
+                                     weighted_loss = weighted_loss)
 
         gc.collect()
                                      
