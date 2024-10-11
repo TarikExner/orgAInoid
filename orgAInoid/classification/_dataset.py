@@ -105,7 +105,7 @@ class OrganoidDataset:
 
         self.create_full_dataset(self._metadata)
         
-        assert self.X.shape[0] == self.metadata.shape[0]
+        assert self.X.shape[0] == self.metadata.shape[0] * self.dataset_metadata.n_slices
         for readout in self.y:
             assert self.y[readout].shape[0] == self.metadata.shape[0]
 

@@ -553,7 +553,8 @@ def _cross_validation_train_loop(model,
                                  output_dir = "./results",
                                  model_output_dir = "./classifiers",
                                  dataset_input_dir = "./raw_data",
-                                 calculate_learning_rate: bool = True) -> None:
+                                 calculate_learning_rate: bool = True,
+                                 weighted_loss: bool = True) -> None:
     """\
     Trains model on full dataset in order to find a good baseline model.
 
@@ -648,9 +649,13 @@ def _cross_validation_train_loop(model,
 
     # Initialize the model, criterion, and optimizer
     model = model.to(device)
+    
+    if weighted_loss is True:
+        class_weights = 1 / (y_train.sum(axis=0) / y_train.shape[0])
+        class_weights = torch.tensor(class_weights).float().to(device)
+    else:
+        class_weights = None
 
-    class_weights = 1 / (y_train.sum(axis=0) / y_train.shape[0])
-    class_weights = torch.tensor(class_weights).float().to(device)
     criterion = nn.CrossEntropyLoss(weight = class_weights)
     
     if calculate_learning_rate is True:
@@ -820,7 +825,16 @@ def _cross_validation_train_loop(model,
                 )
             )
             print(f'Saved best model with test F1: {best_val_f1:.4f}')
-        
+
+        torch.save(
+            model.state_dict(), 
+            os.path.join(
+                model_output_dir,
+                f'{model.__class__.__name__}_epoch_{epoch+1}_{val_exp}_{readout}.pth'
+            )
+        )
+        print(f'Saved best model with test F1: {best_val_f1:.4f}')
+    
         # Write metrics to CSV file
         with open(output_file, "a") as file:
             file.write(
