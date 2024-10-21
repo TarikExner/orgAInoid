@@ -12,6 +12,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from sklearn.metrics import f1_score, confusion_matrix
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import train_test_split
 
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.naive_bayes import GaussianNB
@@ -429,9 +430,34 @@ def neural_net_evaluation(cross_val_experiments: list[str],
 
     return neural_net_f1, conf_matrix
 
+def _get_unique_experiment_well_combo(df: pd.DataFrame,
+                                      col1: str,
+                                      col2: str):
+    return df[[col1, col2]].drop_duplicates().reset_index(drop=True).to_numpy()
+
+def _filter_wells(df: pd.DataFrame,
+                  combinations: np.ndarray,
+                  columns: list[str]):
+    combinations_df = pd.DataFrame(combinations, columns=columns)
+    return df.merge(combinations_df, on=columns, how='inner')
+
+def _calculate_train_test_split(df):
+    unique_well_per_experiment = _get_unique_experiment_well_combo(df, "experiment", "well")
+    train_wells, test_wells = train_test_split(
+        unique_well_per_experiment,
+        test_size = 0.1,
+        random_state = 187
+    )
+    assert isinstance(train_wells, np.ndarray)
+    assert isinstance(test_wells, np.ndarray)
+    train_df = _filter_wells(df, train_wells, ["experiment", "well"])
+    test_df = _filter_wells(df, test_wells, ["experiment", "well"])
+    return train_df, test_df
+
 def _assemble_morphometrics_dataframe(train_experiments: list[str],
                                       val_experiment_id: str,
-                                      readout: str):
+                                      readout: str,
+                                      eval_set: Literal["test", "val"]):
     metadata_columns = [
         'experiment', 'well', 'file_name', 'position', 'slice', 'loop',
         'Condition', 'RPE_Final', 'RPE_Norin', 'RPE_Cassian',
@@ -484,31 +510,68 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
     non_val_df[data_columns] = second_scaler.transform(non_val_df[data_columns])
     val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
-    X_train = non_val_df[data_columns].copy()
-    y_train = _one_hot_encode_labels(non_val_df[readout].to_numpy(),
-                                     readout = readout)
+    if eval_set == "val":
+        X_train = non_val_df.copy()
+        y_train = _one_hot_encode_labels(non_val_df[readout].to_numpy(),
+                                         readout = readout)
+        train_truth = pd.DataFrame(data = np.argmax(y_train, axis = 1),
+                                   columns = ["truth"],
+                                   index = X_train.index)
+        X_train = pd.concat([X_train, train_truth], axis = 1)
 
-    y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
-                                   readout = readout)
-    
-    truth_values = pd.DataFrame(data = np.argmax(y_val, axis = 1),
-                                columns = ["truth"],
-                                index = val_df.index)
-    assert truth_values.shape[0] == val_df.shape[0]
-    val_df = pd.concat([val_df, truth_values], axis = 1)
+        X_test = pd.DataFrame()
+        y_test = np.array([])
+        
+        X_val = val_df.copy()
+        y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
+                                       readout = readout)
+        val_truth = pd.DataFrame(data = np.argmax(y_val, axis = 1),
+                                    columns = ["truth"],
+                                    index = val_df.index)
+        X_val = pd.concat([X_val, val_truth], axis = 1)
+    else:
+        train_df, test_df = _calculate_train_test_split(non_val_df)
+
+        X_train = train_df
+        y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
+                                         readout = readout)
+        train_truth = pd.DataFrame(data = np.argmax(y_train, axis = 1),
+                                   columns = ["truth"],
+                                   index = train_df.index)
+        X_train = pd.concat([X_train, train_truth], axis = 1)
+
+        X_test = test_df
+        y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
+                                         readout = readout)
+        test_truth = pd.DataFrame(data = np.argmax(y_test, axis = 1),
+                                   columns = ["truth"],
+                                   index = test_df.index)
+        X_test = pd.concat([X_test, test_truth], axis = 1)
+
+        X_val = val_df.copy()
+        y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
+                                       readout = readout)
+        val_truth = pd.DataFrame(data = np.argmax(y_val, axis = 1),
+                                    columns = ["truth"],
+                                    index = val_df.index)
+        assert val_truth.shape[0] == val_df.shape[0]
+        val_df = pd.concat([val_df, val_truth], axis = 1)
+
     # val_df["truth"] = np.argmax(y_val, axis = 1)
 
-    return X_train, y_train, val_df, data_columns
+    return X_train, y_train, X_test, y_test, X_val, y_val, data_columns
 
 
 def classifier_evaluation(train_experiments,
                           val_experiment_id,
                           readout,
-                          classifier: str):
+                          classifier: str,
+                          eval_set: Literal["test", "val"]):
     labels = [0,1] if readout in ["RPE_Final", "Lens_Final"] else [0,1,2,3]
-    X_train, y_train, val_df, data_columns = _assemble_morphometrics_dataframe(train_experiments,
-                                                                               val_experiment_id,
-                                                                               readout)
+    X_train, y_train, X_test, y_test, X_val, y_val, data_columns = _assemble_morphometrics_dataframe(train_experiments,
+                                                                                                     val_experiment_id,
+                                                                                                     readout,
+                                                                                                     eval_set)
     with open(f"../../shape_analysis/results/best_params/best_params_{classifier}_{readout}.dict", "rb") as file:
         best_params_ = pickle.load(file)
     if classifier == "NearestCentroid":
@@ -518,16 +581,21 @@ def classifier_evaluation(train_experiments,
     else:
         raise NotImplementedError("Classifier not implemented")
 
-    clf.fit(X_train, y_train)
-    pred_values = pd.DataFrame(data = np.argmax(clf.predict(val_df[data_columns]), axis = 1),
-                               columns = ["pred"],
-                               index = val_df.index)
-    val_df = pd.concat([val_df, pred_values], axis = 1)
-    # val_df["pred"] = np.argmax(clf.predict(val_df[data_columns]), axis = 1)
+    clf.fit(X_train[data_columns].to_numpy(), y_train)
+    if eval_set == "val":
+        pred_values = pd.DataFrame(data = np.argmax(clf.predict(X_val[data_columns]), axis = 1),
+                                   columns = ["pred"],
+                                   index = X_val.index)
+        result = pd.concat([X_val, pred_values], axis = 1)
+    else:
+        pred_values = pd.DataFrame(data = np.argmax(clf.predict(X_test[data_columns]), axis = 1),
+                                   columns = ["pred"],
+                                   index = X_test.index)
+        result = pd.concat([X_test, pred_values], axis = 1)
 
-    val_df = val_df.sort_values(["experiment", "well", "loop", "slice"], ascending = [True, True, True, True])
+    result = result.sort_values(["experiment", "well", "loop", "slice"], ascending = [True, True, True, True])
 
-    return calculate_f1_scores(val_df), confusion_matrix(val_df["truth"].to_numpy(), val_df["pred"].to_numpy(), labels = labels)
+    return calculate_f1_scores(result), confusion_matrix(result["truth"].to_numpy(), result["pred"].to_numpy(), labels = labels)
 
 
 
