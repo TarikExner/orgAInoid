@@ -578,7 +578,7 @@ def classifier_evaluation(train_experiments,
     else:
         raise NotImplementedError("Classifier not implemented")
 
-    clf.fit(X_train[data_columns].to_numpy(), y_train)
+    clf.fit(X_train[data_columns], y_train)
     if eval_set == "val":
         pred_values = pd.DataFrame(data = np.argmax(clf.predict(X_val[data_columns]), axis = 1),
                                    columns = ["pred"],
