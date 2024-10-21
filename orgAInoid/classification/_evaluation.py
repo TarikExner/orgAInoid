@@ -512,7 +512,7 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
 
     if eval_set == "val":
         X_train = non_val_df.copy()
-        y_train = _one_hot_encode_labels(non_val_df[readout].to_numpy(),
+        y_train = _one_hot_encode_labels(X_train[readout].to_numpy(),
                                          readout = readout)
         train_truth = pd.DataFrame(data = np.argmax(y_train, axis = 1),
                                    columns = ["truth"],
@@ -523,7 +523,7 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
         y_test = np.array([])
         
         X_val = val_df.copy()
-        y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
+        y_val = _one_hot_encode_labels(X_val[readout].to_numpy(),
                                        readout = readout)
         val_truth = pd.DataFrame(data = np.argmax(y_val, axis = 1),
                                     columns = ["truth"],
@@ -533,31 +533,28 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
         train_df, test_df = _calculate_train_test_split(non_val_df)
 
         X_train = train_df
-        y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
+        y_train = _one_hot_encode_labels(X_train[readout].to_numpy(),
                                          readout = readout)
         train_truth = pd.DataFrame(data = np.argmax(y_train, axis = 1),
                                    columns = ["truth"],
-                                   index = train_df.index)
+                                   index = X_train.index)
         X_train = pd.concat([X_train, train_truth], axis = 1)
 
         X_test = test_df
-        y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
+        y_test = _one_hot_encode_labels(X_test[readout].to_numpy(),
                                          readout = readout)
         test_truth = pd.DataFrame(data = np.argmax(y_test, axis = 1),
-                                   columns = ["truth"],
-                                   index = test_df.index)
+                                  columns = ["truth"],
+                                  index = X_test.index)
         X_test = pd.concat([X_test, test_truth], axis = 1)
 
         X_val = val_df.copy()
-        y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
+        y_val = _one_hot_encode_labels(X_val[readout].to_numpy(),
                                        readout = readout)
         val_truth = pd.DataFrame(data = np.argmax(y_val, axis = 1),
-                                    columns = ["truth"],
-                                    index = val_df.index)
-        assert val_truth.shape[0] == val_df.shape[0]
+                                 columns = ["truth"],
+                                 index = X_val.index)
         val_df = pd.concat([val_df, val_truth], axis = 1)
-
-    # val_df["truth"] = np.argmax(y_val, axis = 1)
 
     return X_train, y_train, X_test, y_test, X_val, y_val, data_columns
 
