@@ -474,12 +474,12 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
     scaler = StandardScaler()
     scaler.fit(non_val_df[data_columns])
 
+    non_val_df[data_columns] = scaler.transform(non_val_df[data_columns])
+    val_df[data_columns] = scaler.transform(val_df[data_columns])
+
     # naive bayes methods do not allow negative values
     second_scaler = MinMaxScaler()
     second_scaler.fit(non_val_df[data_columns])
-
-    non_val_df[data_columns] = scaler.transform(non_val_df[data_columns])
-    val_df[data_columns] = scaler.transform(val_df[data_columns])
 
     non_val_df[data_columns] = second_scaler.transform(non_val_df[data_columns])
     val_df[data_columns] = second_scaler.transform(val_df[data_columns])
