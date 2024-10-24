@@ -295,10 +295,21 @@ def train_transformations(image_size: int = 224) -> A.Compose:
             shift_limit=0.0625,
             scale_limit=0.2,
             rotate_limit=0,  # Set rotate limit to 0 if using Rotate separately
+            mask_value = 1e-6,
             p=0.5
         ),  # Shift and scale
-        A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1), p=0.5),  # Resized crop
-        A.GridDistortion(num_steps=5, distort_limit=0.3, p=0.5),
+        A.RandomResizedCrop(
+            height=image_size,
+            width=image_size,
+            scale=(0.8, 1),
+            p=0.5
+        ),  # Resized crop
+        A.GridDistortion(
+            num_steps=5,
+            distort_limit=0.3,
+            mask_value = 1e-6,
+            p=0.5
+        ),
         A.Affine(
             scale=1,
             translate_percent=(-0.3, 0.3),
