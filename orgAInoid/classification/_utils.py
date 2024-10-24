@@ -168,6 +168,7 @@ class ClassificationDataset(Dataset):
         # Transpose image to [224, 224, 3] for Albumentations
         image_3ch = np.transpose(image_3ch, (1, 2, 0))
         zero_pixel_mask = (image_3ch == 0).astype(np.float32)
+        assert image_3ch.shape == zero_pixel_mask.shape
 
         corr_class = torch.tensor(self.classes[idx])
 
