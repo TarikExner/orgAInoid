@@ -8,11 +8,18 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         super(CustomIntensityAdjustment, self).__init__(always_apply = always_apply, p = p)
         self.adjustment = A.Compose([
             A.OneOf([
-                A.RandomBrightnessContrast(p=0.5),
-                A.RandomGamma(p=0.5),
+                A.RandomBrightnessContrast(
+                    brightness_limit = (-0.5, 0.5),
+                    contrast_limit = (-0.5, 0.5),
+                    p=1
+                ),
+                A.RandomGamma(
+                    gamma_limit = (60, 140),
+                    p=1
+                ),
                 A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5),
                 #A.GaussNoise(var_limit=(1,1), p=0.5),
-                A.AdvancedBlur(p=0.5)
+                A.AdvancedBlur(p=1)
             ], p=1.0)
         ])
 
