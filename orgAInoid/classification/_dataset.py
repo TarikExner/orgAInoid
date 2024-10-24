@@ -112,8 +112,7 @@ class OrganoidDataset:
         self._create_class_counts()
 
     def subsample(self,
-                  frac: float,
-                  copy: bool = False) -> Optional["OrganoidDataset"]:
+                  frac: float) -> Optional["OrganoidDataset"]:
         assert -1 not in self._metadata["IMAGE_ARRAY_INDEX"]
         self._metadata = self._metadata.sample(
             frac = frac, replace = False
@@ -128,7 +127,6 @@ class OrganoidDataset:
 
         return
 
-
     def _create_class_counts(self):
         class_balances = {}
         for readout in self.dataset_metadata.readouts:
@@ -140,8 +138,6 @@ class OrganoidDataset:
 
         self.dataset_metadata.class_balance = class_balances
         return
-    
-
 
     def _get_loop_names(self,
                         start_timepoint: int,

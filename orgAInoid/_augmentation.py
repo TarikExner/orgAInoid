@@ -30,11 +30,11 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         
         img = np.where(non_zero_mask, img_augmented, img)
         
-        img_min = img.min()
-        img_max = img.max()
+        # img_min = img.min()
+        # img_max = img.max()
         
-        if img_max > img_min:
-            img = (img - img_min) / (img_max - img_min)
+        # if img_max > img_min:
+        #     img = (img - img_min) / (img_max - img_min)
         
         return img
 
