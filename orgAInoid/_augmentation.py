@@ -45,9 +45,8 @@ class NormalizeSegmented(DualTransform):
         self.mean = np.array(mean)
         self.std = np.array(std)
 
-    def apply(self, img, mask=None, **params):
-        if mask is None:
-            raise ValueError("Mask is required for NormalizeSegmented transformation.")
+    def apply(self, img, **params):
+        mask = params['mask']
 
         # Ensure the mask is correctly shaped to match the image dimensions
         mask = mask.astype(bool)
