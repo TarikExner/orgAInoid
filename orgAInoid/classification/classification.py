@@ -727,7 +727,7 @@ def _cross_validation_train_loop(model,
         train_preds = []
         train_loss_list = []
         
-        for data, target in train_loader:
+        for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
             target = torch.argmax(target, dim = 1)
 
