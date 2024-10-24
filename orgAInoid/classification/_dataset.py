@@ -125,6 +125,8 @@ class OrganoidDataset:
 
         self._create_class_counts()
 
+        assert self.metadata.shape[0] == self.X.shape[0]
+
         return
 
     def _create_class_counts(self):

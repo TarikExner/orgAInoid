@@ -39,6 +39,7 @@ def run_classification_train_test(model,
 
     if subsample_frac != 0 and subsample_frac != 1:
         full_dataset.subsample(subsample_frac)
+        print(full_dataset.X.shape)
 
     full_validation_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{validation_dataset_id}.cds")
