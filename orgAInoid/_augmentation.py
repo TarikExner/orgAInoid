@@ -39,19 +39,17 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         return img
 
 class NormalizeSegmented(ImageOnlyTransform):
-    def __init__(self,
-                 mean=(0.485, 0.456, 0.406),
-                 std=(0.229, 0.224, 0.225),
-                 always_apply=False,
-                 p=1.0):
+    def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), always_apply=False, p=1.0):
         super(NormalizeSegmented, self).__init__(always_apply, p)
         self.mean = np.array(mean)
         self.std = np.array(std)
-    
-    def apply(self, img, **params):
-        # Get non-zero mask (assuming image is in RGB format)
-        mask = np.any(img != 0, axis=-1)
-        non_zero_pixels = img[mask]
+
+    def apply(self, img, mask=None, **params):
+        if mask is None:
+            raise ValueError("Mask is required for NormalizeSegmented transformation.")
+
+        # Get the pixels that are not zero using the mask
+        non_zero_pixels = img[mask == 0]
 
         # Calculate mean and std only on non-zero pixels
         mean = non_zero_pixels.mean(axis=0)
@@ -59,17 +57,20 @@ class NormalizeSegmented(ImageOnlyTransform):
 
         # Normalize only non-zero pixels using the pre-defined mean and std
         img_normalized = np.copy(img).astype(np.float32)
-        img_normalized[mask] = (non_zero_pixels - mean) / std
+        img_normalized[mask == 0] = (non_zero_pixels - mean) / std
         img_normalized = img_normalized * self.std + self.mean
 
         return img_normalized
+
+    def get_transform_init_args_names(self):
+        return ("mean", "std")
 
 def val_transformations() -> A.Compose:
     return A.Compose([
         NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
         ToTensorV2()
-    ])
+    ], additional_targets={'mask': 'mask'})
 
 def to_normalized_tensor() -> A.Compose:
     return val_transformations()

@@ -167,11 +167,12 @@ class ClassificationDataset(Dataset):
 
         # Transpose image to [224, 224, 3] for Albumentations
         image_3ch = np.transpose(image_3ch, (1, 2, 0))
+        zero_pixel_mask = np.any(image_3ch == 0, axis=-1).astype(np.float32)
 
         corr_class = torch.tensor(self.classes[idx])
 
         if self.transforms is not None:
-            augmented = self.transforms(image = image_3ch)
+            augmented = self.transforms(image=image_3ch, mask=zero_pixel_mask)
             image = augmented["image"]
 
         assert isinstance(image, torch.Tensor)
@@ -323,7 +324,7 @@ def train_transformations(image_size: int = 224) -> A.Compose:
 
         # Convert to PyTorch tensor
         ToTensorV2()
-    ])
+    ], additional_targets={'mask': 'mask'})
 
 def create_dataset(img_array: np.ndarray,
                    class_array: np.ndarray,
