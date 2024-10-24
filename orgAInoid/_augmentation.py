@@ -72,6 +72,13 @@ class NormalizeSegmented(DualTransform):
     def get_transform_init_args_names(self):
         return ("mean", "std")
 
+    @property
+    def targets_as_params(self):
+        return ['mask']
+    
+    def get_params_dependent_on_targets(self, params):
+        return {'mask' : params['mask']}
+
 
 def val_transformations() -> A.Compose:
     return A.Compose([
