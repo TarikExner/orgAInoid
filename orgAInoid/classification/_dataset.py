@@ -115,7 +115,7 @@ class OrganoidDataset:
                   frac: float) -> Optional["OrganoidDataset"]:
         assert -1 not in self._metadata["IMAGE_ARRAY_INDEX"]
         self._metadata = self._metadata.sample(
-            frac = frac, replace = False
+            frac = frac, replace = False, random_state = 187
         ).sort_values("IMAGE_ARRAY_INDEX", ascending = True)
         indices = self._metadata["IMAGE_ARRAY_INDEX"].tolist()
         self.X = self.X[indices]
