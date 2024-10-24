@@ -39,7 +39,6 @@ def run_classification_train_test(model,
 
     if subsample_frac != 0 and subsample_frac != 1:
         full_dataset.subsample(subsample_frac)
-        print(full_dataset.X.shape)
 
     full_validation_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{validation_dataset_id}.cds")
@@ -621,9 +620,12 @@ def _cross_validation_train_loop(model,
     if os.path.isfile(output_file):
         results = pd.read_csv(output_file)
         results = results[results["Model"] == model.__class__.__name__].copy()
-        if val_exp in results["ValExpID"].unique():
-            print(f"Skipping {val_exp} as it is already calculated")
-            return
+        try:
+            if val_exp in results["ValExpID"].unique():
+                print(f"Skipping {val_exp} as it is already calculated")
+                return
+        except KeyError:
+            pass
 
     mode = "w" if not os.path.isfile(output_file) else "a"
     with open(output_file, mode) as file:
