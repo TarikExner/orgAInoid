@@ -122,6 +122,7 @@ class OrganoidDataset:
         self.y = {
             key: self.y[key][indices] for key in self.y.keys()
         }
+        self._metadata["IMAGE_ARRAY_INDEX"] = np.arange(self.X.shape[0])
 
         self._create_class_counts()
 

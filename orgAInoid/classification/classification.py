@@ -7,6 +7,7 @@ import gc
 import pandas as pd
 import pickle
 import time
+from tqdm import tqdm
 
 from ._utils import create_dataloader, find_ideal_learning_rate
 from ._dataset import (OrganoidDataset,
@@ -556,6 +557,7 @@ def _cross_validation_train_loop(model,
                                  experiment_id: str,
                                  dataset_id: str,
                                  validation_dataset_id: str,
+                                 subsample_frac: float = 0.0,
                                  output_dir = "./results",
                                  model_output_dir = "./classifiers",
                                  dataset_input_dir = "./raw_data",
@@ -579,6 +581,9 @@ def _cross_validation_train_loop(model,
     full_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{dataset_id}.cds")
     )
+    if subsample_frac != 0 and subsample_frac != 1:
+        full_dataset.subsample(subsample_frac)
+
     full_dataset._create_class_counts()
 
     full_validation_dataset = OrganoidDataset.read_classification_dataset(
