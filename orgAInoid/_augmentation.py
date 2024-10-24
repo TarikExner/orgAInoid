@@ -65,8 +65,8 @@ class NormalizeSegmented(DualTransform):
 
         return img_normalized
 
-    def apply_to_mask(self, mask, **params):
-        return mask
+    def apply_to_mask(self, img, **params):
+        return img
 
     def get_transform_init_args_names(self):
         return ("mean", "std")
