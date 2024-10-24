@@ -77,7 +77,7 @@ class NormalizeSegmented(DualTransform):
         # Rescale to the final mean and std
         img_normalized = img_normalized * self.std + self.mean
 
-        return img_normalized
+        return img_normalized.astype(np.float32)
 
     def apply_to_mask(self, img, **params):
         return img
