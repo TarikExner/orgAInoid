@@ -10,8 +10,8 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         self.adjustment = A.Compose([
             A.OneOf([
                 A.RandomBrightnessContrast(
-                    brightness_limit = (-0.5, 0.5),
-                    contrast_limit = (-0.5, 0.5),
+                    brightness_limit = (-0.2, 0.2),
+                    contrast_limit = (-0.2, 0.2),
                     p=1
                 ),
                 A.RandomGamma(

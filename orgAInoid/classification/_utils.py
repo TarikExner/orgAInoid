@@ -161,7 +161,7 @@ class ClassificationDataset(Dataset):
         image = self.image_arr[idx, :, :, :]
         if image.shape[0] == 1:
             # Duplicate the single channel to create a 3-channel image
-            image_3ch = np.repeat(image, 3, axis=0)  # [1, 224, 224] -> [3, 224, 224]
+            image_3ch = np.repeat(image, 3, axis=0)
         else:
             image_3ch = image
 
