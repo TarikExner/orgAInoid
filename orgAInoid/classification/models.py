@@ -27,11 +27,14 @@ from sklearn.svm import NuSVC, LinearSVC, SVC
 
 
 class ResNet50(nn.Module):
-    def __init__(self, num_classes=2, dropout=0.5, **kwargs):
+    def __init__(self, num_classes=2, dropout=0.5, pretrained: bool = True, **kwargs):
         super(ResNet50, self).__init__()
         
         # Load the pre-trained ResNet50 model
-        self.resnet50 = models.resnet50(weights=ResNet50_Weights.DEFAULT, **kwargs)
+        if pretrained:
+            self.resnet50 = models.resnet50(weights=ResNet50_Weights.DEFAULT, **kwargs)
+        else:
+            self.resnet50 = models.resnet50(weights=None, **kwargs)
         
         # Modify the final fully connected layer to match the number of output classes
         self.resnet50.fc = nn.Sequential(
@@ -91,15 +94,22 @@ class ResNet50(nn.Module):
             param.requires_grad = True
 
 class VGG16_BN(nn.Module):
-    def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
+    def __init__(self, num_classes=2, dropout = 0.5, pretrained: bool = True, **kwargs):
         super(VGG16_BN, self).__init__()
         
         # Load the pre-trained VGG16_BN model
-        self.vgg16_bn = models.vgg16_bn(
-            weights=VGG16_BN_Weights.DEFAULT,
-            dropout = dropout,
-            **kwargs
-        )
+        if pretrained:
+            self.vgg16_bn = models.vgg16_bn(
+                weights=VGG16_BN_Weights.DEFAULT,
+                dropout = dropout,
+                **kwargs
+            )
+        else:
+            self.vgg16_bn = models.vgg16_bn(
+                weights = None,
+                dropout = dropout,
+                **kwargs
+            )
         
         # Modify the classifier to match the number of output classes
         self.vgg16_bn.classifier[6] = nn.Linear(in_features=4096, out_features=num_classes)
@@ -165,12 +175,14 @@ class VGG16_BN(nn.Module):
             param.requires_grad = True
 
 class DenseNet121(nn.Module):
-    def __init__(self, num_classes=2, dropout = 0.2, **kwargs):
+    def __init__(self, num_classes=2, dropout = 0.2, pretrained: bool = True, **kwargs):
         super(DenseNet121, self).__init__()
         
         # Load the pre-trained DenseNet121 model
-        self.densenet121 = models.densenet121(weights=DenseNet121_Weights.DEFAULT, **kwargs)
-        
+        if pretrained:
+            self.densenet121 = models.densenet121(weights=DenseNet121_Weights.DEFAULT, **kwargs)
+        else:
+            self.densenet121 = models.densenet121(weights=None, **kwargs)
         # Modify the final fully connected layer to match the number of output classes
         self.densenet121.classifier = nn.Sequential(
             nn.Dropout(p=dropout),  # Add dropout layer with p=0.5
@@ -247,16 +259,23 @@ class InceptionV3(nn.Module):
         
 
 class MobileNetV3_Large(nn.Module):
-    def __init__(self, num_classes=2, dropout = 0.5, **kwargs):
+    def __init__(self, num_classes=2, dropout = 0.5, pretrained: bool = True, **kwargs):
         super(MobileNetV3_Large, self).__init__()
 
         # Load the pre-trained MobileNetV3-Large model
-        self.mobilenet_v3_large = models.mobilenet_v3_large(
-            weights=MobileNet_V3_Large_Weights.DEFAULT,
-            dropout = dropout,
-            **kwargs
-        )
-        
+        if pretrained:
+            self.mobilenet_v3_large = models.mobilenet_v3_large(
+                weights=MobileNet_V3_Large_Weights.DEFAULT,
+                dropout = dropout,
+                **kwargs
+            )
+        else:
+            self.mobilenet_v3_large = models.mobilenet_v3_large(
+                weights=None,
+                dropout = dropout,
+                **kwargs
+            )
+
         # Modify the final classifier to match the number of output classes
         self.mobilenet_v3_large.classifier[3] = nn.Linear(in_features=1280, out_features=num_classes)
         
