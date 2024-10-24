@@ -111,6 +111,24 @@ class OrganoidDataset:
 
         self._create_class_counts()
 
+    def subsample(self,
+                  frac: float,
+                  copy: bool = False) -> Optional["OrganoidDataset"]:
+        assert -1 not in self._metadata["IMAGE_ARRAY_INDEX"]
+        self._metadata = self._metadata.sample(
+            frac = frac, replace = False
+        ).sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+        indices = self._metadata["IMAGE_ARRAY_INDEX"].tolist()
+        self.X = self.X[indices]
+        self.y = {
+            key: self.y[key][indices] for key in self.y.keys()
+        }
+
+        self._create_class_counts()
+
+        return
+
+
     def _create_class_counts(self):
         class_balances = {}
         for readout in self.dataset_metadata.readouts:
@@ -122,6 +140,8 @@ class OrganoidDataset:
 
         self.dataset_metadata.class_balance = class_balances
         return
+    
+
 
     def _get_loop_names(self,
                         start_timepoint: int,
