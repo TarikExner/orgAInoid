@@ -306,6 +306,9 @@ def train_transformations(image_size: int = 224) -> A.Compose:
             shear=(-15, 15),
             p=0.5
         ),
+        # Apply intensity modifications only to non-masked pixels
+        CustomIntensityAdjustment(p=0.5),
+
         A.CoarseDropout(
             max_holes=20,
             min_holes=10,
@@ -314,13 +317,9 @@ def train_transformations(image_size: int = 224) -> A.Compose:
             p=0.5
         ),
 
-        # Apply intensity modifications only to non-masked pixels
-        CustomIntensityAdjustment(p=0.5),
-
         # Normalization
         # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
         NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-
 
         # Convert to PyTorch tensor
         ToTensorV2()
