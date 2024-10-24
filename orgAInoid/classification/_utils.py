@@ -17,7 +17,7 @@ from albumentations.pytorch import ToTensorV2
 
 from torch.utils.data import DataLoader
 
-from .._augmentation import val_transformations, CustomIntensityAdjustment
+from .._augmentation import val_transformations, CustomIntensityAdjustment, NormalizeSegmented
 
 from sklearn.experimental import enable_halving_search_cv
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, HalvingGridSearchCV, train_test_split
@@ -317,7 +317,9 @@ def train_transformations(image_size: int = 224) -> A.Compose:
         CustomIntensityAdjustment(p=0.5),
 
         # Normalization
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+        # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+        NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+
 
         # Convert to PyTorch tensor
         ToTensorV2()
