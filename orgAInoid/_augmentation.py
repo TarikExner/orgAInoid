@@ -47,6 +47,7 @@ class NormalizeSegmented(DualTransform):
 
     def apply(self, img, **params):
         mask = params['mask']
+        print(mask.shape)
 
         # Ensure the mask is correctly shaped to match the image dimensions
         mask = mask.astype(bool)
@@ -67,7 +68,6 @@ class NormalizeSegmented(DualTransform):
 
         # Identify new zero-pixels introduced by augmentations (which were not part of the original mask)
         new_zero_pixels = (img == 0) & (~mask)
-        print(new_zero_pixels.shape)
 
         # Set these newly introduced zero-pixels to the calculated fill_value
         img_normalized[new_zero_pixels] = fill_value
