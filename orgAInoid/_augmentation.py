@@ -1,6 +1,6 @@
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-from albumentations.core.transforms_interface import ImageOnlyTransform
+from albumentations.core.transforms_interface import DualTransform
 import numpy as np
 
 
@@ -38,7 +38,8 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         
         return img
 
-class NormalizeSegmented(ImageOnlyTransform):
+
+class NormalizeSegmented(DualTransform):
     def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), always_apply=False, p=1.0):
         super(NormalizeSegmented, self).__init__(always_apply, p)
         self.mean = np.array(mean)
@@ -47,6 +48,9 @@ class NormalizeSegmented(ImageOnlyTransform):
     def apply(self, img, mask=None, **params):
         if mask is None:
             raise ValueError("Mask is required for NormalizeSegmented transformation.")
+
+        # Ensure the mask is correctly shaped to match the image dimensions
+        mask = mask.astype(bool)
 
         # Get the pixels that are not zero using the mask
         non_zero_pixels = img[mask == 0]
@@ -62,8 +66,12 @@ class NormalizeSegmented(ImageOnlyTransform):
 
         return img_normalized
 
+    def apply_to_mask(self, mask, **params):
+        return mask
+
     def get_transform_init_args_names(self):
         return ("mean", "std")
+
 
 def val_transformations() -> A.Compose:
     return A.Compose([
