@@ -58,9 +58,20 @@ class NormalizeSegmented(DualTransform):
         mean = non_zero_pixels.mean(axis=0)
         std = non_zero_pixels.std(axis=0)
 
+        # Calculate fill_value using (0-mean)/std
+        fill_value = (0 - mean) / std
+
         # Normalize only non-zero pixels using the pre-defined mean and std
         img_normalized = np.copy(img).astype(np.float32)
         img_normalized[mask == 0] = (non_zero_pixels - mean) / std
+
+        # Identify new zero-pixels introduced by augmentations (which were not part of the original mask)
+        new_zero_pixels = (img == 0) & (mask != 0)
+
+        # Set these newly introduced zero-pixels to the calculated fill_value
+        img_normalized[new_zero_pixels] = fill_value
+
+        # Rescale to the final mean and std
         img_normalized = img_normalized * self.std + self.mean
 
         return img_normalized
