@@ -838,7 +838,7 @@ def _cross_validation_train_loop(model,
                     f'{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth'
                 )
             )
-            print(f'Saved best model with test F1: {best_val_f1:.4f}')
+            print(f'Saved best model with test F1: {best_test_f1:.4f}')
 
         torch.save(
             model.state_dict(), 
@@ -847,7 +847,6 @@ def _cross_validation_train_loop(model,
                 f'{model.__class__.__name__}_epoch_{epoch+1}_{val_exp}_{readout}.pth'
             )
         )
-        print(f'Saved best model with test F1: {best_val_f1:.4f}')
     
         # Write metrics to CSV file
         with open(output_file, "a") as file:

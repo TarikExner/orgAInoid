@@ -51,6 +51,9 @@ class NormalizeSegmented(DualTransform):
     def apply(self, img, **params):
         mask = params['mask']
 
+        if np.max(img) != 1.0 or np.min(img) != 0.0:
+            img = (img - np.min(img)) / (np.max(img)-np.min(img))
+
         # Ensure the mask is correctly shaped to match the image dimensions
         mask = mask.astype(bool)
 
