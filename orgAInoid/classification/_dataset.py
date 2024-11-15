@@ -101,7 +101,7 @@ class OrganoidDataset:
             slices = slices
         )
 
-        self._metadata = self._preprocess_file_frame(file_frame)         
+        self._metadata = self._preprocess_file_frame(file_frame)
 
         self.create_full_dataset(self._metadata)
         
@@ -163,7 +163,7 @@ class OrganoidDataset:
         ]
         timepoints = [
             f"LO{i}" if i >= 100 else f"LO0{i}" if i>= 10 else f"LO00{i}"
-            for i in range(self.dataset_metadata.start_timepoint, self.dataset_metadata.stop_timepoint)
+            for i in range(self.dataset_metadata.start_timepoint + 1, self.dataset_metadata.stop_timepoint + 1)
         ]
         assert isinstance(timepoints, list)
         assert len(timepoints) != 0
@@ -187,7 +187,6 @@ class OrganoidDataset:
 
         assert isinstance(preprocessed, pd.DataFrame)
         return preprocessed
-
 
     def create_full_dataset(self,
                             file_frame: pd.DataFrame) -> None:
