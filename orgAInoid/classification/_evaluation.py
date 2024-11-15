@@ -393,6 +393,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     df = val_dataset.metadata.loc[val_dataset.metadata["IMAGE_ARRAY_INDEX"] != -1, :]
     if eval_set == "test":
         df = df[df["set"] == "test"]
+    print("metadata: ", df["loop"].unique().shape)
     
     truth_values = pd.DataFrame(data = np.array([np.argmax(el) for el in truth_arr]),
                                 columns = ["truth"],
@@ -410,13 +411,13 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     # df["pred"] = ensemble_pred
     
     conf_matrix_df = df.copy()
-    print(df["loop"].unique().shape)
+    print("conf matrix df: ", df["loop"].unique().shape)
     confusion_matrices = conf_matrix_df.groupby("loop").apply(
         lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
     )
-    print(confusion_matrices.shape)
+    print("pandas conf matrix series: ", confusion_matrices.shape)
     confusion_matrices = np.array(confusion_matrices.tolist())
-    print(confusion_matrices.shape)
+    print("array: ", confusion_matrices.shape)
 
     conf_matrix = confusion_matrix(df["truth"].to_numpy(),
                                    df["pred"].to_numpy(),
