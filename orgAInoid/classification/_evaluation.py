@@ -389,7 +389,6 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     single_predictions = {
         key: np.hstack(single_predictions[key]) for key in single_predictions
     }
-        
 
     df = val_dataset.metadata.loc[val_dataset.metadata["IMAGE_ARRAY_INDEX"] != -1, :]
     if eval_set == "test":
@@ -409,8 +408,9 @@ def neural_net_evaluation(cross_val_experiments: list[str],
                                 index = df.index)
     df = pd.concat([df, pred_values], axis = 1)
     # df["pred"] = ensemble_pred
-
-    confusion_matrices = df.groupby("loop").apply(
+    
+    conf_matrix_df = df.copy()
+    confusion_matrices = conf_matrix_df.groupby("loop").apply(
         lambda group: confusion_matrix(group["truth"], group["pred"])
     )
     confusion_matrices = np.array(confusion_matrices.tolist())
@@ -606,9 +606,3 @@ def classifier_evaluation(train_experiments,
 
 
     return f1_scores, conf_matrix, confusion_matrices
-
-
-
-
-
-
