@@ -411,7 +411,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     
     conf_matrix_df = df.copy()
     confusion_matrices = conf_matrix_df.groupby("loop").apply(
-        lambda group: confusion_matrix(group["truth"], group["pred"])
+        lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
     )
     confusion_matrices = np.array(confusion_matrices.tolist())
 
@@ -600,7 +600,7 @@ def classifier_evaluation(train_experiments,
     f1_scores = calculate_f1_scores(result)
     conf_matrix = confusion_matrix(result["truth"].to_numpy(), result["pred"].to_numpy(), labels = labels)
     confusion_matrices = result.groupby("loop").apply(
-        lambda group: confusion_matrix(group["truth"], group["pred"])
+        lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
     )
     confusion_matrices = np.array(confusion_matrices.tolist())
 

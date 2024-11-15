@@ -3,7 +3,6 @@ from albumentations.pytorch import ToTensorV2
 from albumentations.core.transforms_interface import DualTransform
 import numpy as np
 
-
 class CustomIntensityAdjustment(A.ImageOnlyTransform):
     def __init__(self, always_apply=False, p=0.5):
         super(CustomIntensityAdjustment, self).__init__(always_apply = always_apply, p = p)
