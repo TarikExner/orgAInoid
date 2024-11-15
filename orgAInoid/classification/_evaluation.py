@@ -410,6 +410,10 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     df = pd.concat([df, pred_values], axis = 1)
     # df["pred"] = ensemble_pred
 
+    confusion_matrices = df.groupby("loop").apply(
+        lambda group: confusion_matrix(group["truth"], group["pred"])
+    )
+
     conf_matrix = confusion_matrix(df["truth"].to_numpy(),
                                    df["pred"].to_numpy(),
                                    labels = labels)
@@ -428,7 +432,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
                                                      value_name = "F1",
                                                      var_name = "Neural Net")
 
-    return neural_net_f1, conf_matrix
+    return neural_net_f1, conf_matrix, confusion_matrices
 
 def _get_unique_experiment_well_combo(df: pd.DataFrame,
                                       col1: str,
@@ -592,7 +596,14 @@ def classifier_evaluation(train_experiments,
 
     result = result.sort_values(["experiment", "well", "loop", "slice"], ascending = [True, True, True, True])
 
-    return calculate_f1_scores(result), confusion_matrix(result["truth"].to_numpy(), result["pred"].to_numpy(), labels = labels)
+    f1_scores = calculate_f1_scores(result)
+    conf_matrix = confusion_matrix(result["truth"].to_numpy(), result["pred"].to_numpy(), labels = labels)
+    confusion_matrices = result.groupby("loop").apply(
+        lambda group: confusion_matrix(group["truth"], group["pred"])
+    )
+
+
+    return f1_scores, conf_matrix, confusion_matrices
 
 
 
