@@ -410,6 +410,7 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     # df["pred"] = ensemble_pred
     
     conf_matrix_df = df.copy()
+    print(df["loop"].unique().shape)
     confusion_matrices = conf_matrix_df.groupby("loop").apply(
         lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
     )
