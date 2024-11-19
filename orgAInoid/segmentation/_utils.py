@@ -14,8 +14,13 @@ from sklearn.model_selection import train_test_split
 from typing import Optional, Literal, Union
 
 from .model import UNet, DEEPLABV3, HRNET
-from .._augmentation import val_transformations, CustomIntensityAdjustment
+from .._augmentation import CustomIntensityAdjustment
 
+def val_transformations() -> A.Compose:
+    return A.Compose([
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+        ToTensorV2()
+    ], additional_targets={'mask': 'mask'})
 
 def train_transformations(image_size):
     return A.Compose([
