@@ -97,11 +97,14 @@ class NormalizeSegmented(DualTransform):
 
 def val_transformations() -> A.Compose:
     return A.Compose([
-        # NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+        NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
         ToTensorV2()
     ], additional_targets={'mask': 'mask'})
 
 def to_normalized_tensor() -> A.Compose:
-    return val_transformations()
+    return A.Compose([
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+        ToTensorV2()
+    ], additional_targets={'mask': 'mask'})
 
