@@ -305,7 +305,7 @@ class OrganoidDataset:
             if self.dataset_metadata.n_classes_dict[key] != -1:
                 labels[key] = self._one_hot_encode_labels(label_list, key)
             else:
-                continue
+                labels[key] = labels[key].reshape(-1,1)
 
         print(f"In total, {n_failed_images}/{images.shape[0]} images were skipped.")
 
@@ -343,10 +343,13 @@ class OrganoidDataset:
         pre_merge_X_shape = self.X.shape[0]
 
         # correct indices
+
         other_md = other.metadata.copy()
+        assert -1 not in other_md["IMAGE_ARRAY_INDEX"]
+        assert -1 not in self.metadata["IMAGE_ARRAY_INDEX"]
+
         other_md["IMAGE_ARRAY_INDEX"] = [
             index + pre_merge_X_shape
-            if index != -1 else index
             for index in other_md["IMAGE_ARRAY_INDEX"]
         ]
 
@@ -355,6 +358,8 @@ class OrganoidDataset:
             self.y[key] = np.vstack([self.y[key], other.y[key]])
 
         self._metadata = pd.concat([self.metadata, other_md], axis = 0)
+
+        assert self.X.shape[0] == self._metadata.shape[0]
 
         self._create_class_counts()
 
