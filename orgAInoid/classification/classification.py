@@ -714,9 +714,9 @@ def _cross_validation_train_loop_regression(model,
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
-    if readout == "Lens_classes":
+    if readout == "Lens_area":
         cutoff_1, cutoff_2 = LENS_CUTOFFS
-    elif readout == "RPE_classes":
+    elif readout == "Total_RPE_amount":
         cutoff_1, cutoff_2 = RPE_CUTOFFS
     else:
         raise ValueError("No classification problems here, please. This is regression")
