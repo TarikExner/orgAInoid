@@ -161,13 +161,16 @@ class OrganoidDataset:
             for experiment, file_name
             in zip(file_frame["experiment"].tolist(), file_frame["file_name"].tolist())
         ]
+
         timepoints = [
             f"LO{i}" if i >= 100 else f"LO0{i}" if i>= 10 else f"LO00{i}"
             for i in range(self.dataset_metadata.start_timepoint + 1, self.dataset_metadata.stop_timepoint + 1)
         ]
+
         assert isinstance(timepoints, list)
         assert len(timepoints) != 0
         assert isinstance(self.dataset_metadata.slices, list)
+
         preprocessed = file_frame.loc[
             (file_frame["slice"].isin(self.dataset_metadata.slices)) &
             (file_frame["loop"].isin(timepoints)),
@@ -190,12 +193,11 @@ class OrganoidDataset:
 
     def create_full_dataset(self,
                             file_frame: pd.DataFrame) -> None:
-        self.X, self.y = self._prepare_classification_data(df = file_frame)
+        self.X, self.y = self._prepare_classification_data()
         self._metadata = self.metadata[self.metadata["IMAGE_ARRAY_INDEX"] != -1]
         self.n_images = self.X.shape
 
-    def _prepare_classification_data(self,
-                                     df: pd.DataFrame) -> tuple[np.ndarray, dict]:
+    def _prepare_classification_data(self) -> tuple[np.ndarray, dict]:
         """\
 
         assembles the data
@@ -216,7 +218,9 @@ class OrganoidDataset:
 
         start = time.time()
 
-        unique_experiment_well_combo = self._get_unique_experiment_well_combo(df, "experiment", "well")
+        unique_experiment_well_combo = self._get_unique_experiment_well_combo(
+            df, "experiment", "well"
+        )
         n_wells = unique_experiment_well_combo.shape[0]
 
         image_array_index = 0
@@ -233,6 +237,7 @@ class OrganoidDataset:
                 (df["experiment"] == experiment) &
                 (df["well"] == well)
             ].copy()
+            assert isinstance(well_df, pd.DataFrame)
 
             well_labels = well_df[self.dataset_metadata.readouts]
             assert isinstance(well_labels, pd.DataFrame)
@@ -295,11 +300,12 @@ class OrganoidDataset:
             assert images.shape[0] == labels[label].shape[0]
 
         assert images.shape[1] == self.dataset_metadata.n_slices
-
-        labels = {
-            key: self._one_hot_encode_labels(label_list, key)
-            for key, label_list in labels.items()
-        }
+        
+        for key, label_list in labels.items():
+            if self.dataset_metadata.n_classes_dict[key] != -1:
+                labels[key] = self._one_hot_encode_labels(label_list, key)
+            else:
+                continue
 
         print(f"In total, {n_failed_images}/{images.shape[0]} images were skipped.")
 
@@ -528,8 +534,9 @@ class OrganoidDataset:
         return self._dataset_metadata
 
     @property
-    def metadata(self):
+    def metadata(self) -> pd.DataFrame:
         """Returns metadata associated with the data"""
+        assert isinstance(self._metadata, pd.DataFrame)
         return self._metadata
 
     @classmethod

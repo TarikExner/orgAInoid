@@ -42,7 +42,7 @@ class ImageHandler:
                            min_size_percentage: float = 7.5,
                            crop_bounding_box: bool = True,
                            rescale_cropped_image: bool = False,
-                           crop_bounding_box_dimension: int = 320) -> tuple[Optional[np.ndarray],...]:
+                           crop_bounding_box_dimension: Optional[int] = 320) -> tuple[Optional[np.ndarray],...]:
 
         # First, we create the mask
         mask: OrganoidMask = self._create_mask_from_image(img)
