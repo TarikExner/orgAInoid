@@ -38,6 +38,8 @@ from sklearn.utils.validation import _num_samples
 
 from sklearn.model_selection import ParameterSampler
 
+RPE_CUTOFFS = [1068, 1684]
+LENS_CUTOFFS = [17263, 29536]
 
 class SegmentatorModel(Enum):
     DEEPLABV3 = "DEEPLABV3"
@@ -1161,3 +1163,5 @@ def _apply_train_test_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
     test_df = _filter_wells(df, test_wells, ["experiment", "well"])
 
     return train_df, test_df
+
+
