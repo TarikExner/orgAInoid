@@ -741,6 +741,7 @@ def _cross_validation_train_loop_regression(model,
         
         for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
+            target = target.float()
 
             optimizer.zero_grad()
             output = model(data)
@@ -771,6 +772,8 @@ def _cross_validation_train_loop_regression(model,
         with torch.no_grad():
             for data, target in test_loader:
                 data, target = data.to(device), target.to(device)
+                target = target.float()
+
 
                 output = model(data)
                 loss = criterion(output, target)
@@ -796,6 +799,7 @@ def _cross_validation_train_loop_regression(model,
         with torch.no_grad():
             for data, target in val_loader:
                 data, target = data.to(device), target.to(device)
+                target = target.float()
 
                 output = model(data)
                 loss = criterion(output, target)
