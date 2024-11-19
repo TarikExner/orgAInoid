@@ -744,7 +744,7 @@ def _cross_validation_train_loop_regression(model,
 
             optimizer.zero_grad()
             output = model(data)
-            loss = criterion(output.squeeze(), target)
+            loss = criterion(output, target)
             loss.backward()
 
             optimizer.step()
@@ -773,7 +773,7 @@ def _cross_validation_train_loop_regression(model,
                 data, target = data.to(device), target.to(device)
 
                 output = model(data)
-                loss = criterion(output.squeeze(), target)
+                loss = criterion(output, target)
                 
                 test_loss += loss.item()
                 test_loss_list.append(loss.item())
@@ -798,7 +798,7 @@ def _cross_validation_train_loop_regression(model,
                 data, target = data.to(device), target.to(device)
 
                 output = model(data)
-                loss = criterion(output.squeeze(), target)
+                loss = criterion(output, target)
                 
                 val_loss += loss.item()
                 val_loss_list.append(loss.item())
