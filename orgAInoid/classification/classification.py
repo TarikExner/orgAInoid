@@ -746,6 +746,8 @@ def _cross_validation_train_loop_regression(model,
 
             optimizer.zero_grad()
             output = model(data)
+
+            print(target.detach().cpu().numpy().flatten(), output.detach().cpu().numpy().flatten())
             loss = criterion(output, target)
             loss.backward()
 
