@@ -725,7 +725,7 @@ def _cross_validation_train_loop_regression(model,
     else:
         raise ValueError("No classification problems here, please. This is regression")
 
-    cutoff_0 = np.min(full_dataset.y[readout][full_dataset.y[readout] != 0]) / 10
+    cutoff_0 = np.min(full_dataset.y[readout][full_dataset.y[readout] != 0])
 
     print(f"Cutoff 0 is {cutoff_0}")
 
