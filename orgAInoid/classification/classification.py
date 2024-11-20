@@ -742,14 +742,11 @@ def _cross_validation_train_loop_regression(model,
         for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
             target = target.float()
-            print(target)
 
 
             optimizer.zero_grad()
             output = model(data)
-            print(output)
             loss = criterion(output, target)
-            print(loss)
             loss.backward()
 
             optimizer.step()
