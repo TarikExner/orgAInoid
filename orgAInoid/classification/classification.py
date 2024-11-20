@@ -5,11 +5,15 @@ from sklearn.metrics import accuracy_score, f1_score
 import os
 import gc
 import pandas as pd
+import numpy as np
 import pickle
 import time
 from tqdm import tqdm
 
-from ._utils import create_dataloader, find_ideal_learning_rate, RPE_ADJUSTED_CUTOFFS, LENS_ADJUSTED_CUTOFFS
+from ._utils import (create_dataloader,
+                     find_ideal_learning_rate,
+                     RPE_ADJUSTED_CUTOFFS,
+                     LENS_ADJUSTED_CUTOFFS)
 from ._dataset import (OrganoidDataset,
                        OrganoidTrainingDataset,
                        OrganoidValidationDataset)
@@ -721,8 +725,11 @@ def _cross_validation_train_loop_regression(model,
     else:
         raise ValueError("No classification problems here, please. This is regression")
 
+    cutoff_0 = np.min(full_dataset.y[readout][full_dataset.y[readout] != 0])
+
+
     def assign_class(value):
-        if value < 0:
+        if value < cutoff_0:
             return 0
         elif value < cutoff_1:
             return 1
