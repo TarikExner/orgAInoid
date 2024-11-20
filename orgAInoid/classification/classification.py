@@ -749,6 +749,9 @@ def _cross_validation_train_loop_regression(model,
             loss = criterion(output, target)
             loss.backward()
 
+            # Apply gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
             optimizer.step()
             
             train_loss += loss.item()
