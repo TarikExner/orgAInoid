@@ -727,6 +727,8 @@ def _cross_validation_train_loop_regression(model,
 
     cutoff_0 = np.min(full_dataset.y[readout][full_dataset.y[readout] != 0]) / 10
 
+    print(f"Cutoff 0 is {cutoff_0}")
+
 
     def assign_class(value):
         if value < cutoff_0:
