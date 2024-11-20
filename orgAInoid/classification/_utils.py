@@ -41,6 +41,9 @@ from sklearn.model_selection import ParameterSampler
 RPE_CUTOFFS = [1068, 1684]
 LENS_CUTOFFS = [17263, 29536]
 
+RPE_ADJUSTED_CUTOFFS = list(np.array(RPE_CUTOFFS) / 6500)
+LENS_ADJUSTED_CUTOFFS = list(np.array(LENS_CUTOFFS) / 60_000)
+
 class SegmentatorModel(Enum):
     DEEPLABV3 = "DEEPLABV3"
     UNET = "UNET"

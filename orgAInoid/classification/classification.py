@@ -9,7 +9,7 @@ import pickle
 import time
 from tqdm import tqdm
 
-from ._utils import create_dataloader, find_ideal_learning_rate, RPE_CUTOFFS, LENS_CUTOFFS
+from ._utils import create_dataloader, find_ideal_learning_rate, RPE_ADJUSTED_CUTOFFS, LENS_ADJUSTED_CUTOFFS
 from ._dataset import (OrganoidDataset,
                        OrganoidTrainingDataset,
                        OrganoidValidationDataset)
@@ -715,9 +715,9 @@ def _cross_validation_train_loop_regression(model,
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
     if readout == "Lens_area":
-        cutoff_1, cutoff_2 = LENS_CUTOFFS
+        cutoff_1, cutoff_2 = LENS_ADJUSTED_CUTOFFS
     elif readout == "Total_RPE_amount":
-        cutoff_1, cutoff_2 = RPE_CUTOFFS
+        cutoff_1, cutoff_2 = RPE_ADJUSTED_CUTOFFS
     else:
         raise ValueError("No classification problems here, please. This is regression")
 
