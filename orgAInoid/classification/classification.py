@@ -752,6 +752,13 @@ def _cross_validation_train_loop_regression(model,
             # Apply gradient clipping
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
+
+            # Display gradients (optional for debugging)
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    grad_norm = param.grad.norm().item()
+                    print(f"Gradient norm for {name}: {grad_norm}")
+
             optimizer.step()
             
             train_loss += loss.item()
