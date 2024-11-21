@@ -13,7 +13,6 @@ from .models import CLASSIFIERS_TO_TEST_FULL
 from ._utils import _one_hot_encode_labels, _apply_train_test_split
 
 
-
 def run_classifier_comparison(df: pd.DataFrame,
                               output_dir: str,
                               data_columns: list[str]):
@@ -51,16 +50,20 @@ def run_classifier_comparison(df: pd.DataFrame,
     
     for readout in readouts:
         for classifier in CLASSIFIERS_TO_TEST_FULL:
+
             if readout in already_calculated:
                 if classifier in already_calculated[readout]:
                     print(f"Skipping {classifier} for {readout} as it is already calculated")
                     continue
+
             if classifier in ["LabelPropagation", "LabelSpreading", "CategoricalNB"]:
                 print(f"Skipping {classifier} due to memory reasons!")
                 continue
+
             if readout in ["RPE_classes", "Lens_classes"] and classifier == "NuSVC":
                 print("Skipping NuSVC for RPE classes")
                 continue
+
             print(f"... running {classifier} on readout {readout}")
             for experiment in experiments:
 
@@ -80,36 +83,36 @@ def run_classifier_comparison(df: pd.DataFrame,
                 non_val_df = df[df["experiment"] != experiment].copy()
                 assert isinstance(non_val_df, pd.DataFrame)
 
-                scaler.fit(non_val_df[data_columns])
-
+                train_df, test_df = _apply_train_test_split(non_val_df)
                 val_df = df[df["experiment"] == experiment].copy()
                 assert isinstance(val_df, pd.DataFrame)
-                train_df, test_df = _apply_train_test_split(non_val_df)
+
+                scaler.fit(non_val_df[data_columns])
 
                 train_df[data_columns] = scaler.transform(train_df[data_columns])
                 test_df[data_columns] = scaler.transform(test_df[data_columns])
                 val_df[data_columns] = scaler.transform(val_df[data_columns])
 
-                if classifier.endswith("NB"):
-                    # naive bayes methods do not allow negative values
-                    train_test_df = pd.concat([train_df, test_df], axis = 0)
-                    second_scaler = MinMaxScaler()
-                    second_scaler.fit(train_test_df[data_columns])
+                # naive bayes methods do not allow negative values
+                train_test_df = pd.concat([train_df, test_df], axis = 0)
 
-                    train_df[data_columns] = second_scaler.transform(train_df[data_columns])
-                    test_df[data_columns] = second_scaler.transform(test_df[data_columns])
-                    val_df[data_columns] = second_scaler.transform(val_df[data_columns])
+                second_scaler = MinMaxScaler()
+                second_scaler.fit(train_test_df[data_columns])
+
+                train_df[data_columns] = second_scaler.transform(train_df[data_columns])
+                test_df[data_columns] = second_scaler.transform(test_df[data_columns])
+                val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
 
-                X_train = train_df[data_columns]
+                X_train = train_df[data_columns].to_numpy()
                 y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
                                                  readout = readout)
 
-                X_test = test_df[data_columns]
+                X_test = test_df[data_columns].to_numpy()
                 y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
                                                 readout = readout)
 
-                X_val = val_df[data_columns]
+                X_val = val_df[data_columns].to_numpy()
                 y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
                                                readout = readout)
                 
@@ -158,6 +161,8 @@ def run_classifier_comparison(df: pd.DataFrame,
 
                 del clf, X_train, X_test, X_val, y_train, y_test, y_val
                 gc.collect()
+
+    return
 
 
 
