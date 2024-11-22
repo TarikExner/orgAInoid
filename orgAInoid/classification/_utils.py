@@ -170,19 +170,19 @@ class ClassificationDataset(Dataset):
     def __getitem__(self, idx):
 
         image = self.image_arr[idx, :, :, :]
-        label = skimage.measure.label(
-            image.reshape(self.image_shape, self.image_shape)
-        )
-        assert isinstance(label, np.ndarray)
-
-        zero_pixel_mask = np.expand_dims(
-            np.invert(
-                label
-            ).astype(np.float32),
-            axis = 0
-        )
 
         if image.shape[0] == 1:
+            binary_image = np.where(image > 0, 1, image)
+            label = skimage.measure.label(
+                binary_image.reshape(self.image_shape, self.image_shape)
+            )
+            assert isinstance(label, np.ndarray)
+
+            zero_pixel_mask = np.expand_dims(
+                np.where(label == 1, 0, 1),
+                axis = 0
+            )
+
             # Duplicate the single channel to create a 3-channel image
             image_3ch = np.repeat(image, 3, axis = 0)
             zero_pixel_mask = np.repeat(zero_pixel_mask, 3, axis = 0)
