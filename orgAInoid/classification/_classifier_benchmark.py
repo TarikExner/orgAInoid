@@ -12,10 +12,14 @@ from .models import CLASSIFIERS_TO_TEST_FULL
 
 from ._utils import _one_hot_encode_labels, _apply_train_test_split
 
+from typing import Optional
+
 
 def run_classifier_comparison(df: pd.DataFrame,
                               output_dir: str,
-                              data_columns: list[str]):
+                              data_columns: list[str],
+                              readouts: Optional[list[str]] = None):
+
     """\
     The function expects unscaled raw data.
 
@@ -43,8 +47,10 @@ def run_classifier_comparison(df: pd.DataFrame,
                 scores["readout"] == readout,
                 "algorithm"
             ].tolist()
-
-    readouts = ["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
+    if readouts is None:
+        readouts = ["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
+    elif not isinstance(readouts, list):
+        readouts = [readouts]
 
     experiments = df["experiment"].unique().tolist()
     
@@ -93,7 +99,6 @@ def run_classifier_comparison(df: pd.DataFrame,
                 test_df[data_columns] = scaler.transform(test_df[data_columns])
                 val_df[data_columns] = scaler.transform(val_df[data_columns])
 
-                # naive bayes methods do not allow negative values
                 train_test_df = pd.concat([train_df, test_df], axis = 0)
 
                 second_scaler = MinMaxScaler()
@@ -102,7 +107,6 @@ def run_classifier_comparison(df: pd.DataFrame,
                 train_df[data_columns] = second_scaler.transform(train_df[data_columns])
                 test_df[data_columns] = second_scaler.transform(test_df[data_columns])
                 val_df[data_columns] = second_scaler.transform(val_df[data_columns])
-
 
                 X_train = train_df[data_columns].to_numpy()
                 y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
