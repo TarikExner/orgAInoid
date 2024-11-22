@@ -38,6 +38,8 @@ from sklearn.utils.validation import _num_samples
 
 from sklearn.model_selection import ParameterSampler
 
+import skimage
+
 RPE_CUTOFFS = [1068, 1684]
 LENS_CUTOFFS = [17263, 29536]
 
@@ -160,6 +162,7 @@ class ClassificationDataset(Dataset):
         self.image_arr = image_arr
         self.classes = classes
         self.transforms = transforms
+        self.image_shape = image_arr.shape[2]
     
     def __len__(self):
         return self.image_arr.shape[0]
@@ -167,15 +170,25 @@ class ClassificationDataset(Dataset):
     def __getitem__(self, idx):
 
         image = self.image_arr[idx, :, :, :]
+        label = skimage.measure.label(
+            image.reshape(self.image_shape, self.image_shape)
+        )
+        assert isinstance(label, np.ndarray)
+
+        zero_pixel_mask = np.invert(
+            label
+        ).astype(np.float32)
+
         if image.shape[0] == 1:
             # Duplicate the single channel to create a 3-channel image
-            image_3ch = np.repeat(image, 3, axis=0)
+            image_3ch = np.repeat(image, 3, axis = 0)
+            zero_pixel_mask = np.repeat(zero_pixel_mask, 3, axis = 0)
         else:
             image_3ch = image
 
         # Transpose image to [224, 224, 3] for Albumentations
         image_3ch = np.transpose(image_3ch, (1, 2, 0))
-        zero_pixel_mask = (image_3ch == 0).astype(np.float32)
+        # zero_pixel_mask = (image_3ch == 0).astype(np.float32)
         assert image_3ch.shape == zero_pixel_mask.shape
 
         corr_class = torch.tensor(self.classes[idx])
@@ -297,45 +310,45 @@ def _calculate_inflection_points(y) -> np.ndarray:
 
 def train_transformations(image_size: int = 224) -> A.Compose:
     return A.Compose([
-        # A.HorizontalFlip(p=0.5),  # Random horizontal flip
-        # A.VerticalFlip(p=0.5),    # Random vertical flip
-        # A.Rotate(limit=360, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
-        # A.ShiftScaleRotate(
-        #     shift_limit=0.0625,
-        #     scale_limit=0.2,
-        #     rotate_limit=0,  # Set rotate limit to 0 if using Rotate separately
-        #     mask_value = 0,
-        #     p=0.5
-        # ),  # Shift and scale
-        # A.RandomResizedCrop(
-        #     height=image_size,
-        #     width=image_size,
-        #     scale=(0.8, 1),
-        #     p=0.5
-        # ),  # Resized crop
-        # A.GridDistortion(
-        #     num_steps=5,
-        #     distort_limit=0.3,
-        #     mask_value = 0,
-        #     p=0.5
-        # ),
-        # A.Affine(
-        #     scale=1,
-        #     translate_percent=(-0.3, 0.3),
-        #     rotate=0,
-        #     shear=(-15, 15),
-        #     p=0.5
-        # ),
-        # # Apply intensity modifications only to non-masked pixels
-        # CustomIntensityAdjustment(p=0.5),
+        A.HorizontalFlip(p=0.5),  # Random horizontal flip
+        A.VerticalFlip(p=0.5),    # Random vertical flip
+        A.Rotate(limit=360, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
+        A.ShiftScaleRotate(
+            shift_limit=0.0625,
+            scale_limit=0.2,
+            rotate_limit=0,  # Set rotate limit to 0 if using Rotate separately
+            mask_value = 0,
+            p=0.5
+        ),  # Shift and scale
+        A.RandomResizedCrop(
+            height=image_size,
+            width=image_size,
+            scale=(0.8, 1),
+            p=0.5
+        ),  # Resized crop
+        A.GridDistortion(
+            num_steps=5,
+            distort_limit=0.3,
+            mask_value = 0,
+            p=0.5
+        ),
+        A.Affine(
+            scale=1,
+            translate_percent=(-0.3, 0.3),
+            rotate=0,
+            shear=(-15, 15),
+            p=0.5
+        ),
+        # Apply intensity modifications only to non-masked pixels
+        CustomIntensityAdjustment(p=0.5),
 
-        # A.CoarseDropout(
-        #     max_holes=20,
-        #     min_holes=10,
-        #     max_height=12,
-        #     max_width=12,
-        #     p=0.5
-        # ),
+        A.CoarseDropout(
+            max_holes=20,
+            min_holes=10,
+            max_height=12,
+            max_width=12,
+            p=0.5
+        ),
 
         # Normalization
         # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
