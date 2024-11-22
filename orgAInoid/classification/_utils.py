@@ -313,21 +313,21 @@ def train_transformations(image_size: int = 224) -> A.Compose:
             scale=(0.8, 1),
             p=0.5
         ),  # Resized crop
-        A.GridDistortion(
-            num_steps=5,
-            distort_limit=0.3,
-            mask_value = 0,
-            p=0.5
-        ),
-        A.Affine(
-            scale=1,
-            translate_percent=(-0.3, 0.3),
-            rotate=0,
-            shear=(-15, 15),
-            p=0.5
-        ),
-        # Apply intensity modifications only to non-masked pixels
-        CustomIntensityAdjustment(p=0.5),
+        # A.GridDistortion(
+        #     num_steps=5,
+        #     distort_limit=0.3,
+        #     mask_value = 0,
+        #     p=0.5
+        # ),
+        # A.Affine(
+        #     scale=1,
+        #     translate_percent=(-0.3, 0.3),
+        #     rotate=0,
+        #     shear=(-15, 15),
+        #     p=0.5
+        # ),
+        # # Apply intensity modifications only to non-masked pixels
+        # CustomIntensityAdjustment(p=0.5),
 
         A.CoarseDropout(
             max_holes=20,
