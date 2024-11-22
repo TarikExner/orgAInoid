@@ -176,6 +176,7 @@ class ClassificationDataset(Dataset):
             label = skimage.measure.label(
                 binary_image.reshape(self.image_shape, self.image_shape)
             )
+            label = skimage.morphology.area_closing(label)
             assert isinstance(label, np.ndarray)
 
             zero_pixel_mask = np.expand_dims(
