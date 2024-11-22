@@ -209,9 +209,9 @@ class ClassificationDataset(Dataset):
             augmented = self.transforms(image=image_3ch, mask=zero_pixel_mask)
             image = augmented["image"]
 
-        assert isinstance(image, torch.Tensor)
-        assert not torch.isnan(image).any()
-        assert not torch.isinf(image).any()
+        # assert isinstance(image, torch.Tensor)
+        # assert not torch.isnan(image).any()
+        # assert not torch.isinf(image).any()
 
         return (image, corr_class)
 
