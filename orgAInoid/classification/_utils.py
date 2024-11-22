@@ -39,6 +39,7 @@ from sklearn.utils.validation import _num_samples
 from sklearn.model_selection import ParameterSampler
 
 import skimage
+import cv2
 
 RPE_CUTOFFS = [1068, 1684]
 LENS_CUTOFFS = [17263, 29536]
@@ -173,10 +174,16 @@ class ClassificationDataset(Dataset):
 
         if image.shape[0] == 1:
             binary_image = np.where(image > 0, 1, image)
+            kernel = np.ones((10,10), np.uint8)
             label = skimage.measure.label(
                 binary_image.reshape(self.image_shape, self.image_shape)
             )
-            label = skimage.morphology.area_closing(label)
+            assert isinstance(label, np.ndarray)
+            label = cv2.morphologyEx(
+                label.astype(np.uint8),
+                cv2.MORPH_CLOSE,
+                kernel
+            )
             assert isinstance(label, np.ndarray)
 
             zero_pixel_mask = np.expand_dims(
