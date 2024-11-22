@@ -175,9 +175,12 @@ class ClassificationDataset(Dataset):
         )
         assert isinstance(label, np.ndarray)
 
-        zero_pixel_mask = np.invert(
-            label
-        ).astype(np.float32)
+        zero_pixel_mask = np.expand_dims(
+            np.invert(
+                label
+            ).astype(np.float32),
+            axis = 0
+        )
 
         if image.shape[0] == 1:
             # Duplicate the single channel to create a 3-channel image
