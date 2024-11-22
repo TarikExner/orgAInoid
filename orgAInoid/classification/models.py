@@ -185,7 +185,7 @@ class DenseNet121(nn.Module):
             self.densenet121 = models.densenet121(weights=None, **kwargs)
         # Modify the final fully connected layer to match the number of output classes
         self.densenet121.classifier = nn.Sequential(
-            nn.Dropout(p=dropout),  # Add dropout layer with p=0.5
+            nn.Dropout(p=dropout),  # Add dropout layer
             nn.Linear(in_features=1024, out_features=num_classes)  # Final linear layer
         )       
     

@@ -297,9 +297,9 @@ def _calculate_inflection_points(y) -> np.ndarray:
 
 def train_transformations(image_size: int = 224) -> A.Compose:
     return A.Compose([
-        A.HorizontalFlip(p=0.5),  # Random horizontal flip
-        A.VerticalFlip(p=0.5),    # Random vertical flip
-        A.Rotate(limit=360, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
+        # A.HorizontalFlip(p=0.5),  # Random horizontal flip
+        # A.VerticalFlip(p=0.5),    # Random vertical flip
+        # A.Rotate(limit=360, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
         # A.ShiftScaleRotate(
         #     shift_limit=0.0625,
         #     scale_limit=0.2,
@@ -329,13 +329,13 @@ def train_transformations(image_size: int = 224) -> A.Compose:
         # # Apply intensity modifications only to non-masked pixels
         # CustomIntensityAdjustment(p=0.5),
 
-        A.CoarseDropout(
-            max_holes=20,
-            min_holes=10,
-            max_height=12,
-            max_width=12,
-            p=0.5
-        ),
+        # A.CoarseDropout(
+        #     max_holes=20,
+        #     min_holes=10,
+        #     max_height=12,
+        #     max_width=12,
+        #     p=0.5
+        # ),
 
         # Normalization
         # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
