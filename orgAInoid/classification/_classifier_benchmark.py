@@ -66,7 +66,9 @@ def run_classifier_comparison(df: pd.DataFrame,
                 print(f"Skipping {classifier} due to memory reasons!")
                 continue
 
-            if readout in ["RPE_classes", "Lens_classes"] and classifier == "NuSVC":
+            if readout in [
+                "RPE_classes", "Lens_classes", "RPE_Final", "Lens_Final"
+            ] and classifier == "NuSVC":
                 print("Skipping NuSVC for RPE classes")
                 continue
 
