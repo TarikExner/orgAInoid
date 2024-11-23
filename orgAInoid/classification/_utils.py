@@ -1090,7 +1090,9 @@ def conduct_hyperparameter_search(model,
                                                   "RandomizedSearchCV",
                                                   "GridSearchCV"],
                                   X_train: np.ndarray,
-                                  y_train: np.ndarray) -> Union[RandomizedSearchCV, GridSearchCV]:
+                                  y_train: np.ndarray,
+                                  group_kfold,
+                                  groups: list[str]) -> Union[RandomizedSearchCV, GridSearchCV]:
     n_jobs = 16
     if method == "RandomizedSearchCV":
         total_params = sum(len(grid[key]) for key in grid)
@@ -1133,11 +1135,11 @@ def conduct_hyperparameter_search(model,
                                                factor = 3,
                                                resource = "n_samples",
                                                min_resources = 1000,
-                                               cv = 5,
+                                               cv = group_kfold,
                                                n_jobs = n_jobs,
                                                verbose = 3,
                                                error_score = 0.0,
-                                               random_state = 187).fit(X_train, y_train)    
+                                               random_state = 187).fit(X_train, y_train, groups = groups)    
 
     return grid_result
 

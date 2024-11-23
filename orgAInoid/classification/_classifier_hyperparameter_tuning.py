@@ -9,10 +9,14 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from typing import Optional
 from sklearn.multioutput import MultiOutputClassifier
 
+from sklearn.model_selection import GroupKFold
+
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
 from .models import (CLASSIFIERS_TO_TEST_FULL,
                      CLASSIFIERS_TO_TEST_RPE,
-                     CLASSIFIERS_TO_TEST_LENS)
+                     CLASSIFIERS_TO_TEST_LENS,
+                     CLASSIFIERS_TO_TEST_RPE_CLASSES,
+                     CLASSIFIERS_TO_TEST_LENS_CLASSES)
 from ._utils import _one_hot_encode_labels, _apply_train_test_split, conduct_hyperparameter_search
 
 
@@ -41,20 +45,27 @@ def _get_classifier(classifier_name,
 
 def run_hyperparameter_tuning(df: pd.DataFrame,
                               output_dir: str,
-                              data_columns: list[str]):
-    for classifier in CLASSIFIERS_TO_TEST_RPE:
-        _run_hyperparameter_tuning(df, output_dir, classifier, data_columns)
-
-def run_hyperparameter_tuning_2(df: pd.DataFrame,
-                                output_dir: str,
-                                data_columns: list[str]):
-    for classifier in CLASSIFIERS_TO_TEST_LENS:
-        _run_hyperparameter_tuning(df, output_dir, classifier, data_columns)
+                              data_columns: list[str],
+                              readout: str):
+    if readout == "RPE_Final":
+        for classifier in CLASSIFIERS_TO_TEST_RPE:
+            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
+    elif readout == "Lens_Final":
+        for classifier in CLASSIFIERS_TO_TEST_LENS:
+            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
+    elif readout == "RPE_classes":
+        for classifier in CLASSIFIERS_TO_TEST_RPE:
+            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
+    else:
+        assert readout == "Lens_classes", "Unknown readout"
+        for classifier in CLASSIFIERS_TO_TEST_LENS:
+            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
 
 def _run_hyperparameter_tuning(df: pd.DataFrame,
                                output_dir: str,
                                classifier: str,
-                               data_columns: list[str]):
+                               data_columns: list[str],
+                               readout: str):
 
     """\
     The function expects unscaled raw data.
@@ -74,7 +85,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                         key = score_key,
                         init = True)
 
-    readouts = ["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
+    readouts = [readout]
 
     experiments = df["experiment"].unique().tolist()
 
@@ -84,12 +95,20 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
         os.makedirs(param_dir)
 
     scaler = StandardScaler()
-    hyper_df = df.copy()
-    hyper_df[data_columns] = scaler.fit_transform(hyper_df[data_columns])
+    second_scaler = MinMaxScaler()
 
-    if classifier.endswith("NB"):
-        second_scaler = MinMaxScaler()
-        hyper_df[data_columns] = second_scaler.fit_transform(hyper_df[data_columns])
+    hyper_df = df.copy()
+    hyper_df["group"] = [
+        f"{experiment}_{well}"
+        for experiment, well in
+        zip(
+            hyper_df["experiment"].tolist(),
+            hyper_df["well"].tolist()
+        )
+    ]
+
+    hyper_df[data_columns] = scaler.fit_transform(hyper_df[data_columns])
+    hyper_df[data_columns] = second_scaler.fit_transform(hyper_df[data_columns])
 
     for readout in readouts:
         param_file_name = f"best_params_{classifier}_{readout}.dict"
@@ -102,12 +121,16 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             X = hyper_df[data_columns].to_numpy()
             y = _one_hot_encode_labels(hyper_df[readout].to_numpy(),
                                        readout = readout)
+            group_kfold = GroupKFold(n_splits = 5)
+            groups = hyper_df["group"].tolist()
             hyperparameter_search = conduct_hyperparameter_search(
                 clf,
                 grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"],
                 method = "HalvingRandomSearchCV",
                 X_train = X,
-                y_train = y
+                y_train = y,
+                group_kfold = group_kfold,
+                groups = groups
             )
             best_params = hyperparameter_search.best_params_
             cleaned_best_params = {}
@@ -136,25 +159,24 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             non_val_df = df[df["experiment"] != experiment].copy()
             assert isinstance(non_val_df, pd.DataFrame)
 
-            scaler.fit(non_val_df[data_columns])
-
+            train_df, test_df = _apply_train_test_split(non_val_df)
             val_df = df[df["experiment"] == experiment].copy()
             assert isinstance(val_df, pd.DataFrame)
-            train_df, test_df = _apply_train_test_split(non_val_df)
+
+            scaler.fit(non_val_df[data_columns])
 
             train_df[data_columns] = scaler.transform(train_df[data_columns])
             test_df[data_columns] = scaler.transform(test_df[data_columns])
             val_df[data_columns] = scaler.transform(val_df[data_columns])
 
-            if classifier.endswith("NB"):
-                # naive bayes methods do not allow negative values
-                train_test_df = pd.concat([train_df, test_df], axis = 0)
-                second_scaler = MinMaxScaler()
-                second_scaler.fit(train_test_df[data_columns])
+            train_test_df = pd.concat([train_df, test_df], axis = 0)
 
-                train_df[data_columns] = second_scaler.transform(train_df[data_columns])
-                test_df[data_columns] = second_scaler.transform(test_df[data_columns])
-                val_df[data_columns] = second_scaler.transform(val_df[data_columns])
+            second_scaler = MinMaxScaler()
+            second_scaler.fit(train_test_df[data_columns])
+
+            train_df[data_columns] = second_scaler.transform(train_df[data_columns])
+            test_df[data_columns] = second_scaler.transform(test_df[data_columns])
+            val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
             X_train = train_df[data_columns]
             y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
