@@ -54,11 +54,11 @@ def run_hyperparameter_tuning(df: pd.DataFrame,
         for classifier in CLASSIFIERS_TO_TEST_LENS:
             _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
     elif readout == "RPE_classes":
-        for classifier in CLASSIFIERS_TO_TEST_RPE:
+        for classifier in CLASSIFIERS_TO_TEST_RPE_CLASSES:
             _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
     else:
         assert readout == "Lens_classes", "Unknown readout"
-        for classifier in CLASSIFIERS_TO_TEST_LENS:
+        for classifier in CLASSIFIERS_TO_TEST_LENS_CLASSES:
             _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
 
 def _run_hyperparameter_tuning(df: pd.DataFrame,
