@@ -84,6 +84,20 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                         output_dir = output_dir,
                         key = score_key,
                         init = True)
+        already_calculated = {}
+    else:
+        scores = pd.read_csv(score_file, index_col = False)
+        scores = scores[["algorithm", "readout"]].drop_duplicates()
+        already_calculated = {}
+        for readout in scores["readout"].unique():
+            already_calculated[readout] = scores.loc[
+                scores["readout"] == readout,
+                "algorithm"
+            ].tolist()
+
+    if classifier in already_calculated[readout]:
+        print(f"Skipping {classifier}, as it has already been calculated")
+        return
 
     readouts = [readout]
 
