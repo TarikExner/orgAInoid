@@ -94,10 +94,13 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                 scores["readout"] == readout,
                 "algorithm"
             ].tolist()
-
-    if classifier in already_calculated[readout]:
-        print(f"Skipping {classifier}, as it has already been calculated for readout {readout}")
-        return
+    
+    try:
+        if classifier in already_calculated[readout]:
+            print(f"Skipping {classifier}, as it has already been calculated for readout {readout}")
+            return
+    except KeyError:
+        pass
 
     readouts = [readout]
 
