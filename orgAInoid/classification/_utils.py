@@ -1168,9 +1168,10 @@ def _one_hot_encode_labels(labels_array: np.ndarray,
         labels_array = np.hstack([labels_array, full_class_spectrum])
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(labels_array)
+    assert isinstance(integer_encoded, np.ndarray)
     
     onehot_encoder = OneHotEncoder()
-    integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
+    integer_encoded = integer_encoded.reshape(-1, 1)
     classification = onehot_encoder.fit_transform(integer_encoded).toarray()
 
     if n_appended != 0:
