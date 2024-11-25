@@ -3,13 +3,10 @@ import numpy as np
 import pandas as pd
 import time
 import gc
-import pickle
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from typing import Optional
 from sklearn.multioutput import MultiOutputClassifier
 
-from sklearn.model_selection import GroupKFold
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
 from .models import (CLASSIFIERS_TO_TEST_FULL,
@@ -17,7 +14,7 @@ from .models import (CLASSIFIERS_TO_TEST_FULL,
                      CLASSIFIERS_TO_TEST_LENS,
                      CLASSIFIERS_TO_TEST_RPE_CLASSES,
                      CLASSIFIERS_TO_TEST_LENS_CLASSES)
-from ._utils import _one_hot_encode_labels, _apply_train_test_split, conduct_hyperparameter_search
+from ._utils import _one_hot_encode_labels, _apply_train_test_split
 
 def _test_for_n_experiments(df: pd.DataFrame,
                             output_dir: str,
@@ -52,6 +49,7 @@ def _test_for_n_experiments(df: pd.DataFrame,
     else:
         scores = pd.read_csv(score_file, index_col = False)
         scores = scores[["algorithm", "readout"]].drop_duplicates()
+        assert isinstance(scores, pd.DataFrame)
         already_calculated = {}
         for readout in scores["readout"].unique():
             already_calculated[readout] = scores.loc[
@@ -106,8 +104,11 @@ def _test_for_n_experiments(df: pd.DataFrame,
                     scaler = StandardScaler()
 
                     non_val_df = df[df["experiment"] != experiment].copy()
-                    experiments_non_val_df = non_val_df["experiment"].unique()
-                    experiments_to_test = list(np.random.choice(experiments_non_val_df, n_exp, replace = False))
+                    assert isinstance(non_val_df, pd.DataFrame)
+                    experiments_non_val_df = non_val_df["experiment"].unique().tolist()
+                    experiments_to_test = list(
+                        np.random.choice(experiments_non_val_df, n_exp, replace = False)
+                    )
                     non_val_df = non_val_df[non_val_df["experiment"].isin(experiments_to_test)].copy()
                     assert isinstance(non_val_df, pd.DataFrame)
 
