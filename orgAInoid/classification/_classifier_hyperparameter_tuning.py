@@ -96,7 +96,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             ].tolist()
 
     if classifier in already_calculated[readout]:
-        print(f"Skipping {classifier}, as it has already been calculated")
+        print(f"Skipping {classifier}, as it has already been calculated for readout {readout}")
         return
 
     readouts = [readout]
