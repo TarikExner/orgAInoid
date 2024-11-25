@@ -66,12 +66,6 @@ def run_classifier_comparison(df: pd.DataFrame,
                 print(f"Skipping {classifier} due to memory reasons!")
                 continue
 
-            if readout in [
-                "RPE_classes", "Lens_classes", "RPE_Final", "Lens_Final"
-            ] and classifier == "NuSVC":
-                print("Skipping NuSVC for RPE classes")
-                continue
-
             print(f"... running {classifier} on readout {readout}")
             for experiment in experiments:
 
@@ -146,20 +140,23 @@ def run_classifier_comparison(df: pd.DataFrame,
                 pred_time_val= time.time() - start
 
                 scores = score_classifier(true_arr = y_train_argmax,
-                                          pred_arr = pred_train_argmax)
+                                          pred_arr = pred_train_argmax,
+                                          readout = readout)
                 score_string = ",".join(scores)
                 write_to_scores(f"{classifier},{readout},train,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
                                 output_dir = output_dir,
                                 key = score_key)
 
                 scores = score_classifier(true_arr = y_test_argmax,
-                                          pred_arr = pred_test_argmax)
+                                          pred_arr = pred_test_argmax,
+                                          readout = readout)
                 score_string = ",".join(scores)
                 write_to_scores(f"{classifier},{readout},test,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
                                 output_dir = output_dir,
                                 key = score_key)
                 scores = score_classifier(true_arr = y_val_argmax,
-                                          pred_arr = pred_val_argmax)
+                                          pred_arr = pred_val_argmax,
+                                          readout = readout)
                 score_string = ",".join(scores)
                 write_to_scores(f"{classifier},{readout},val,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
                                 output_dir = output_dir,

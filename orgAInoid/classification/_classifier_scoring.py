@@ -1,4 +1,3 @@
-from sklearn.metrics import confusion_matrix
 import os
 import numpy as np
 from sklearn.metrics import (balanced_accuracy_score,
@@ -9,7 +8,6 @@ from sklearn.metrics import (balanced_accuracy_score,
                              confusion_matrix,
                              cohen_kappa_score,
                              matthews_corrcoef)
-from typing import Optional
 
 def _get_accuracy(conf_matrix: np.ndarray) -> float:
      tp = _get_tp(conf_matrix)
@@ -18,30 +16,28 @@ def _get_accuracy(conf_matrix: np.ndarray) -> float:
      fn = _get_fn(conf_matrix)
      return (tp + tn) / (tp + tn + fp + fn)
 
-def _get_f1_score(conf_matrix):
-     precision = _get_precision(conf_matrix)
-     recall = _get_recall(conf_matrix)
-     return (2*(precision * recall)) / (precision + recall)
+def _get_f1_score(true_arr, pred_arr):
+    return f1_score(true_arr, pred_arr, average = "weighted")
 
 def _get_precision(conf_matrix: np.ndarray) -> float:
-     tp = _get_tp(conf_matrix)
-     return tp / (tp+_get_fp(conf_matrix))
+    tp = _get_tp(conf_matrix)
+    return tp / (tp+_get_fp(conf_matrix))
 
 def _get_recall(conf_matrix: np.ndarray) -> float:
-     tp = _get_tp(conf_matrix)
-     return tp / (tp+_get_fn(conf_matrix))
+    tp = _get_tp(conf_matrix)
+    return tp / (tp+_get_fn(conf_matrix))
 
 def _get_tn(conf_matrix: np.ndarray) -> float:
-     return conf_matrix[0]
+    return conf_matrix[0]
 
 def _get_fp(conf_matrix: np.ndarray) -> float:
-     return conf_matrix[1]
+    return conf_matrix[1]
 
 def _get_fn(conf_matrix: np.ndarray) -> float:
-     return conf_matrix[2]
+    return conf_matrix[2]
 
 def _get_tp(conf_matrix: np.ndarray) -> float:
-     return conf_matrix[3]
+    return conf_matrix[3]
 
 def _get_fpr(conf_matrix: np.ndarray) -> float:
     t_n, f_p, f_n, t_p = conf_matrix
@@ -89,24 +85,28 @@ SCORES_TO_USE = {
 }
 
 def score_classifier(true_arr: np.ndarray,
-                     pred_arr: np.ndarray):
+                     pred_arr: np.ndarray,
+                     readout: str):
     if true_arr.shape[0] != 0:
-        conf_matrix = confusion_matrix(true_arr, pred_arr, labels = [0, 1]).ravel()
         test_scores = []
+        if readout in ["RPE_Final", "Lens_Final"]:
+            conf_matrix = confusion_matrix(true_arr, pred_arr, labels = [0, 1]).ravel()
+        else:
+            conf_matrix = confusion_matrix(true_arr, pred_arr, labels = [0, 1, 2, 3]).ravel()
         for score in SCORES_TO_USE:
             if score in ["tn", "fp", "fn", "tp",
                          "fpr", "fnr", "tnr", "fpv", "fdr",
-                         "precision_score", "recall_score", "f1_score",
+                         "precision_score", "recall_score",
                          "accuracy_score"]:
                 try:
                     test_scores.append(str(SCORES_TO_USE[score](conf_matrix)))
                 except Exception:
-                    test_scores.append(str(-1))
+                    test_scores.append(str(-2))
             else:
                 try:
                     test_scores.append(str(SCORES_TO_USE[score](true_arr, pred_arr)))
                 except Exception:
-                    test_scores.append(str(-1))
+                    test_scores.append(str(-2))
                     
     else: # y_test is empty
         test_scores = ["-1.0" for _ in SCORES_TO_USE]
