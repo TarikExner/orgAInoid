@@ -1112,11 +1112,11 @@ def _cross_validation_train_loop(model,
     print(f"Ideal learning rate at {round(learning_rate, 5)}")
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=10
+        optimizer, mode='min', factor=0.5, patience=10
     )
 
-    best_val_f1 = 0
-    best_test_f1 = 0
+    best_test_loss = np.inf
+    best_val_loss = np.inf
 
     loss_dict_train = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
@@ -1213,7 +1213,7 @@ def _cross_validation_train_loop(model,
         val_f1 = f1_score(val_true, val_preds, average='weighted')
 
         # Step the learning rate scheduler based on the validation loss
-        scheduler.step(val_f1)
+        scheduler.step(test_loss)
         
         stop = time.time()
 
@@ -1226,19 +1226,8 @@ def _cross_validation_train_loop(model,
             f"Time: {stop-start}"
         )
 
-        if val_f1 > best_val_f1:
-            best_val_f1 = val_f1
-            torch.save(
-                model.state_dict(), 
-                os.path.join(
-                    model_output_dir,
-                    f'{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth'
-                )
-            )
-            print(f'Saved best model with val F1: {best_val_f1:.4f}')
-
-        if test_f1 > best_test_f1:
-            best_test_f1 = test_f1 
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss
             torch.save(
                 model.state_dict(), 
                 os.path.join(
@@ -1246,7 +1235,18 @@ def _cross_validation_train_loop(model,
                     f'{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth'
                 )
             )
-            print(f'Saved best model with test F1: {best_test_f1:.4f}')
+            print(f'Saved best model with test F1: {test_f1:.4f}')
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(
+                model.state_dict(), 
+                os.path.join(
+                    model_output_dir,
+                    f'{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth'
+                )
+            )
+            print(f'Saved best model with val F1: {val_f1:.4f}')
 
         torch.save(
             model.state_dict(), 
