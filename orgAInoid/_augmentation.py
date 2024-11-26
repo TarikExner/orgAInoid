@@ -41,6 +41,59 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         return img
 
 
+# class NormalizeSegmented(DualTransform):
+#     def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), always_apply=False, p=1.0):
+#         super(NormalizeSegmented, self).__init__(always_apply, p)
+#         self.mean = np.array(mean)
+#         self.std = np.array(std)
+# 
+#     def apply(self, img, **params):
+#         mask = params['mask']
+# 
+#         if np.max(img) != 1.0 or np.min(img) != 0.0:
+#             img = (img - np.min(img)) / (np.max(img)-np.min(img))
+# 
+#         # Ensure the mask is correctly shaped to match the image dimensions
+#         mask = mask.astype(bool)
+# 
+#         # Get the pixels that are not zero using the mask
+#         non_zero_pixels = img[mask == 0]
+# 
+#         # Calculate mean and std only on non-zero pixels
+#         mean = non_zero_pixels.mean(axis=0)
+#         std = non_zero_pixels.std(axis=0)
+# 
+#         # Calculate fill_value using (0-mean)/std
+#         fill_value = (0 - mean) / std
+# 
+#         # Normalize only non-zero pixels using the pre-defined mean and std
+#         img_normalized = np.copy(img).astype(np.float32)
+#         img_normalized[mask == 0] = (non_zero_pixels - mean) / std
+# 
+#         # Identify new zero-pixels introduced by augmentations (which were not part of the original mask)
+#         new_zero_pixels = (img == 0) & (mask != 0)
+# 
+#         # Set these newly introduced zero-pixels to the calculated fill_value
+#         img_normalized[new_zero_pixels] = fill_value
+# 
+#         # Rescale to the final mean and std
+#         img_normalized = img_normalized * self.std + self.mean
+# 
+#         return img_normalized.astype(np.float32)
+# 
+#     def apply_to_mask(self, img, **params):
+#         return img
+# 
+#     def get_transform_init_args_names(self):
+#         return ("mean", "std")
+# 
+#     @property
+#     def targets_as_params(self):
+#         return ['mask']
+#     
+#     def get_params_dependent_on_targets(self, params):
+#         return {'mask' : params['mask']}
+
 class NormalizeSegmented(DualTransform):
     def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), always_apply=False, p=1.0):
         super(NormalizeSegmented, self).__init__(always_apply, p)
@@ -50,34 +103,15 @@ class NormalizeSegmented(DualTransform):
     def apply(self, img, **params):
         mask = params['mask']
 
-        if np.max(img) != 1.0 or np.min(img) != 0.0:
-            img = (img - np.min(img)) / (np.max(img)-np.min(img))
-
-        # Ensure the mask is correctly shaped to match the image dimensions
+        # Ensure mask is boolean and matches image dimensions
         mask = mask.astype(bool)
 
-        # Get the pixels that are not zero using the mask
-        non_zero_pixels = img[mask == 0]
-
-        # Calculate mean and std only on non-zero pixels
-        mean = non_zero_pixels.mean(axis=0)
-        std = non_zero_pixels.std(axis=0)
-
-        # Calculate fill_value using (0-mean)/std
-        fill_value = (0 - mean) / std
-
-        # Normalize only non-zero pixels using the pre-defined mean and std
+        # Normalize the non-zero pixels in the ROI
         img_normalized = np.copy(img).astype(np.float32)
-        img_normalized[mask == 0] = (non_zero_pixels - mean) / std
+        img_normalized[mask] = (img[mask] - self.mean) / self.std
 
-        # Identify new zero-pixels introduced by augmentations (which were not part of the original mask)
-        new_zero_pixels = (img == 0) & (mask != 0)
-
-        # Set these newly introduced zero-pixels to the calculated fill_value
-        img_normalized[new_zero_pixels] = fill_value
-
-        # Rescale to the final mean and std
-        img_normalized = img_normalized * self.std + self.mean
+        # Ensure zero pixels remain zero
+        img_normalized[~mask] = 0.0
 
         return img_normalized.astype(np.float32)
 
@@ -92,8 +126,7 @@ class NormalizeSegmented(DualTransform):
         return ['mask']
     
     def get_params_dependent_on_targets(self, params):
-        return {'mask' : params['mask']}
-
+        return {'mask': params['mask']}
 
 def val_transformations() -> A.Compose:
     return A.Compose([
