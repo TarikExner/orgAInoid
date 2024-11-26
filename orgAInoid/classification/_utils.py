@@ -187,7 +187,7 @@ class ClassificationDataset(Dataset):
             assert isinstance(label, np.ndarray)
 
             zero_pixel_mask = np.expand_dims(
-                np.where(label == 1, 0, 1),
+                label,
                 axis = 0
             )
 

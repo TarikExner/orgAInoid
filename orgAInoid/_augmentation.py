@@ -108,10 +108,10 @@ class NormalizeSegmented(DualTransform):
 
         # Normalize the non-zero pixels in the ROI
         img_normalized = np.copy(img).astype(np.float32)
-        img_normalized[mask] = (img[mask] - self.mean) / self.std
-
-        # Ensure zero pixels remain zero
-        img_normalized[~mask] = 0.0
+        for c in range(3):  # Loop over channels
+            img_normalized[..., c][mask[..., c]] = (
+                img[..., c][mask[..., c]] - self.mean[c]
+            ) / self.std[c]
 
         return img_normalized.astype(np.float32)
 
