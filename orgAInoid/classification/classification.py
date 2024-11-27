@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from ._utils import (create_dataloader,
                      find_ideal_learning_rate,
+                     exclude_batchnorm_weight_decay,
                      AugmentationScheduler,
                      RPE_ADJUSTED_CUTOFFS,
                      LENS_ADJUSTED_CUTOFFS)
@@ -1092,7 +1093,7 @@ def _cross_validation_train_loop(model,
                 learning_rate = 0.0003
 
     optimizer = optim.Adam(
-        filter(lambda p: p.requires_grad, model.parameters()),
+        exclude_batchnorm_weight_decay(model, weight_decay = 1e-3),
         lr=learning_rate,
         weight_decay = 1e-3
     )

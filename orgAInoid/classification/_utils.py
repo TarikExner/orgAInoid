@@ -561,6 +561,35 @@ class AugmentationScheduler:
         targets_a, targets_b = targets, targets[index]
         return mixed_data, targets_a, targets_b, lam
 
+def exclude_batchnorm_weight_decay(model, weight_decay=1e-3):
+    """
+    Separates parameters for optimizer: excludes BatchNorm parameters from weight decay.
+
+    Args:
+        model (torch.nn.Module): The model with parameters to filter.
+        weight_decay (float): Weight decay value for parameters other than BatchNorm.
+
+    Returns:
+        param_groups (list): List of parameter groups for the optimizer.
+    """
+    bn_params = []
+    other_params = []
+
+    for module in model.modules():
+        if isinstance(module, torch.nn.BatchNorm2d):
+            bn_params.extend(module.parameters())  # Collect BatchNorm parameters
+        else:
+            other_params.extend(module.parameters())  # Collect other parameters
+
+    # Remove duplicates (if parameters are shared across modules)
+    bn_params = list(set(bn_params))
+    other_params = [p for p in other_params if p not in bn_params]
+
+    return [
+        {"params": bn_params, "weight_decay": 0.0},  # No weight decay for BatchNorm
+        {"params": other_params, "weight_decay": weight_decay}  # Apply weight decay
+    ]
+
 def create_dataset(img_array: np.ndarray,
                    class_array: np.ndarray,
                    transformations) -> ClassificationDataset:
