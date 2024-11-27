@@ -1094,7 +1094,7 @@ def _cross_validation_train_loop(model,
                 learning_rate = 0.0003
 
     optimizer = optim.Adam(
-        exclude_batchnorm_weight_decay(model, weight_decay = 1e-4),
+        exclude_batchnorm_weight_decay(model, weight_decay = 1e-3),
         lr=learning_rate
     )
 
@@ -1107,13 +1107,16 @@ def _cross_validation_train_loop(model,
     best_test_loss = np.inf
     best_val_loss = np.inf
 
+    best_test_f1 = 0
+    best_val_f1 = 0
+
     loss_dict_train = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
-    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 0, 2: 1}, mix_prob = 0.5)
+    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: -1, 2: 0}, mix_prob = 0.5)
 
-    augmentations, _ = augmentation_scheduler.get_transforms(1)
+    augmentations, apply_mix = augmentation_scheduler.get_transforms(1)
     train_loader = create_dataloader(
         X_train, y_train,
         batch_size = batch_size, shuffle = True, train = True,
@@ -1130,8 +1133,6 @@ def _cross_validation_train_loop(model,
 
     # Training loop
     for epoch in range(n_epochs):
-        augmentations, apply_mix = augmentation_scheduler.get_transforms(epoch + 1)
-        train_loader.transforms = augmentations
 
         start = time.time()
         model.train()
@@ -1242,6 +1243,28 @@ def _cross_validation_train_loop(model,
             f"Train F1: {train_f1:.4f}, Test F1: {test_f1:.4f}, Val F1: {val_f1:.4f}, "
             f"Time: {stop-start}"
         )
+
+        if test_f1 > best_test_f1:
+            best_test_f1 = test_f1
+            torch.save(
+                model.state_dict(), 
+                os.path.join(
+                    model_output_dir,
+                    f'{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth'
+                )
+            )
+            print(f'Saved best model with test F1: {test_f1:.4f}')
+
+        if val_f1 > best_val_f1:
+            best_val_f1 = val_f1
+            torch.save(
+                model.state_dict(), 
+                os.path.join(
+                    model_output_dir,
+                    f'{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth'
+                )
+            )
+            print(f'Saved best model with val F1: {val_f1:.4f}')
 
         if test_loss < best_test_loss:
             best_test_loss = test_loss
