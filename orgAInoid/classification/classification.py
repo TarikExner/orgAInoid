@@ -1063,7 +1063,7 @@ def _cross_validation_train_loop(model,
     else:
         class_weights = None
 
-    criterion = nn.CrossEntropyLoss(weight = class_weights)
+    criterion = nn.CrossEntropyLoss(weight = class_weights, label_smoothing = 0.1)
     
     if calculate_learning_rate is True:
         try:
@@ -1102,7 +1102,6 @@ def _cross_validation_train_loop(model,
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.5, patience=10
     )
-
 
     best_test_loss = np.inf
     best_val_loss = np.inf
