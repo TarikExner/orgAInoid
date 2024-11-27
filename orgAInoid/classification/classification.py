@@ -1219,7 +1219,7 @@ def _cross_validation_train_loop(model,
                 val_loss_list.append(loss.item())
 
                 val_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                test_true += torch.argmax(target, dim=1).cpu().tolist()
+                val_true += torch.argmax(target, dim=1).cpu().tolist()
 
         loss_dict_val[epoch] = val_loss_list
 
