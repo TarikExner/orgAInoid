@@ -363,7 +363,6 @@ def train_transformations(image_size: int = 224) -> A.Compose:
             shadow_roi=(0, 0.5, 1, 1), num_shadows_lower=1, num_shadows_upper=2,
             shadow_dimension=8, p=0.5
         ),
-        A.Solarize(threshold=0.5, p=0.5),
         # Apply intensity modifications only to non-masked pixels
         CustomIntensityAdjustment(p=0.5),
 
