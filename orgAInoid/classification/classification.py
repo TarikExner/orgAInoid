@@ -1145,7 +1145,7 @@ def _cross_validation_train_loop(model,
             data, target = data.to(device), target.to(device)
 
             # Apply augmentation (CutMix or MixUp)
-            data, mixed_targets = apply_mix(data, target)
+            data, target = apply_mix(data, target)
 
             optimizer.zero_grad()
 
@@ -1153,7 +1153,7 @@ def _cross_validation_train_loop(model,
             output = model(data)
 
             # Calculate the loss directly with mixed targets
-            loss = criterion(output, mixed_targets)
+            loss = criterion(output, target)
             loss.backward()
 
             # Apply gradient clipping
@@ -1183,7 +1183,7 @@ def _cross_validation_train_loop(model,
         with torch.no_grad():
             for data, target in test_loader:
                 data, target = data.to(device), target.to(device)
-                target = torch.argmax(target, dim = 1)
+                # target = torch.argmax(target, dim = 1)
 
                 output = model(data)
                 loss = criterion(output, target)
@@ -1192,7 +1192,7 @@ def _cross_validation_train_loop(model,
                 test_loss_list.append(loss.item())
 
                 test_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                test_true += target.cpu().tolist()
+                test_true += torch.argmax(target, dim=1).cpu().tolist()
         
         loss_dict_test[epoch] = test_loss_list
 
@@ -1210,7 +1210,7 @@ def _cross_validation_train_loop(model,
         with torch.no_grad():
             for data, target in val_loader:
                 data, target = data.to(device), target.to(device)
-                target = torch.argmax(target, dim = 1)
+                # target = torch.argmax(target, dim = 1)
 
                 output = model(data)
                 loss = criterion(output, target)
@@ -1219,7 +1219,7 @@ def _cross_validation_train_loop(model,
                 val_loss_list.append(loss.item())
 
                 val_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                val_true += target.cpu().tolist()
+                test_true += torch.argmax(target, dim=1).cpu().tolist()
 
         loss_dict_val[epoch] = val_loss_list
 
