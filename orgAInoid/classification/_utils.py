@@ -382,6 +382,117 @@ def train_transformations(image_size: int = 224) -> A.Compose:
         ToTensorV2()
     ], additional_targets={'mask': 'mask'})
 
+
+class AugmentationScheduler:
+    def __init__(self, stage_epochs: dict, image_size: int = 224):
+        """
+        Initialize the scheduler with augmentation stages and transition epochs.
+
+        Args:
+            stage_epochs (dict): Epoch thresholds for each stage, e.g., {1: 5, 2: 15}.
+            image_size (int): Size of the image for transformations.
+        """
+        self.stage_epochs = stage_epochs
+        self.image_size = image_size
+
+        # Define augmentations for each stage
+        self.stages = {
+            1: self._basic_augmentations(),
+            2: self._intermediate_augmentations(),
+            3: self._full_augmentations()
+        }
+
+    def _basic_augmentations(self):
+        """Define basic augmentations."""
+        return A.Compose([
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.5),
+            A.RandomResizedCrop(
+                height=self.image_size,
+                width=self.image_size,
+                scale=(0.8, 1.0),
+                p=0.5
+            ),
+            NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2()
+        ], additional_targets={'mask': 'mask'})
+
+    def _intermediate_augmentations(self):
+        """Define intermediate augmentations."""
+        return A.Compose([
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.5),
+            A.Rotate(limit=360, p=0.5),
+            A.ShiftScaleRotate(
+                shift_limit=0.0625,
+                scale_limit=0.2,
+                rotate_limit=0,
+                mask_value=0,
+                p=0.5
+            ),
+            A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
+            A.ElasticTransform(alpha=120, sigma=120 * 0.05, p=0.5),
+            NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2()
+        ], additional_targets={'mask': 'mask'})
+
+    def _full_augmentations(self):
+        """Define full augmentations."""
+        return A.Compose([
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.5),
+            A.Rotate(limit=360, p=0.5),
+            A.ShiftScaleRotate(
+                shift_limit=0.0625,
+                scale_limit=0.2,
+                rotate_limit=0,
+                mask_value=0,
+                p=0.5
+            ),
+            A.RandomResizedCrop(
+                height=self.image_size,
+                width=self.image_size,
+                scale=(0.8, 1),
+                p=0.5
+            ),
+            A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
+            A.ElasticTransform(alpha=120, sigma=120 * 0.05, p=0.5),
+            A.Perspective(scale=(0.05, 0.1), p=0.5),
+            A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.3, alpha_coef=0.08, p=0.5),
+            A.RandomShadow(
+                shadow_roi=(0, 0.5, 1, 1), num_shadows_lower=1, num_shadows_upper=2,
+                shadow_dimension=8, p=0.5
+            ),
+            CustomIntensityAdjustment(p=0.5),
+            A.CoarseDropout(
+                max_holes=20,
+                min_holes=10,
+                max_height=12,
+                max_width=12,
+                p=0.5
+            ),
+            NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2()
+        ], additional_targets={'mask': 'mask'})
+
+    def get_transforms(self, epoch):
+        """
+        Get the augmentation pipeline based on the current epoch.
+
+        Args:
+            epoch (int): The current training epoch.
+
+        Returns:
+            A.Compose: The augmentation pipeline for the given epoch.
+        """
+        if epoch < self.stage_epochs[1]:
+            return self.stages[1]
+        elif epoch < self.stage_epochs[2]:
+            return self.stages[2]
+        else:
+            return self.stages[3]
+
+
 def create_dataset(img_array: np.ndarray,
                    class_array: np.ndarray,
                    transformations) -> ClassificationDataset:
