@@ -516,8 +516,9 @@ class AugmentationScheduler:
             if epoch < self.stage_epochs[2]:
                 augmentation_type = "none"
             else:
-                augmentation_type = np.random.choice(["cutmix", "mixup", "none"], 
-                                                     p=[self.mix_prob, self.mix_prob, 1 - 2 * self.mix_prob])
+                augmentation_type = "mixup"
+                # augmentation_type = np.random.choice(["cutmix", "mixup", "none"], 
+                #                                      p=[self.mix_prob, self.mix_prob, 1 - 2 * self.mix_prob])
             if augmentation_type == "cutmix":
                 return self.cutmix(data, targets)
             elif augmentation_type == "mixup":
