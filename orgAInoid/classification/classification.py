@@ -1112,7 +1112,7 @@ def _cross_validation_train_loop(model,
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
-    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 5, 2: 15}, mix_prob = 0.3)
+    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 0, 2: 1}, mix_prob = 0.5)
 
     augmentations, _ = augmentation_scheduler.get_transforms(1)
     train_loader = create_dataloader(
