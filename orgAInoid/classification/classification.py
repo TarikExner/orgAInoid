@@ -1113,23 +1113,26 @@ def _cross_validation_train_loop(model,
 
     augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 5, 2: 15})
 
+    augmentations, _ = augmentation_scheduler.get_transforms(1)
+    train_loader = create_dataloader(
+        X_train, y_train,
+        batch_size = batch_size, shuffle = True, train = True,
+        transformations = augmentations
+    )
+    test_loader = create_dataloader(
+        X_test, y_test,
+        batch_size = batch_size, shuffle = False, train = False
+    )
+    val_loader = create_dataloader(
+        X_val, y_val,
+        batch_size = batch_size, shuffle = False, train = False
+    )
+
     # Training loop
     for epoch in range(n_epochs):
-        augmentations = augmentation_scheduler.get_transforms(epoch+1)
+        augmentations, apply_mix = augmentation_scheduler.get_transforms(epoch + 1)
+        train_loader.transforms = augmentations
         # Initialize the dataloaders
-        train_loader = create_dataloader(
-            X_train, y_train,
-            batch_size = batch_size, shuffle = True, train = True,
-            transformations = augmentations
-        )
-        test_loader = create_dataloader(
-            X_test, y_test,
-            batch_size = batch_size, shuffle = False, train = False
-        )
-        val_loader = create_dataloader(
-            X_val, y_val,
-            batch_size = batch_size, shuffle = False, train = False
-        )
         start = time.time()
         model.train()
         train_loss = 0
@@ -1139,6 +1142,7 @@ def _cross_validation_train_loop(model,
         
         for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
+            data, target = apply_mix(data, target)
             target = torch.argmax(target, dim = 1)
 
             optimizer.zero_grad()

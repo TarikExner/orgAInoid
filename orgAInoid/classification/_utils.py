@@ -385,18 +385,21 @@ def train_transformations(image_size: int = 224) -> A.Compose:
         ToTensorV2()
     ], additional_targets={'mask': 'mask'})
 
-
 class AugmentationScheduler:
-    def __init__(self, stage_epochs: dict, image_size: int = 224):
+    def __init__(self, stage_epochs: dict, image_size: int = 224, mix_prob: float = 0.5, alpha: float = 1.0):
         """
         Initialize the scheduler with augmentation stages and transition epochs.
 
         Args:
             stage_epochs (dict): Epoch thresholds for each stage, e.g., {1: 5, 2: 15}.
             image_size (int): Size of the image for transformations.
+            mix_prob (float): Probability of applying CutMix or MixUp.
+            alpha (float): Alpha value for the Beta distribution in CutMix and MixUp.
         """
         self.stage_epochs = stage_epochs
         self.image_size = image_size
+        self.mix_prob = mix_prob
+        self.alpha = alpha
 
         # Define augmentations for each stage
         self.stages = {
@@ -459,7 +462,7 @@ class AugmentationScheduler:
                 p=0.5
             ),
             A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
-            A.ElasticTransform(alpha=120, sigma=120 * 0.05, p=0.5, approximate = True, same_dxdy = True),
+            A.ElasticTransform(alpha=120, sigma=120 * 0.05, p=0.5),
             A.Perspective(scale=(0.05, 0.1), p=0.5),
             A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.3, alpha_coef=0.08, p=0.5),
             A.RandomShadow(
@@ -486,15 +489,60 @@ class AugmentationScheduler:
             epoch (int): The current training epoch.
 
         Returns:
-            A.Compose: The augmentation pipeline for the given epoch.
+            A.Compose or function: The augmentation pipeline for the given epoch.
         """
+        # Determine augmentation stage
         if epoch < self.stage_epochs[1]:
-            return self.stages[1]
+            transforms = self.stages[1]
         elif epoch < self.stage_epochs[2]:
-            return self.stages[2]
+            transforms = self.stages[2]
         else:
-            return self.stages[3]
+            transforms = self.stages[3]
 
+        # Wrap with CutMix and MixUp
+        def apply_mix(data, targets):
+            augmentation_type = np.random.choice(["cutmix", "mixup", "none"], p=[self.mix_prob, self.mix_prob, 1 - 2 * self.mix_prob])
+            if augmentation_type == "cutmix":
+                return self.cutmix(data, targets)
+            elif augmentation_type == "mixup":
+                return self.mixup(data, targets)
+            return data, targets
+
+        return transforms, apply_mix
+
+    def cutmix(self, data, targets):
+        """Apply CutMix augmentation."""
+        lam = np.random.beta(self.alpha, self.alpha)
+        batch_size = data.size(0)
+        index = torch.randperm(batch_size)
+
+        H, W = data.size(2), data.size(3)
+        cut_rat = np.sqrt(1. - lam)
+        cut_w = np.int(W * cut_rat)
+        cut_h = np.int(H * cut_rat)
+
+        cx = np.random.randint(W)
+        cy = np.random.randint(H)
+
+        x1 = np.clip(cx - cut_w // 2, 0, W)
+        x2 = np.clip(cx + cut_w // 2, 0, W)
+        y1 = np.clip(cy - cut_h // 2, 0, H)
+        y2 = np.clip(cy + cut_h // 2, 0, H)
+
+        data[:, :, y1:y2, x1:x2] = data[index, :, y1:y2, x1:x2]
+        targets_a, targets_b = targets, targets[index]
+        lam = 1 - ((x2 - x1) * (y2 - y1) / (H * W))
+        return data, targets_a, targets_b, lam
+
+    def mixup(self, data, targets):
+        """Apply MixUp augmentation."""
+        lam = np.random.beta(self.alpha, self.alpha)
+        batch_size = data.size(0)
+        index = torch.randperm(batch_size)
+
+        mixed_data = lam * data + (1 - lam) * data[index, :]
+        targets_a, targets_b = targets, targets[index]
+        return mixed_data, targets_a, targets_b, lam
 
 def create_dataset(img_array: np.ndarray,
                    class_array: np.ndarray,
