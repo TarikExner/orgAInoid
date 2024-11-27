@@ -1144,7 +1144,7 @@ def _cross_validation_train_loop(model,
             data, target = data.to(device), target.to(device)
 
             # Apply augmentation (CutMix or MixUp)
-            data, target = apply_mix(data, target)
+            # data, target = apply_mix(data, target)
 
             optimizer.zero_grad()
 
