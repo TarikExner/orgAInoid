@@ -1094,7 +1094,7 @@ def _cross_validation_train_loop(model,
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=learning_rate,
-        weight_decay = 1e-4
+        weight_decay = 1e-3
     )
 
     print(f"Ideal learning rate at {round(learning_rate, 5)}")
@@ -1148,6 +1148,7 @@ def _cross_validation_train_loop(model,
 
             targets_a = torch.argmax(targets_a, dim = 1)
             targets_b = torch.argmax(targets_b, dim = 1)
+            target = torch.argmax(target, dim = 1)
 
             optimizer.zero_grad()
 
