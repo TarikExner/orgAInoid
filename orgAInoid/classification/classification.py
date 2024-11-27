@@ -1064,7 +1064,8 @@ def _cross_validation_train_loop(model,
     else:
         class_weights = None
 
-    criterion = nn.CrossEntropyLoss(weight = class_weights, label_smoothing = 0.1)
+    # criterion = nn.CrossEntropyLoss(weight = class_weights, label_smoothing = 0.1)
+    criterion = nn.KLDivLoss(reduction = "batchmean")
     
     if calculate_learning_rate is True:
         try:
