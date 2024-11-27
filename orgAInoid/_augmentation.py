@@ -45,6 +45,10 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         
         return img
 
+    def get_transform_init_args_names(self):
+        return None
+    
+
 
 # class NormalizeSegmented(DualTransform):
 #     def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), always_apply=False, p=1.0):
