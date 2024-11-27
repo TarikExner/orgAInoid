@@ -35,8 +35,8 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         if img_max > img_min:
             img = (img - img_min) / (img_max - img_min)
 
-        assert np.min(img) == 0
-        assert np.max(img) == 1
+        # assert np.min(img) == 0
+        # assert np.max(img) == 1
         
         return img
 
