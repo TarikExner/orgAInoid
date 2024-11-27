@@ -1151,6 +1151,7 @@ def _cross_validation_train_loop(model,
 
             # Forward pass
             output = model(data)
+            output = torch.nn.functional.log_softmax(output, dim = 1)
 
             # Calculate the loss directly with mixed targets
             loss = criterion(output, target)
@@ -1186,6 +1187,7 @@ def _cross_validation_train_loop(model,
                 # target = torch.argmax(target, dim = 1)
 
                 output = model(data)
+                output = torch.nn.functional.log_softmax(output, dim = 1)
                 loss = criterion(output, target)
                 
                 test_loss += loss.item()
@@ -1213,6 +1215,7 @@ def _cross_validation_train_loop(model,
                 # target = torch.argmax(target, dim = 1)
 
                 output = model(data)
+                output = torch.nn.functional.log_softmax(output, dim = 1)
                 loss = criterion(output, target)
                 
                 val_loss += loss.item()
