@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from ._utils import (create_dataloader,
                      find_ideal_learning_rate,
+                     AugmentationScheduler,
                      RPE_ADJUSTED_CUTOFFS,
                      LENS_ADJUSTED_CUTOFFS)
 from ._dataset import (OrganoidDataset,
@@ -1052,19 +1053,6 @@ def _cross_validation_train_loop(model,
           f"Learning Rate: {learning_rate}, Batch Size: {batch_size}")
 
 
-    # Initialize the dataloaders
-    train_loader = create_dataloader(
-        X_train, y_train,
-        batch_size = batch_size, shuffle = True, train = True,
-    )
-    test_loader = create_dataloader(
-        X_test, y_test,
-        batch_size = batch_size, shuffle = False, train = False
-    )
-    val_loader = create_dataloader(
-        X_val, y_val,
-        batch_size = batch_size, shuffle = False, train = False
-    )
 
     # Initialize the model, criterion, and optimizer
     model = model.to(device)
@@ -1115,6 +1103,7 @@ def _cross_validation_train_loop(model,
         optimizer, mode='min', factor=0.5, patience=10
     )
 
+
     best_test_loss = np.inf
     best_val_loss = np.inf
 
@@ -1122,9 +1111,25 @@ def _cross_validation_train_loop(model,
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
+    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 5, 2: 15})
 
     # Training loop
     for epoch in range(n_epochs):
+        augmentations = augmentation_scheduler.get_transforms(epoch+1)
+        # Initialize the dataloaders
+        train_loader = create_dataloader(
+            X_train, y_train,
+            batch_size = batch_size, shuffle = True, train = True,
+            transformations = augmentations
+        )
+        test_loader = create_dataloader(
+            X_test, y_test,
+            batch_size = batch_size, shuffle = False, train = False
+        )
+        val_loader = create_dataloader(
+            X_val, y_val,
+            batch_size = batch_size, shuffle = False, train = False
+        )
         start = time.time()
         model.train()
         train_loss = 0
