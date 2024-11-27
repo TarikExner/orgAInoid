@@ -1132,7 +1132,7 @@ def _cross_validation_train_loop(model,
     for epoch in range(n_epochs):
         augmentations, apply_mix = augmentation_scheduler.get_transforms(epoch + 1)
         train_loader.transforms = augmentations
-        # Initialize the dataloaders
+
         start = time.time()
         model.train()
         train_loss = 0
@@ -1144,7 +1144,7 @@ def _cross_validation_train_loop(model,
             data, target = data.to(device), target.to(device)
 
             # Apply augmentation (CutMix or MixUp)
-            # data, target = apply_mix(data, target)
+            data, target = apply_mix(data, target)
 
             optimizer.zero_grad()
 
