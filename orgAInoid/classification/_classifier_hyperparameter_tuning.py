@@ -86,7 +86,6 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                         init = True)
         already_calculated = {}
     else:
-
         scores = pd.read_csv(score_file, index_col = False)
         scores = scores[["algorithm", "readout"]].drop_duplicates()
         already_calculated = {}
@@ -95,15 +94,9 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                 scores["readout"] == readout,
                 "algorithm"
             ].tolist()
-
-    param_dir = os.path.join(output_dir, "best_params/")
-    if not os.path.exists(param_dir):
-        os.makedirs(param_dir)
     
     try:
-        param_file_name = f"best_params_{classifier}_{readout}.dict"
-        param_file_dir = os.path.join(param_dir, param_file_name)
-        if os.path.isfile(param_file_dir):
+        if classifier in already_calculated[readout]:
             print(f"Skipping {classifier}, as it has already been calculated for readout {readout}")
             return
     except KeyError:
@@ -112,6 +105,11 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
     readouts = [readout]
 
     experiments = df["experiment"].unique().tolist()
+
+    param_dir = os.path.join(output_dir, "best_params/")
+
+    if not os.path.exists(param_dir):
+        os.makedirs(param_dir)
 
     scaler = StandardScaler()
     second_scaler = MinMaxScaler()
