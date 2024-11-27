@@ -499,14 +499,28 @@ class AugmentationScheduler:
         else:
             transforms = self.stages[3]
 
-        # Wrap with CutMix and MixUp
         def apply_mix(data, targets):
-            augmentation_type = np.random.choice(["cutmix", "mixup", "none"], p=[self.mix_prob, self.mix_prob, 1 - 2 * self.mix_prob])
+            """
+            Apply CutMix or MixUp augmentation dynamically or pass through.
+            
+            Args:
+                data (torch.Tensor): Batch of input images.
+                targets (torch.Tensor): Batch of labels.
+            
+            Returns:
+                data (torch.Tensor): Augmented or original batch of input images.
+                targets_a (torch.Tensor): Primary labels (original or mixed).
+                targets_b (torch.Tensor): Secondary labels (for mixing, or same as targets_a if no mix).
+                lam (float): Mixing coefficient (1 if no mixing).
+            """
+            augmentation_type = np.random.choice(["cutmix", "mixup", "none"], 
+                                                 p=[self.mix_prob, self.mix_prob, 1 - 2 * self.mix_prob])
             if augmentation_type == "cutmix":
                 return self.cutmix(data, targets)
             elif augmentation_type == "mixup":
                 return self.mixup(data, targets)
-            return data, targets
+            else:
+                return data, targets, targets, 1.0
 
         return transforms, apply_mix
 
@@ -518,8 +532,8 @@ class AugmentationScheduler:
 
         H, W = data.size(2), data.size(3)
         cut_rat = np.sqrt(1. - lam)
-        cut_w = np.int(W * cut_rat)
-        cut_h = np.int(H * cut_rat)
+        cut_w = int(W * cut_rat)
+        cut_h = int(H * cut_rat)
 
         cx = np.random.randint(W)
         cy = np.random.randint(H)

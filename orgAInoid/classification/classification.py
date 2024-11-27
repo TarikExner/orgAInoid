@@ -1142,12 +1142,18 @@ def _cross_validation_train_loop(model,
         
         for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
-            data, target = apply_mix(data, target)
-            target = torch.argmax(target, dim = 1)
+
+            # Apply augmentation (CutMix or MixUp)
+            inputs, targets_a, targets_b, lam = apply_mix(data, target)
+
+            targets_a = torch.argmax(targets_a, dim = 1)
+            targets_b = torch.argmax(targets_b, dim = 1)
 
             optimizer.zero_grad()
-            output = model(data)
-            loss = criterion(output, target)
+
+            # Forward pass
+            outputs = model(inputs)
+            loss = criterion(outputs, targets_a) * lam + criterion(outputs, targets_b) * (1 - lam)
             loss.backward()
 
             # Apply gradient clipping
