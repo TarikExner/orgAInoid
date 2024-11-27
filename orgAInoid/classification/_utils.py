@@ -572,21 +572,20 @@ def exclude_batchnorm_weight_decay(model, weight_decay=1e-3):
     Returns:
         param_groups (list): List of parameter groups for the optimizer.
     """
-    bn_params = []
+    bn_params = set()
     other_params = []
 
     for module in model.modules():
         if isinstance(module, torch.nn.BatchNorm2d):
-            bn_params.extend(module.parameters())  # Collect BatchNorm parameters
+            bn_params.update(module.parameters())  # Collect BatchNorm parameters
         else:
             other_params.extend(module.parameters())  # Collect other parameters
 
-    # Remove duplicates (if parameters are shared across modules)
-    bn_params = list(set(bn_params))
+    # Filter parameters to remove duplicates
     other_params = [p for p in other_params if p not in bn_params]
 
     return [
-        {"params": bn_params, "weight_decay": 0.0},  # No weight decay for BatchNorm
+        {"params": list(bn_params), "weight_decay": 0.0},  # No weight decay for BatchNorm
         {"params": other_params, "weight_decay": weight_decay}  # Apply weight decay
     ]
 
