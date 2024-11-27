@@ -1096,7 +1096,6 @@ def _cross_validation_train_loop(model,
     optimizer = optim.Adam(
         exclude_batchnorm_weight_decay(model, weight_decay = 1e-3),
         lr=learning_rate,
-        weight_decay = 1e-3
     )
 
     print(f"Ideal learning rate at {round(learning_rate, 5)}")
