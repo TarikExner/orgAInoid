@@ -523,12 +523,12 @@ class AugmentationScheduler:
             elif augmentation_type == "mixup":
                 return self.mixup(data, targets)
             else:
-                return data, targets, targets, 1.0
+                return data, targets
 
         return transforms, apply_mix
 
     def cutmix(self, data, targets):
-        """Apply CutMix augmentation."""
+        """Apply CutMix augmentation with one-hot encoded targets."""
         lam = np.random.beta(self.alpha, self.alpha)
         batch_size = data.size(0)
         index = torch.randperm(batch_size)
@@ -546,20 +546,26 @@ class AugmentationScheduler:
         y1 = np.clip(cy - cut_h // 2, 0, H)
         y2 = np.clip(cy + cut_h // 2, 0, H)
 
+        # Replace the patch in the images
         data[:, :, y1:y2, x1:x2] = data[index, :, y1:y2, x1:x2]
-        targets_a, targets_b = targets, targets[index]
+
+        # Adjust the one-hot encoded targets proportionally
         lam = 1 - ((x2 - x1) * (y2 - y1) / (H * W))
-        return data, targets_a, targets_b, lam
+        mixed_targets = lam * targets + (1 - lam) * targets[index, :]
+        return data, mixed_targets
 
     def mixup(self, data, targets):
-        """Apply MixUp augmentation."""
+        """Apply MixUp augmentation with one-hot encoded targets."""
         lam = np.random.beta(self.alpha, self.alpha)
         batch_size = data.size(0)
         index = torch.randperm(batch_size)
 
+        # Mix the images
         mixed_data = lam * data + (1 - lam) * data[index, :]
-        targets_a, targets_b = targets, targets[index]
-        return mixed_data, targets_a, targets_b, lam
+
+        # Mix the one-hot encoded targets
+        mixed_targets = lam * targets + (1 - lam) * targets[index, :]
+        return mixed_data, mixed_targets
 
 def exclude_batchnorm_weight_decay(model, weight_decay=1e-3):
     """

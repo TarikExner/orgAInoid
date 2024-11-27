@@ -1144,17 +1144,15 @@ def _cross_validation_train_loop(model,
             data, target = data.to(device), target.to(device)
 
             # Apply augmentation (CutMix or MixUp)
-            data, targets_a, targets_b, lam = apply_mix(data, target)
-
-            targets_a = torch.argmax(targets_a, dim = 1)
-            targets_b = torch.argmax(targets_b, dim = 1)
-            target = torch.argmax(target, dim = 1)
+            data, mixed_targets = apply_mix(data, target)
 
             optimizer.zero_grad()
 
             # Forward pass
             output = model(data)
-            loss = criterion(output, targets_a) * lam + criterion(output, targets_b) * (1 - lam)
+
+            # Calculate the loss directly with mixed targets
+            loss = criterion(output, mixed_targets)
             loss.backward()
 
             # Apply gradient clipping
@@ -1165,8 +1163,8 @@ def _cross_validation_train_loop(model,
             train_loss += loss.item()
             train_loss_list.append(loss.item())
 
-            train_preds += torch.argmax(output, dim = 1).cpu().tolist()
-            train_true += target.cpu().tolist()
+            train_preds += torch.argmax(output, dim=1).cpu().tolist()
+            train_true += torch.argmax(target, dim=1).cpu().tolist()
 
         loss_dict_train[epoch] = train_loss_list
 
