@@ -458,6 +458,7 @@ class AugmentationScheduler:
             A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
             A.ElasticTransform(alpha=120, sigma=120 * 0.05, p=0.5),
             A.Perspective(scale=(0.05, 0.1), p=0.5),
+            # A.PiecewiseAffine(scale=(0.01, 0.05), p=0.5),
             A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.3, alpha_coef=0.08, p=0.5),
             A.RandomShadow(
                 shadow_roi=(0, 0.5, 1, 1), num_shadows_lower=1, num_shadows_upper=2,
