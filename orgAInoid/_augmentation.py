@@ -17,6 +17,11 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
                     gamma_limit = (60, 140),
                     p=1
                 ),
+                A.ISONoise(
+                    color_shift=(0.01, 0.05),
+                    intensity=(0.1, 0.5),
+                    p=0.5
+                ),
                 A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5),
                 #A.GaussNoise(var_limit=(1,1), p=0.5),
                 A.AdvancedBlur(p=1)

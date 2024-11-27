@@ -351,6 +351,19 @@ def train_transformations(image_size: int = 224) -> A.Compose:
             shear=(-15, 15),
             p=0.5
         ),
+        A.ElasticTransform(
+            alpha=120,
+            sigma=120 * 0.05,
+            p=0.5
+        ),
+        A.Perspective(scale=(0.05, 0.1), p=0.5),
+        A.PiecewiseAffine(scale=(0.01, 0.05), p=0.5),
+        A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.3, alpha_coef=0.08, p=0.5),
+        A.RandomShadow(
+            shadow_roi=(0, 0.5, 1, 1), num_shadows_lower=1, num_shadows_upper=2,
+            shadow_dimension=8, p=0.5
+        ),
+        A.Solarize(threshold=0.5, p=0.5),
         # Apply intensity modifications only to non-masked pixels
         CustomIntensityAdjustment(p=0.5),
 
