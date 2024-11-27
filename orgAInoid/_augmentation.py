@@ -46,7 +46,7 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
         return img
 
     def get_transform_init_args_names(self):
-        return (None, None)
+        return []
     
 
 
