@@ -1122,7 +1122,7 @@ def _cross_validation_train_loop(model,
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
-    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 5, 2: 15}, mix_prob = 0.5)
+    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 15, 2: 30}, mix_prob = 0.5)
 
     # Training loop
     for epoch in range(n_epochs):
