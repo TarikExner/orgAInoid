@@ -476,6 +476,7 @@ class AugmentationScheduler:
                 min_holes=10,
                 max_height=12,
                 max_width=12,
+                fill_value = 0,
                 p=0.5
             ),
             NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
