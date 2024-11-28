@@ -479,7 +479,8 @@ class AugmentationScheduler:
                 p=0.5
             ),
             CustomIntensityAdjustment(p=0.5),
-            NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            # NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
             ToTensorV2()
         ], additional_targets={'mask': 'mask'})
 
