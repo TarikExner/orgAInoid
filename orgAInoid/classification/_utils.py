@@ -408,6 +408,11 @@ class AugmentationScheduler:
             3: self._full_augmentations()
         }
 
+    def _normalization(self):
+        #return NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        return A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1)
+
+
     def _basic_augmentations(self):
         """Define basic augmentations."""
         return A.Compose([
@@ -419,7 +424,7 @@ class AugmentationScheduler:
                 scale=(0.8, 1.0),
                 p=0.5
             ),
-            NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            self._normalization(),
             ToTensorV2()
         ], additional_targets={'mask': 'mask'})
 
@@ -437,8 +442,14 @@ class AugmentationScheduler:
                 p=0.5
             ),
             A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
-            A.ElasticTransform(alpha=120, sigma=120 * 0.05, p=0.5),
-            NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            A.Affine(
+                scale=1,
+                translate_percent=(-0.3, 0.3),
+                rotate=0,
+                shear=(-15, 15),
+                p=0.5
+            ),
+            self._normalization(),
             ToTensorV2()
         ], additional_targets={'mask': 'mask'})
 
@@ -479,8 +490,7 @@ class AugmentationScheduler:
                 p=0.5
             ),
             CustomIntensityAdjustment(p=0.5),
-            # NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+            self._normalization(),
             ToTensorV2()
         ], additional_targets={'mask': 'mask'})
 
