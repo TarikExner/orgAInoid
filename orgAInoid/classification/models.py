@@ -1744,6 +1744,12 @@ CLASSIFIERS_TO_TEST_LENS = {
                                                    allows_multi_class = False,
                                                    multiprocessing = True,
                                                    grid = GRIDS["GradientBoostingClassifier"]),
+    "SGDClassifier": characterization(classifier = SGDClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = False,
+                                      allows_multi_class = False,
+                                      multiprocessing = True,
+                                      grid = GRIDS["SGDClassifier"]),
     "Perceptron": characterization(classifier = Perceptron, 
                                    scalable = None, 
                                    accepts_empty_class = False,
@@ -1807,6 +1813,42 @@ CLASSIFIERS_TO_TEST_RPE = {
                                                       allows_multi_class = False,
                                                       multiprocessing = True,
                                                       grid = GRIDS["QuadraticDiscriminantAnalysis"]),
+    "SGDClassifier": characterization(classifier = SGDClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = False,
+                                      allows_multi_class = False,
+                                      multiprocessing = True,
+                                      grid = GRIDS["SGDClassifier"]),
+    "MLPClassifier": characterization(classifier = MLPClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = True,
+                                      allows_multi_class = True,
+                                      multiprocessing = False,
+                                      grid = GRIDS["MLPClassifier"]),
+    # "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
+    #                                                    scalable = None,
+    #                                                    accepts_empty_class = False,
+    #                                                    allows_multi_class = False,
+    #                                                    multiprocessing = True,
+    #                                                    grid = GRIDS["HistGradientBoostingClassifier"]),
+    # "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
+    #                                                scalable = None,
+    #                                                accepts_empty_class = False,
+    #                                                allows_multi_class = False,
+    #                                                multiprocessing = True,
+    #                                                grid = GRIDS["GradientBoostingClassifier"]),
+
+
+
+}
+
+CLASSIFIERS_TO_TEST_RPE_CLASSES = {
+    "LinearDiscriminantAnalysis": characterization(classifier = LinearDiscriminantAnalysis,
+                                                   scalable = None,
+                                                   accepts_empty_class = True,
+                                                   allows_multi_class = False,
+                                                   multiprocessing = True,
+                                                   grid = GRIDS["LinearDiscriminantAnalysis"]),
     "MLPClassifier": characterization(classifier = MLPClassifier,
                                       scalable = None,
                                       accepts_empty_class = True,
@@ -1819,24 +1861,6 @@ CLASSIFIERS_TO_TEST_RPE = {
                                       allows_multi_class = False,
                                       multiprocessing = True,
                                       grid = GRIDS["SGDClassifier"]),
-    "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
-                                                       scalable = None,
-                                                       accepts_empty_class = False,
-                                                       allows_multi_class = False,
-                                                       multiprocessing = True,
-                                                       grid = GRIDS["HistGradientBoostingClassifier"]),
-    "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
-                                                   scalable = None,
-                                                   accepts_empty_class = False,
-                                                   allows_multi_class = False,
-                                                   multiprocessing = True,
-                                                   grid = GRIDS["GradientBoostingClassifier"]),
-
-
-
-}
-
-CLASSIFIERS_TO_TEST_RPE_CLASSES = {
     "GaussianNB": characterization(classifier = GaussianNB,
                                    scalable = None,
                                    accepts_empty_class = True,
@@ -1949,6 +1973,12 @@ CLASSIFIERS_TO_TEST_LENS_CLASSES = {
                             allows_multi_class = True,
                             multiprocessing = True,
                             grid = GRIDS["KNN"]),
+    "MLPClassifier": characterization(classifier = MLPClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = True,
+                                      allows_multi_class = True,
+                                      multiprocessing = False,
+                                      grid = GRIDS["MLPClassifier"]),
 
 }
 
