@@ -472,10 +472,10 @@ class AugmentationScheduler:
 
             CustomIntensityAdjustment(p=0.5),
             A.CoarseDropout(
-                max_holes=50,
-                min_holes=20,
-                max_height=24,
-                max_width=24,
+                max_holes=30,
+                min_holes=10,
+                max_height=12,
+                max_width=12,
                 fill_value = 0,
                 p=0.5
             ),
