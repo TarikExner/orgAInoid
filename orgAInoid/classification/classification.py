@@ -1157,7 +1157,7 @@ def _cross_validation_train_loop(model,
             train_loss_list.append(loss.item())
 
             train_preds += torch.argmax(output, dim=1).cpu().tolist()
-            train_true += torch.argmax(target, dim=1).cpu().tolist()
+            train_true += target.cpu().tolist()
 
         loss_dict_train[epoch] = train_loss_list
 
