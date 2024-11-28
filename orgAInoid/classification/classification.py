@@ -1124,11 +1124,17 @@ def _cross_validation_train_loop(model,
 
     augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 5, 2: 15}, mix_prob = 0.5)
 
-    augmentations = augmentation_scheduler.get_transforms(1)
     train_loader.transforms = augmentations
 
     # Training loop
     for epoch in range(n_epochs):
+        augmentations = augmentation_scheduler.get_transforms(epoch + 1)
+        print(augmentations)
+        train_loader = create_dataloader(
+            X_train, y_train,
+            batch_size = batch_size, shuffle = True, train = True,
+            transformations = augmentations
+        )
 
         start = time.time()
         model.train()
