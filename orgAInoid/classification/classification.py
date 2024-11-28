@@ -1109,7 +1109,7 @@ def _cross_validation_train_loop(model,
     print(f"Ideal learning rate at {round(learning_rate, 5)}")
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=10
+        optimizer, mode='max', factor=0.5, patience=7
     )
 
     best_test_loss = np.inf
@@ -1223,11 +1223,9 @@ def _cross_validation_train_loop(model,
         val_acc = accuracy_score(val_true, val_preds)
         val_f1 = f1_score(val_true, val_preds, average='weighted')
 
-
-
         # Step the learning rate scheduler based on the validation loss
         current_lr = optimizer.param_groups[0]["lr"]
-        scheduler.step(test_loss)
+        scheduler.step(test_f1)
         new_lr = optimizer.param_groups[0]["lr"]
 
         if new_lr < current_lr:
@@ -1250,7 +1248,7 @@ def _cross_validation_train_loop(model,
                 model.state_dict(), 
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth'
+                    f'{model.__class__.__name__}_test_f1_{val_exp}_{readout}_base_model.pth'
                 )
             )
             print(f'Saved best model with test F1: {test_f1:.4f}')
@@ -1261,7 +1259,7 @@ def _cross_validation_train_loop(model,
                 model.state_dict(), 
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth'
+                    f'{model.__class__.__name__}_val_f1_{val_exp}_{readout}_base_model.pth'
                 )
             )
             print(f'Saved best model with val F1: {val_f1:.4f}')
