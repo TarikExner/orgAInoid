@@ -470,7 +470,6 @@ class AugmentationScheduler:
                 p=0.5
             ),
 
-            CustomIntensityAdjustment(p=0.5),
             A.CoarseDropout(
                 max_holes=30,
                 min_holes=10,
@@ -479,6 +478,7 @@ class AugmentationScheduler:
                 fill_value = 0,
                 p=0.5
             ),
+            CustomIntensityAdjustment(p=0.5),
             NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ], additional_targets={'mask': 'mask'})
