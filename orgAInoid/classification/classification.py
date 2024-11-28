@@ -1122,12 +1122,12 @@ def _cross_validation_train_loop(model,
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
-    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: 15, 2: 30}, mix_prob = 0.5)
+    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: -1, 2: 0})
 
     # Training loop
     for epoch in range(n_epochs):
         augmentations = augmentation_scheduler.get_transforms(epoch + 1)
-        print(augmentations)
+
         train_loader = create_dataloader(
             X_train, y_train,
             batch_size = batch_size, shuffle = True, train = True,
@@ -1223,9 +1223,16 @@ def _cross_validation_train_loop(model,
         val_acc = accuracy_score(val_true, val_preds)
         val_f1 = f1_score(val_true, val_preds, average='weighted')
 
+
+
         # Step the learning rate scheduler based on the validation loss
+        current_lr = optimizer.param_groups[0]["lr"]
         scheduler.step(test_loss)
-        
+        new_lr = optimizer.param_groups[0]["lr"]
+
+        if new_lr < current_lr:
+            print(f"Learning rate adjusted to {new_lr}.")       
+
         stop = time.time()
 
         # Print metrics
