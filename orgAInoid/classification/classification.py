@@ -969,7 +969,8 @@ def _cross_validation_train_loop(model,
                                  model_output_dir = "./classifiers",
                                  dataset_input_dir = "./raw_data",
                                  calculate_learning_rate: bool = True,
-                                 weighted_loss: bool = True) -> None:
+                                 weighted_loss: bool = True,
+                                 weight_decay = 1e-4) -> None:
     """\
     Trains model on full dataset in order to find a good baseline model.
 
@@ -1017,10 +1018,6 @@ def _cross_validation_train_loop(model,
     X_train, y_train, X_test, y_test = dataset.X_train, dataset.y_train, dataset.X_test, dataset.y_test
     X_val = validation_set.X
     y_val = validation_set.y
-    assert X_train is not None
-    assert y_train is not None
-    assert X_test is not None
-    assert y_test is not None
 
     learning_rate = learning_rate or 0.0001
     batch_size = batch_size or 64
@@ -1053,6 +1050,18 @@ def _cross_validation_train_loop(model,
     print(f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
           f"Learning Rate: {learning_rate}, Batch Size: {batch_size}")
 
+    train_loader = create_dataloader(
+        X_train, y_train,
+        batch_size = batch_size, shuffle = True, train = True
+    )
+    test_loader = create_dataloader(
+        X_test, y_test,
+        batch_size = batch_size, shuffle = False, train = False
+    )
+    val_loader = create_dataloader(
+        X_val, y_val,
+        batch_size = batch_size, shuffle = False, train = False
+    )
 
 
     # Initialize the model, criterion, and optimizer
@@ -1064,8 +1073,7 @@ def _cross_validation_train_loop(model,
     else:
         class_weights = None
 
-    # criterion = nn.CrossEntropyLoss(weight = class_weights, label_smoothing = 0.1)
-    criterion = nn.KLDivLoss(reduction = "batchmean")
+    criterion = nn.CrossEntropyLoss(weight = class_weights, label_smoothing = 0.1)
     
     if calculate_learning_rate is True:
         try:
@@ -1094,7 +1102,7 @@ def _cross_validation_train_loop(model,
                 learning_rate = 0.0003
 
     optimizer = optim.Adam(
-        exclude_batchnorm_weight_decay(model, weight_decay = 1e-4),
+        exclude_batchnorm_weight_decay(model, weight_decay = weight_decay),
         lr=learning_rate
     )
 
@@ -1116,20 +1124,8 @@ def _cross_validation_train_loop(model,
 
     augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: -1, 2: 0}, mix_prob = 0.5)
 
-    augmentations, apply_mix = augmentation_scheduler.get_transforms(1)
-    train_loader = create_dataloader(
-        X_train, y_train,
-        batch_size = batch_size, shuffle = True, train = True,
-        transformations = augmentations
-    )
-    test_loader = create_dataloader(
-        X_test, y_test,
-        batch_size = batch_size, shuffle = False, train = False
-    )
-    val_loader = create_dataloader(
-        X_val, y_val,
-        batch_size = batch_size, shuffle = False, train = False
-    )
+    augmentations = augmentation_scheduler.get_transforms(1)
+    train_loader.transforms = augmentations
 
     # Training loop
     for epoch in range(n_epochs):
@@ -1143,22 +1139,17 @@ def _cross_validation_train_loop(model,
         
         for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
-
-            # Apply augmentation (CutMix or MixUp)
-            data, target = apply_mix(data, target)
+            target = torch.argmax(target, dim = 1)
 
             optimizer.zero_grad()
-
-            # Forward pass
             output = model(data)
-            output = torch.nn.functional.log_softmax(output, dim = 1)
 
-            # Calculate the loss directly with mixed targets
             loss = criterion(output, target)
             loss.backward()
 
-            # Apply gradient clipping
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(
+                filter(lambda p: p.requires_grad, model.parameters()), max_norm=1.0
+            )
 
             optimizer.step()
             
@@ -1184,17 +1175,16 @@ def _cross_validation_train_loop(model,
         with torch.no_grad():
             for data, target in test_loader:
                 data, target = data.to(device), target.to(device)
-                # target = torch.argmax(target, dim = 1)
+                target = torch.argmax(target, dim = 1)
 
                 output = model(data)
-                output = torch.nn.functional.log_softmax(output, dim = 1)
                 loss = criterion(output, target)
                 
                 test_loss += loss.item()
                 test_loss_list.append(loss.item())
 
                 test_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                test_true += torch.argmax(target, dim=1).cpu().tolist()
+                test_true += target.cpu().tolist()
         
         loss_dict_test[epoch] = test_loss_list
 
@@ -1212,17 +1202,16 @@ def _cross_validation_train_loop(model,
         with torch.no_grad():
             for data, target in val_loader:
                 data, target = data.to(device), target.to(device)
-                # target = torch.argmax(target, dim = 1)
+                target = torch.argmax(target, dim = 1)
 
                 output = model(data)
-                output = torch.nn.functional.log_softmax(output, dim = 1)
                 loss = criterion(output, target)
                 
                 val_loss += loss.item()
                 val_loss_list.append(loss.item())
 
                 val_preds += torch.argmax(output, dim = 1).cpu().tolist()
-                val_true += torch.argmax(target, dim=1).cpu().tolist()
+                val_true += target.cpu().tolist()
 
         loss_dict_val[epoch] = val_loss_list
 

@@ -462,11 +462,14 @@ class AugmentationScheduler:
                 p=0.5
             ),
             A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
-            A.Perspective(scale=(0.05, 0.1), p=0.5),
-            A.RandomShadow(
-                shadow_roi=(0, 0.5, 1, 1), num_shadows_lower=1, num_shadows_upper=2,
-                shadow_dimension=8, p=0.5
+            A.Affine(
+                scale=1,
+                translate_percent=(-0.3, 0.3),
+                rotate=0,
+                shear=(-15, 15),
+                p=0.5
             ),
+
             CustomIntensityAdjustment(p=0.5),
             A.CoarseDropout(
                 max_holes=20,
@@ -497,34 +500,35 @@ class AugmentationScheduler:
         else:
             transforms = self.stages[3]
 
-        def apply_mix(data, targets):
-            """
-            Apply CutMix or MixUp augmentation dynamically or pass through.
-            
-            Args:
-                data (torch.Tensor): Batch of input images.
-                targets (torch.Tensor): Batch of labels.
-            
-            Returns:
-                data (torch.Tensor): Augmented or original batch of input images.
-                targets_a (torch.Tensor): Primary labels (original or mixed).
-                targets_b (torch.Tensor): Secondary labels (for mixing, or same as targets_a if no mix).
-                lam (float): Mixing coefficient (1 if no mixing).
-            """
-            if epoch < self.stage_epochs[2]:
-                augmentation_type = "none"
-            else:
-                augmentation_type = "mixup"
-                # augmentation_type = np.random.choice(["cutmix", "mixup", "none"], 
-                #                                      p=[self.mix_prob, self.mix_prob, 1 - 2 * self.mix_prob])
-            if augmentation_type == "cutmix":
-                return self.cutmix(data, targets)
-            elif augmentation_type == "mixup":
-                return self.mixup(data, targets)
-            else:
-                return data, targets
 
-        return transforms, apply_mix
+        return transforms
+
+    def apply_mix(self, data, targets, epoch):
+        """
+        Apply CutMix or MixUp augmentation dynamically or pass through.
+        
+        Args:
+            data (torch.Tensor): Batch of input images.
+            targets (torch.Tensor): Batch of labels.
+        
+        Returns:
+            data (torch.Tensor): Augmented or original batch of input images.
+            targets_a (torch.Tensor): Primary labels (original or mixed).
+            targets_b (torch.Tensor): Secondary labels (for mixing, or same as targets_a if no mix).
+            lam (float): Mixing coefficient (1 if no mixing).
+        """
+        if epoch < self.stage_epochs[2]:
+            augmentation_type = "none"
+        else:
+            augmentation_type = "mixup"
+            # augmentation_type = np.random.choice(["cutmix", "mixup", "none"], 
+            #                                      p=[self.mix_prob, self.mix_prob, 1 - 2 * self.mix_prob])
+        if augmentation_type == "cutmix":
+            return self.cutmix(data, targets)
+        elif augmentation_type == "mixup":
+            return self.mixup(data, targets)
+        else:
+            return data, targets
 
     def cutmix(self, data, targets):
         """Apply CutMix augmentation with one-hot encoded targets."""
@@ -578,7 +582,8 @@ def exclude_batchnorm_weight_decay(model, weight_decay=1e-3):
             decay.append(param)
     return [
         {'params': no_decay, 'weight_decay': 0.},
-        {'params': decay, 'weight_decay': weight_decay}]
+        {'params': decay, 'weight_decay': weight_decay}
+    ]
 
 def create_dataset(img_array: np.ndarray,
                    class_array: np.ndarray,
