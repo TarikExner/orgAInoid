@@ -115,6 +115,7 @@ def test_for_n_experiments(df: pd.DataFrame,
 
             print(f"... running {classifier} on readout {readout}")
             for experiment in experiments:
+                print("CURRENT VALIDATION EXPERIMENT: {experiment}")
 
                 for n_exp in n_experiments_to_test:
 
@@ -136,6 +137,9 @@ def test_for_n_experiments(df: pd.DataFrame,
                     experiments_to_test = list(
                         np.random.choice(experiments_non_val_df, n_exp, replace = False)
                     )
+
+                    print(f"     Calculating... {n_exp}: {experiments_to_test}")
+
                     non_val_df = non_val_df[non_val_df["experiment"].isin(experiments_to_test)].copy()
                     assert isinstance(non_val_df, pd.DataFrame)
 
