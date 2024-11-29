@@ -565,7 +565,8 @@ def _cross_validation_train_loop_regression(model,
                                             model_output_dir = "./classifiers",
                                             dataset_input_dir = "./raw_data",
                                             calculate_learning_rate: bool = True,
-                                            weighted_loss: bool = True) -> None:
+                                            weighted_loss: bool = True,
+                                            weight_decay: float = 1e-4) -> None:
     """\
     Trains model on full dataset in order to find a good baseline model.
 
@@ -702,9 +703,8 @@ def _cross_validation_train_loop_regression(model,
                 learning_rate = 0.0003
 
     optimizer = optim.Adam(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr=learning_rate,
-        weight_decay = 1e-4
+        exclude_batchnorm_weight_decay(model, weight_decay = weight_decay),
+        lr=learning_rate
     )
 
     print(f"Ideal learning rate at {round(learning_rate, 5)}")

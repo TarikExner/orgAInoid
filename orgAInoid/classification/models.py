@@ -1915,12 +1915,6 @@ CLASSIFIERS_TO_TEST_RPE_CLASSES = {
                                                    allows_multi_class = False,
                                                    multiprocessing = True,
                                                    grid = GRIDS["GradientBoostingClassifier"]),
-    "SGDClassifier": characterization(classifier = SGDClassifier,
-                                      scalable = None,
-                                      accepts_empty_class = False,
-                                      allows_multi_class = False,
-                                      multiprocessing = True,
-                                      grid = GRIDS["SGDClassifier"]),
 
 }
 
@@ -2019,4 +2013,37 @@ CLASSIFIERS_TO_TEST = {
                             allows_multi_class = True,
                             multiprocessing = True,
                             grid = GRIDS["KNN"])
+}
+
+FINAL_CLASSIFIER_RPE = {
+    "SGDClassifier": characterization(classifier = SGDClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = False,
+                                      allows_multi_class = False,
+                                      multiprocessing = True,
+                                      grid = GRIDS["SGDClassifier"]),
+
+}
+
+FINAL_CLASSIFIER_LENS = {
+    "SGDClassifier": characterization(classifier = SGDClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = False,
+                                      allows_multi_class = False,
+                                      multiprocessing = True,
+                                      grid = GRIDS["SGDClassifier"]),
+}
+
+FINAL_CLASSIFIER_RPE_CLASSES = {
+    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = False,
+                                               grid = GRIDS["DecisionTreeClassifier"]),
+
+}
+
+FINAL_CLASSIFIER_LENS_CLASSES = {
+
 }

@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import time
 import gc
+import pickle
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.multioutput import MultiOutputClassifier
@@ -10,15 +11,40 @@ from sklearn.multioutput import MultiOutputClassifier
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
 from .models import (CLASSIFIERS_TO_TEST_FULL,
-                     CLASSIFIERS_TO_TEST_RPE,
-                     CLASSIFIERS_TO_TEST_LENS,
-                     CLASSIFIERS_TO_TEST_RPE_CLASSES,
-                     CLASSIFIERS_TO_TEST_LENS_CLASSES)
+                     FINAL_CLASSIFIER_RPE,
+                     FINAL_CLASSIFIER_LENS,
+                     FINAL_CLASSIFIER_RPE_CLASSES,
+                     FINAL_CLASSIFIER_LENS_CLASSES)
 from ._utils import _one_hot_encode_labels, _apply_train_test_split
 
-def _test_for_n_experiments(df: pd.DataFrame,
+from typing import Optional
+
+def _get_classifier(classifier_name,
+                    params: Optional[dict] = None,
+                    hyperparameter: bool = False):
+
+    if params is None:
+        params = {}
+
+
+    if CLASSIFIERS_TO_TEST_FULL[classifier_name]["allows_multi_class"]:
+        if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"] and not hyperparameter:
+            params["n_jobs"] = 16
+            clf = CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params)
+        else:
+            clf = CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params)
+    else:
+        if CLASSIFIERS_TO_TEST_FULL[classifier_name]["scalable"] is False:
+            clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params))
+        else:
+            clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier_name]["classifier"](**params), n_jobs = 16)
+
+    return clf
+
+def test_for_n_experiments(df: pd.DataFrame,
                             output_dir: str,
                             classifier: str,
+                            use_tuned_classifier: bool,
                             data_columns: list[str],
                             readout: str):
 
@@ -63,17 +89,23 @@ def _test_for_n_experiments(df: pd.DataFrame,
     n_experiments_to_test = list(range(len(total_experiments) - 1))
     
     if readout == "RPE_Final":
-        classifiers_to_test = CLASSIFIERS_TO_TEST_RPE
+        classifiers_to_test = FINAL_CLASSIFIER_RPE
     elif readout == "Lens_Final":
-        classifiers_to_test = CLASSIFIERS_TO_TEST_LENS
+        classifiers_to_test = FINAL_CLASSIFIER_LENS
     elif readout == "RPE_classes":
-        classifiers_to_test = CLASSIFIERS_TO_TEST_RPE_CLASSES
+        classifiers_to_test = FINAL_CLASSIFIER_RPE_CLASSES
     elif readout == "Lens_classes":
-        classifiers_to_test = CLASSIFIERS_TO_TEST_LENS_CLASSES
+        classifiers_to_test = FINAL_CLASSIFIER_LENS_CLASSES
+
     else:
         raise ValueError("Unknown readout")
 
+    param_dir = os.path.join(output_dir, "best_params/")
+
     for readout in readouts:
+        param_file_name = f"best_params_{classifier}_{readout}.dict"
+        param_file_dir = os.path.join(param_dir, param_file_name)
+
         for classifier in classifiers_to_test:
 
             if readout in already_calculated:
@@ -81,30 +113,25 @@ def _test_for_n_experiments(df: pd.DataFrame,
                     print(f"Skipping {classifier} for {readout} as it is already calculated")
                     continue
 
-            if classifier in ["LabelPropagation", "LabelSpreading", "CategoricalNB"]:
-                print(f"Skipping {classifier} due to memory reasons!")
-                continue
-
             print(f"... running {classifier} on readout {readout}")
-            for n_exp in n_experiments_to_test:
+            for experiment in experiments:
 
-                for experiment in experiments:
+                for n_exp in n_experiments_to_test:
 
-                    if CLASSIFIERS_TO_TEST_FULL[classifier]["allows_multi_class"]:
-                        if CLASSIFIERS_TO_TEST_FULL[classifier]["multiprocessing"]:
-                            clf = CLASSIFIERS_TO_TEST_FULL[classifier]["classifier"](n_jobs = 16)
-                        else:
-                            clf = CLASSIFIERS_TO_TEST_FULL[classifier]["classifier"]()
+                    if use_tuned_classifier:
+                        with open(param_file_dir, "rb") as file:
+                            cleaned_best_params = pickle.load(file)
                     else:
-                        if CLASSIFIERS_TO_TEST_FULL[classifier]["scalable"] is False:
-                            clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier]["classifier"]())
-                        else:
-                            clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier]["classifier"](), n_jobs = 16)
+                        cleaned_best_params = {}
+                    
+                    clf = _get_classifier(classifier_name = classifier,
+                                          params = cleaned_best_params)
 
                     scaler = StandardScaler()
 
                     non_val_df = df[df["experiment"] != experiment].copy()
                     assert isinstance(non_val_df, pd.DataFrame)
+
                     experiments_non_val_df = non_val_df["experiment"].unique().tolist()
                     experiments_to_test = list(
                         np.random.choice(experiments_non_val_df, n_exp, replace = False)
