@@ -115,7 +115,7 @@ def test_for_n_experiments(df: pd.DataFrame,
 
             print(f"... running {classifier} on readout {readout}")
             for experiment in experiments:
-                print("CURRENT VALIDATION EXPERIMENT: {experiment}")
+                print(f"CURRENT VALIDATION EXPERIMENT: {experiment}")
 
                 for n_exp in n_experiments_to_test:
 
