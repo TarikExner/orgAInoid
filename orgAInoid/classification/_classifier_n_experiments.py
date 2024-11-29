@@ -4,9 +4,13 @@ import pandas as pd
 import time
 import gc
 import pickle
+import random
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.multioutput import MultiOutputClassifier
+
+
+import itertools
 
 
 from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
@@ -60,7 +64,7 @@ def test_for_n_experiments(df: pd.DataFrame,
 
     scores = ",".join([score for score in SCORES_TO_USE])
     resource_metrics = (
-        "algorithm,readout,n_experiments,score_on,experiment,train_time," +
+        "algorithm,readout,n_experiments,permutation,score_on,experiment,train_time," +
         f"pred_time_train,pred_time_test,pred_time_val,{scores}\n"
     )
     score_key = "n_experiments"
@@ -101,8 +105,6 @@ def test_for_n_experiments(df: pd.DataFrame,
 
     param_dir = os.path.join(output_dir, "best_params/")
 
-    max_retries = 5
-
     for readout in readouts:
         param_file_name = f"best_params_{classifier}_{readout}.dict"
         param_file_dir = os.path.join(param_dir, param_file_name)
@@ -115,35 +117,34 @@ def test_for_n_experiments(df: pd.DataFrame,
                     continue
 
             print(f"... running {classifier} on readout {readout}")
-            for experiment in experiments:
-                print(f"CURRENT VALIDATION EXPERIMENT: {experiment}")
+            for val_experiment in experiments:
+                print(f"CURRENT VALIDATION EXPERIMENT: {val_experiment}")
 
                 for n_exp in n_experiments_to_test:
 
-                    if use_tuned_classifier:
-                        with open(param_file_dir, "rb") as file:
-                            cleaned_best_params = pickle.load(file)
-                    else:
-                        cleaned_best_params = {}
-                    
-                    clf = _get_classifier(classifier_name = classifier,
-                                          params = cleaned_best_params)
+                    val_df = df[df["experiment"] == val_experiment].copy()
+                    assert isinstance(val_df, pd.DataFrame)
 
-                    scaler = StandardScaler()
+                    non_val_experiments = [exp for exp in total_experiments if exp != val_experiment]
 
-                    non_val_df = df[df["experiment"] != experiment].copy()
-                    assert isinstance(non_val_df, pd.DataFrame)
+                    all_combinations = list(itertools.combinations(non_val_experiments, n_exp))
+                    random.shuffle(all_combinations)
+                    all_combinations = all_combinations[:50] if len(all_combinations) >= 50 else all_combinations
 
-                    success = False
-                    retries = 0
+                    for permutation, experiments_to_test in enumerate(all_combinations):
+                        assert len(experiments_to_test) == len(set(experiments_to_test))
+                        if use_tuned_classifier:
+                            with open(param_file_dir, "rb") as file:
+                                cleaned_best_params = pickle.load(file)
+                        else:
+                            cleaned_best_params = {}
+                        
+                        clf = _get_classifier(classifier_name = classifier,
+                                              params = cleaned_best_params)
 
-                    while not success and retries < max_retries:
 
-                        experiments_non_val_df = non_val_df["experiment"].unique().tolist()
-                        experiments_to_test = list(
-                            np.random.choice(experiments_non_val_df, n_exp, replace = False)
-                        )
-                        experiments_to_test.sort()
+                        non_val_df = df[df["experiment"] != val_experiment].copy()
+                        assert isinstance(non_val_df, pd.DataFrame)
 
                         non_val_df = non_val_df[non_val_df["experiment"].isin(experiments_to_test)].copy()
                         assert isinstance(non_val_df, pd.DataFrame)
@@ -153,96 +154,87 @@ def test_for_n_experiments(df: pd.DataFrame,
                         y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
                                                          readout = readout)
 
-                        if np.unique(y_train, axis = 0).shape[0] != 1:
-                            success = True
-                        if not success:
-                            print(
-                                f"Found only one class (shape: {np.unique(y_train, axis = 0).shape}) with experiments {experiments_to_test}... retrying the experiment selection...")
-                            retries += 1
+                        if np.unique(y_train, axis = 0).shape[0] == 1:
+                            print(f"Skipping combination {experiments_to_test} because only one class is present")
+                            continue
 
-                    if not success:
-                        print("Found only one class for five tries... exiting...")
-                        raise ValueError
+                        scaler = StandardScaler()
+                        scaler.fit(non_val_df[data_columns])
 
-                    val_df = df[df["experiment"] == experiment].copy()
-                    assert isinstance(val_df, pd.DataFrame)
+                        train_df[data_columns] = scaler.transform(train_df[data_columns])
+                        test_df[data_columns] = scaler.transform(test_df[data_columns])
+                        val_df[data_columns] = scaler.transform(val_df[data_columns])
 
-                    scaler.fit(non_val_df[data_columns])
+                        train_test_df = pd.concat([train_df, test_df], axis = 0)
 
-                    train_df[data_columns] = scaler.transform(train_df[data_columns])
-                    test_df[data_columns] = scaler.transform(test_df[data_columns])
-                    val_df[data_columns] = scaler.transform(val_df[data_columns])
+                        second_scaler = MinMaxScaler()
+                        second_scaler.fit(train_test_df[data_columns])
 
-                    train_test_df = pd.concat([train_df, test_df], axis = 0)
+                        train_df[data_columns] = second_scaler.transform(train_df[data_columns])
+                        test_df[data_columns] = second_scaler.transform(test_df[data_columns])
+                        val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
-                    second_scaler = MinMaxScaler()
-                    second_scaler.fit(train_test_df[data_columns])
+                        X_train = train_df[data_columns].to_numpy()
 
-                    train_df[data_columns] = second_scaler.transform(train_df[data_columns])
-                    test_df[data_columns] = second_scaler.transform(test_df[data_columns])
-                    val_df[data_columns] = second_scaler.transform(val_df[data_columns])
+                        X_test = test_df[data_columns].to_numpy()
+                        y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
+                                                        readout = readout)
 
-                    X_train = train_df[data_columns].to_numpy()
-
-                    X_test = test_df[data_columns].to_numpy()
-                    y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
-                                                    readout = readout)
-
-                    X_val = val_df[data_columns].to_numpy()
-                    y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
-                                                   readout = readout)
+                        X_val = val_df[data_columns].to_numpy()
+                        y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
+                                                       readout = readout)
 
 
-                    print(f"     Calculating... {n_exp}: {experiments_to_test}")
-                    
-                    start = time.time()
-                    clf.fit(X_train, y_train)
-                    train_time = time.time() - start
+                        print(f"     Calculating... {n_exp}: {experiments_to_test}")
+                        
+                        start = time.time()
+                        clf.fit(X_train, y_train)
+                        train_time = time.time() - start
 
-                    y_train_argmax = np.argmax(y_train, axis = 1)
-                    y_test_argmax = np.argmax(y_test, axis = 1)
-                    y_val_argmax = np.argmax(y_val, axis = 1)
-                    
-                    start = time.time()
-                    pred_train = clf.predict(X_train)
-                    pred_train_argmax = np.argmax(pred_train, axis = 1)
-                    pred_time_train = time.time() - start
+                        y_train_argmax = np.argmax(y_train, axis = 1)
+                        y_test_argmax = np.argmax(y_test, axis = 1)
+                        y_val_argmax = np.argmax(y_val, axis = 1)
+                        
+                        start = time.time()
+                        pred_train = clf.predict(X_train)
+                        pred_train_argmax = np.argmax(pred_train, axis = 1)
+                        pred_time_train = time.time() - start
 
-                    start = time.time()
-                    pred_test = clf.predict(X_test)
-                    pred_test_argmax = np.argmax(pred_test, axis = 1)
-                    pred_time_test = time.time() - start
+                        start = time.time()
+                        pred_test = clf.predict(X_test)
+                        pred_test_argmax = np.argmax(pred_test, axis = 1)
+                        pred_time_test = time.time() - start
 
-                    start = time.time()
-                    pred_val = clf.predict(X_val)
-                    pred_val_argmax = np.argmax(pred_val, axis = 1)
-                    pred_time_val= time.time() - start
+                        start = time.time()
+                        pred_val = clf.predict(X_val)
+                        pred_val_argmax = np.argmax(pred_val, axis = 1)
+                        pred_time_val= time.time() - start
 
-                    scores = score_classifier(true_arr = y_train_argmax,
-                                              pred_arr = pred_train_argmax,
-                                              readout = readout)
-                    score_string = ",".join(scores)
-                    write_to_scores(f"{classifier},{readout},{n_exp},train,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                                    output_dir = output_dir,
-                                    key = score_key)
+                        scores = score_classifier(true_arr = y_train_argmax,
+                                                  pred_arr = pred_train_argmax,
+                                                  readout = readout)
+                        score_string = ",".join(scores)
+                        write_to_scores(f"{classifier},{readout},{n_exp},{permutation},train,{val_experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+                                        output_dir = output_dir,
+                                        key = score_key)
 
-                    scores = score_classifier(true_arr = y_test_argmax,
-                                              pred_arr = pred_test_argmax,
-                                              readout = readout)
-                    score_string = ",".join(scores)
-                    write_to_scores(f"{classifier},{readout},{n_exp},test,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                                    output_dir = output_dir,
-                                    key = score_key)
-                    scores = score_classifier(true_arr = y_val_argmax,
-                                              pred_arr = pred_val_argmax,
-                                              readout = readout)
-                    score_string = ",".join(scores)
-                    write_to_scores(f"{classifier},{readout},{n_exp},val,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                                    output_dir = output_dir,
-                                    key = score_key)
+                        scores = score_classifier(true_arr = y_test_argmax,
+                                                  pred_arr = pred_test_argmax,
+                                                  readout = readout)
+                        score_string = ",".join(scores)
+                        write_to_scores(f"{classifier},{readout},{n_exp},{permutation},test,{val_experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+                                        output_dir = output_dir,
+                                        key = score_key)
+                        scores = score_classifier(true_arr = y_val_argmax,
+                                                  pred_arr = pred_val_argmax,
+                                                  readout = readout)
+                        score_string = ",".join(scores)
+                        write_to_scores(f"{classifier},{readout},{n_exp},{permutation},val,{val_experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+                                        output_dir = output_dir,
+                                        key = score_key)
 
-                    del clf, X_train, X_test, X_val, y_train, y_test, y_val
-                    gc.collect()
+                        del clf, X_train, X_test, X_val, y_train, y_test, y_val
+                        gc.collect()
 
     return
 
