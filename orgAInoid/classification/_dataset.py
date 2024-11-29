@@ -117,18 +117,52 @@ class OrganoidDataset:
         self._metadata = self._metadata.sample(
             frac = frac, replace = False, random_state = 187
         ).sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+
         indices = self._metadata["IMAGE_ARRAY_INDEX"].tolist()
+        self._subset_by_indices(indices)
+
+        return
+
+    def subsample_n(self,
+                    n: int) -> None:
+        assert -1 not in self._metadata["IMAGE_ARRAY_INDEX"]
+        if n >= self._metadata.shape[0]:
+            print(f"Not subsetting {n} images due to a dataset_size of {self._metadata.shape[0]}")
+            return
+        self._metadata = self._metadata.sample(
+            n, replace = False, random_state = 187
+        ).sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+
+        indices = self._metadata["IMAGE_ARRAY_INDEX"].tolist()
+        self._subset_by_indices(indices)
+
+        return
+
+    def subset_experiments(self,
+                           experiments: Union[list[str], tuple[str], str]) -> None:
+        assert -1 not in self._metadata["IMAGE_ARRAY_INDEX"]
+        if isinstance(experiments, str):
+            experiments = [experiments]
+
+        self._metadata = self._metadata[
+            self._metadata["experiment"].isin(experiments)
+        ].sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+
+        indices = self._metadata["IMAGE_ARRAY_INDEX"].tolist()
+        self._subset_by_indices(indices)
+
+    def _subset_by_indices(self,
+                           indices: list) -> None:
         self.X = self.X[indices]
         self.y = {
             key: self.y[key][indices] for key in self.y.keys()
+
         }
         self._metadata["IMAGE_ARRAY_INDEX"] = np.arange(self.X.shape[0])
 
         self._create_class_counts()
 
         assert self.metadata.shape[0] == self.X.shape[0]
-
-        return
 
     def _create_class_counts(self):
         class_balances = {}
