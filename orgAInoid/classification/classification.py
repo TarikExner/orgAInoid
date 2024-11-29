@@ -1037,6 +1037,8 @@ def _cross_validation_n_experiments(model,
     )
     print(f"CURRENT VALIDATION EXPERIMENT: {val_exp}")
 
+    untrained_model = model.copy()
+
     for n_exp in n_experiments_to_test:
 
         experiment_combinations = list(itertools.combinations(non_val_exp, n_exp))
@@ -1087,6 +1089,7 @@ def _cross_validation_n_experiments(model,
 
 
             # Initialize the model, criterion, and optimizer
+            model = untrained_model.copy()
             model = model.to(device)
             
             if weighted_loss is True:
