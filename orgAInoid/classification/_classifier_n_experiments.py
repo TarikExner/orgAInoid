@@ -122,8 +122,6 @@ def test_for_n_experiments(df: pd.DataFrame,
 
                 for n_exp in n_experiments_to_test:
 
-                    val_df = df[df["experiment"] == val_experiment].copy()
-                    assert isinstance(val_df, pd.DataFrame)
 
                     non_val_experiments = [exp for exp in total_experiments if exp != val_experiment]
 
@@ -157,6 +155,9 @@ def test_for_n_experiments(df: pd.DataFrame,
                         if np.unique(y_train, axis = 0).shape[0] == 1:
                             print(f"Skipping combination {experiments_to_test} because only one class is present")
                             continue
+
+                        val_df = df[df["experiment"] == val_experiment].copy()
+                        assert isinstance(val_df, pd.DataFrame)
 
                         scaler = StandardScaler()
                         scaler.fit(non_val_df[data_columns])
