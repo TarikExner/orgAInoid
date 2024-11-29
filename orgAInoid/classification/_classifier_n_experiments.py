@@ -86,7 +86,7 @@ def test_for_n_experiments(df: pd.DataFrame,
     experiments = df["experiment"].unique().tolist()
     total_experiments = experiments
 
-    n_experiments_to_test = list(range(len(total_experiments) - 1))
+    n_experiments_to_test = list(range(1, len(total_experiments)))
     
     if readout == "RPE_Final":
         classifiers_to_test = FINAL_CLASSIFIER_RPE
