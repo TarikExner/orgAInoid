@@ -158,7 +158,7 @@ def test_for_n_experiments(df: pd.DataFrame,
                             success = True
                         if not success:
                             print(
-                                f"Found only one class (shape: {np.unique(y_train, axis = 0).shape})... retrying the experiment selection...")
+                                f"Found only one class (shape: {np.unique(y_train, axis = 0).shape}) with experiments {experiments_to_test}... retrying the experiment selection...")
                             retries += 1
 
                     if not success:
