@@ -2041,7 +2041,6 @@ FINAL_CLASSIFIER_RPE_CLASSES = {
                                                allows_multi_class = True,
                                                multiprocessing = False,
                                                grid = GRIDS["DecisionTreeClassifier"]),
-
 }
 
 FINAL_CLASSIFIER_LENS_CLASSES = {

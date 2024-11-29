@@ -77,8 +77,8 @@ def test_for_n_experiments(df: pd.DataFrame,
         scores = scores[["algorithm", "readout"]].drop_duplicates()
         assert isinstance(scores, pd.DataFrame)
         already_calculated = {}
-        for readout in scores["readout"].unique():
-            already_calculated[readout] = scores.loc[
+        for _readout in scores["readout"].unique():
+            already_calculated[_readout] = scores.loc[
                 scores["readout"] == readout,
                 "algorithm"
             ].tolist()
@@ -96,7 +96,6 @@ def test_for_n_experiments(df: pd.DataFrame,
         classifiers_to_test = FINAL_CLASSIFIER_RPE_CLASSES
     elif readout == "Lens_classes":
         classifiers_to_test = FINAL_CLASSIFIER_LENS_CLASSES
-
     else:
         raise ValueError("Unknown readout")
 
