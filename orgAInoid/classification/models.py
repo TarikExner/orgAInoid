@@ -1937,12 +1937,6 @@ CLASSIFIERS_TO_TEST_LENS_CLASSES = {
                                      allows_multi_class = False,
                                      multiprocessing = True,
                                      grid = GRIDS["ComplementNB"]),
-    "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
-                                               scalable = None,
-                                               accepts_empty_class = True,
-                                               allows_multi_class = True,
-                                               multiprocessing = True,
-                                               grid = GRIDS["RandomForestClassifier"]),
     "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
                                             scalable = None,
                                             accepts_empty_class = True,
@@ -1973,7 +1967,12 @@ CLASSIFIERS_TO_TEST_LENS_CLASSES = {
                                       allows_multi_class = True,
                                       multiprocessing = False,
                                       grid = GRIDS["MLPClassifier"]),
-
+    "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = True,
+                                               grid = GRIDS["RandomForestClassifier"]),
 }
 
 CLASSIFIERS_TO_TEST = {
