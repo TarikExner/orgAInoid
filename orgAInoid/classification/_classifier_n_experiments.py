@@ -102,6 +102,8 @@ def test_for_n_experiments(df: pd.DataFrame,
 
     param_dir = os.path.join(output_dir, "best_params/")
 
+    max_retries = 5
+
     for readout in readouts:
         param_file_name = f"best_params_{classifier}_{readout}.dict"
         param_file_dir = os.path.join(param_dir, param_file_name)
@@ -128,51 +130,67 @@ def test_for_n_experiments(df: pd.DataFrame,
                     clf = _get_classifier(classifier_name = classifier,
                                           params = cleaned_best_params)
 
-                    scaler = StandardScaler()
+                    success = False
+                    retries = 0
 
-                    non_val_df = df[df["experiment"] != experiment].copy()
-                    assert isinstance(non_val_df, pd.DataFrame)
+                    while not success and retries < max_retries:
+                        scaler = StandardScaler()
 
-                    experiments_non_val_df = non_val_df["experiment"].unique().tolist()
-                    experiments_to_test = list(
-                        np.random.choice(experiments_non_val_df, n_exp, replace = False)
-                    )
+                        non_val_df = df[df["experiment"] != experiment].copy()
+                        assert isinstance(non_val_df, pd.DataFrame)
+
+                        experiments_non_val_df = non_val_df["experiment"].unique().tolist()
+                        experiments_to_test = list(
+                            np.random.choice(experiments_non_val_df, n_exp, replace = False)
+                        )
+                        experiments_to_test.sort()
+
+                        non_val_df = non_val_df[non_val_df["experiment"].isin(experiments_to_test)].copy()
+                        assert isinstance(non_val_df, pd.DataFrame)
+
+                        train_df, test_df = _apply_train_test_split(non_val_df)
+                        val_df = df[df["experiment"] == experiment].copy()
+                        assert isinstance(val_df, pd.DataFrame)
+
+                        scaler.fit(non_val_df[data_columns])
+
+                        train_df[data_columns] = scaler.transform(train_df[data_columns])
+                        test_df[data_columns] = scaler.transform(test_df[data_columns])
+                        val_df[data_columns] = scaler.transform(val_df[data_columns])
+
+                        train_test_df = pd.concat([train_df, test_df], axis = 0)
+
+                        second_scaler = MinMaxScaler()
+                        second_scaler.fit(train_test_df[data_columns])
+
+                        train_df[data_columns] = second_scaler.transform(train_df[data_columns])
+                        test_df[data_columns] = second_scaler.transform(test_df[data_columns])
+                        val_df[data_columns] = second_scaler.transform(val_df[data_columns])
+
+                        X_train = train_df[data_columns].to_numpy()
+                        y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
+                                                         readout = readout)
+
+                        X_test = test_df[data_columns].to_numpy()
+                        y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
+                                                        readout = readout)
+
+                        X_val = val_df[data_columns].to_numpy()
+                        y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
+                                                       readout = readout)
+
+                        if np.unique(y_train, axis = 0).shape[0] != 1:
+                            success = True
+
+                        print("Found only one class... retrying the experiment selection...")
+
+                        retries += 1
+
+                    if not success:
+                        continue
+
 
                     print(f"     Calculating... {n_exp}: {experiments_to_test}")
-
-                    non_val_df = non_val_df[non_val_df["experiment"].isin(experiments_to_test)].copy()
-                    assert isinstance(non_val_df, pd.DataFrame)
-
-                    train_df, test_df = _apply_train_test_split(non_val_df)
-                    val_df = df[df["experiment"] == experiment].copy()
-                    assert isinstance(val_df, pd.DataFrame)
-
-                    scaler.fit(non_val_df[data_columns])
-
-                    train_df[data_columns] = scaler.transform(train_df[data_columns])
-                    test_df[data_columns] = scaler.transform(test_df[data_columns])
-                    val_df[data_columns] = scaler.transform(val_df[data_columns])
-
-                    train_test_df = pd.concat([train_df, test_df], axis = 0)
-
-                    second_scaler = MinMaxScaler()
-                    second_scaler.fit(train_test_df[data_columns])
-
-                    train_df[data_columns] = second_scaler.transform(train_df[data_columns])
-                    test_df[data_columns] = second_scaler.transform(test_df[data_columns])
-                    val_df[data_columns] = second_scaler.transform(val_df[data_columns])
-
-                    X_train = train_df[data_columns].to_numpy()
-                    y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
-                                                     readout = readout)
-
-                    X_test = test_df[data_columns].to_numpy()
-                    y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
-                                                    readout = readout)
-
-                    X_val = val_df[data_columns].to_numpy()
-                    y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
-                                                   readout = readout)
                     
                     start = time.time()
                     clf.fit(X_train, y_train)
