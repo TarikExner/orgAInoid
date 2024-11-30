@@ -2043,5 +2043,17 @@ FINAL_CLASSIFIER_RPE_CLASSES = {
 }
 
 FINAL_CLASSIFIER_LENS_CLASSES = {
+    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = False,
+                                               grid = GRIDS["DecisionTreeClassifier"]),
+    "KNN": characterization(classifier = KNeighborsClassifier,
+                            scalable = None,
+                            accepts_empty_class = True,
+                            allows_multi_class = True,
+                            multiprocessing = True,
+                            grid = GRIDS["KNN"])
 
 }
