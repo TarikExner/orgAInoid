@@ -1232,7 +1232,7 @@ def _cross_validation_n_experiments(model,
                         f"{dataset_id},{start_timepoint}-{stop_timepoint},"
                         f"{bbox_cropped},{bbox_rescaling}\n"
                     )
-                gc.collect()
+            gc.collect()
 
     return
 
