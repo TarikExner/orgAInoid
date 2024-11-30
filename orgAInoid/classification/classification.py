@@ -1061,9 +1061,12 @@ def _cross_validation_n_experiments(model,
 
             n_images = full_dataset.X.shape[0]
             subsampled_n_image = int(n_images * subsample_frac)
+            print(f"N images: {n_images}")
+            print(f"N images subsampled: {subsampled_n_image}")
 
             full_dataset.subset_experiments(list(experiments_to_test))
             full_dataset.subsample_n(subsampled_n_image)
+            print(f"N images after subsampling: {full_dataset.X.shape[0]}")
 
             dataset = OrganoidTrainingDataset(
                 full_dataset,
