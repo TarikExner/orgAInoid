@@ -1059,7 +1059,10 @@ def _cross_validation_n_experiments(model,
             stop_timepoint = full_dataset.dataset_metadata.stop_timepoint
             bbox_cropped = full_dataset.image_metadata.cropped_bbox
             bbox_rescaling = full_dataset.image_metadata.rescale_cropped_image
-            
+
+            if subsample_frac == 0:
+                subsample_frac = 1
+
             if subsample_n == 0:
                 n_images = full_dataset.X.shape[0]
                 print(f"N images: {n_images}")
