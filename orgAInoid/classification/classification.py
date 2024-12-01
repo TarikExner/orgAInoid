@@ -966,7 +966,8 @@ def _cross_validation_n_experiments(model,
                                     dataset_id: str,
                                     validation_dataset_id: str,
                                     subsample_frac: float = 0.0,
-                                    n_permutations: int = 10,
+                                    subsample_n: int = 0,
+                                    n_permutations: int = 7,
                                     output_dir = "./results",
                                     model_output_dir = "./classifiers",
                                     dataset_input_dir = "./raw_data",
@@ -1058,14 +1059,19 @@ def _cross_validation_n_experiments(model,
             stop_timepoint = full_dataset.dataset_metadata.stop_timepoint
             bbox_cropped = full_dataset.image_metadata.cropped_bbox
             bbox_rescaling = full_dataset.image_metadata.rescale_cropped_image
+            
+            if subsample_n == 0:
+                n_images = full_dataset.X.shape[0]
+                print(f"N images: {n_images}")
+                subsampled_n_image = int(n_images * subsample_frac)
+            else:
+                subsampled_n_image = subsample_n
 
-            n_images = full_dataset.X.shape[0]
-            subsampled_n_image = int(n_images * subsample_frac)
-            print(f"N images: {n_images}")
             print(f"N images subsampled: {subsampled_n_image}")
 
             full_dataset.subset_experiments(list(experiments_to_test))
-            full_dataset.subsample_n(subsampled_n_image)
+            if subsampled_n_image > 0:
+                full_dataset.subsample_n(subsampled_n_image)
             print(f"N images after subsampling: {full_dataset.X.shape[0]}")
 
             dataset = OrganoidTrainingDataset(
