@@ -10,6 +10,10 @@ from ._utils import create_dataloader, _apply_train_test_split, _one_hot_encode_
 
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
+from sklearn.linear_model import SGDClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+
 from sklearn.metrics import f1_score, confusion_matrix
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
@@ -544,6 +548,31 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
 
     return X_train, y_train, X_test, y_test, X_val, y_val, data_columns
 
+def _get_best_params(classifier: str,
+                     readout: str) -> dict:
+    with open(f"../../shape_analysis/results/best_params/best_params_{classifier}_{readout}.dict", "rb") as file:
+        best_params_ = pickle.load(file)
+
+    return best_params_
+
+
+def _get_classifier(readout):
+    if readout == "RPE_Final":
+        best_params = _get_best_params("SGDClassifier", readout)
+        return MultiOutputClassifier(SGDClassifier(**best_params), n_jobs = 16)
+    elif readout == "Lens_Final":
+        best_params = _get_best_params("SGDClassifier", readout)
+        return MultiOutputClassifier(SGDClassifier(**best_params), n_jobs = 16)
+    elif readout == "RPE_classes":
+        best_params = _get_best_params("DecisionTreeClassifier", readout)
+        return DecisionTreeClassifier(**best_params)
+    elif readout == "Lens_classes":
+        best_params = _get_best_params("KNN", readout)
+        if "n_jobs" not in best_params:
+            best_params["n_jobs"] = 16
+        return KNeighborsClassifier(**best_params)
+    else:
+        raise ValueError("Unknown readout")
 
 def classifier_evaluation(train_experiments,
                           val_experiment_id,
@@ -551,18 +580,13 @@ def classifier_evaluation(train_experiments,
                           classifier: str,
                           eval_set: Literal["test", "val"]):
     labels = [0,1] if readout in ["RPE_Final", "Lens_Final"] else [0,1,2,3]
-    X_train, y_train, X_test, y_test, X_val, y_val, data_columns = _assemble_morphometrics_dataframe(train_experiments,
-                                                                                                     val_experiment_id,
-                                                                                                     readout,
-                                                                                                     eval_set)
-    with open(f"../../shape_analysis/results/best_params/best_params_{classifier}_{readout}.dict", "rb") as file:
-        best_params_ = pickle.load(file)
-    if classifier == "NearestCentroid":
-        clf = MultiOutputClassifier(NearestCentroid(**best_params_), n_jobs = 16)
-    elif classifier == "GaussianNB":
-        clf = MultiOutputClassifier(GaussianNB(**best_params_), n_jobs = 16)
-    else:
-        raise NotImplementedError("Classifier not implemented")
+    X_train, y_train, X_test, y_test, X_val, y_val, data_columns = _assemble_morphometrics_dataframe(
+        train_experiments,
+        val_experiment_id,
+        readout,
+        eval_set
+    )
+    clf = _get_classifier(readout)
 
     clf.fit(X_train[data_columns], y_train)
     if eval_set == "val":
