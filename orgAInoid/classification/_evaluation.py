@@ -584,7 +584,6 @@ def _get_classifier(readout):
 def classifier_evaluation(train_experiments,
                           val_experiment_id,
                           readout,
-                          classifier: str,
                           eval_set: Literal["test", "val"]):
     labels = [0,1] if readout in ["RPE_Final", "Lens_Final"] else [0,1,2,3]
     X_train, y_train, X_test, y_test, X_val, y_val, data_columns = _assemble_morphometrics_dataframe(
