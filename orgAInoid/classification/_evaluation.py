@@ -147,14 +147,12 @@ class _ECELoss(nn.Module):
 
         return ece
 
-
-
-
 def _instantiate_model(model,
                        eval_set: Literal["test", "val"],
                        val_exp: str,
                        readout: Literal["RPE_Final", "RPE_classes", "Lens_Final", "Lens_classes"]):
     model_name = model.__class__.__name__
+    print(f"...loading model {model_name}_{eval_set}_{val_exp}_{readout}")
     state_dict_path = f"./classifiers/{model_name}_{eval_set}_{val_exp}_{readout}_base_model.pth"
     model.load_state_dict(torch.load(state_dict_path))
     model.eval()
@@ -168,11 +166,11 @@ def instantiate_model(model_name,
                       val_loader: DataLoader):
     num_classes = 4 if "classes" in readout else 2
     if model_name == "DenseNet121":
-        model = DenseNet121(num_classes = num_classes)
+        model = DenseNet121(num_classes = num_classes, dropout = 0.2)
     elif model_name == "ResNet50":
-        model = ResNet50(num_classes = num_classes)
+        model = ResNet50(num_classes = num_classes, dropout = 0.2)
     elif model_name == "MobileNetV3_Large":
-        model = MobileNetV3_Large(num_classes = num_classes)
+        model = MobileNetV3_Large(num_classes = num_classes, dropout = 0.5)
     else:
         raise ValueError("Unknown Model.")
     model = _instantiate_model(model = model,
@@ -292,23 +290,9 @@ def ensemble_probability_averaging(models, dataloader, weights=None):
     
     return all_labels, all_preds, single_predictions
 
-def accumulative_prediction(pred_values):
-    pred_values = pred_values.to_numpy()
-    pred_values = np.hstack([pred_values, np.array([0,1])])
-    pred_one_hot = OneHotEncoder().fit_transform(pred_values.reshape(pred_values.shape[0], 1)).toarray()
-    pred_one_hot = pred_one_hot[:-2]
-    pred_values = pred_values[:-2]
-    assert pred_values.shape[0] == pred_one_hot.shape[0], (pred_values.shape, pred_one_hot.shape)
-    acc_prediction = []
-    for i in range(1, pred_values.shape[0]+1):
-        subarr = pred_one_hot[i-5:i]
-        acc_prediction.append(np.argmax(np.sum(subarr, axis = 0)))
-    acc_pred_arr = np.array(acc_prediction).flatten()
-    return acc_pred_arr
 
 def generate_ensemble(val_experiments: list[str],
                       output_file: str,
-                      eval_set: Literal["test", "val", "both"],
                       model_names: list[str],
                       readout: Literal["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]):
     if os.path.isfile(output_file):
@@ -333,18 +317,13 @@ def generate_ensemble(val_experiments: list[str],
                 # if eval_set == "both":
                 if True:
                     models.append(instantiate_model(model_name,
-                                                    eval_set = "val",
-                                                    val_exp = experiment,
-                                                    readout = readout,
-                                                    val_loader = val_loader))
-                    models.append(instantiate_model(model_name,
                                                     eval_set = "test",
                                                     val_exp = experiment,
                                                     readout = readout,
                                                     val_loader = val_loader))
                 else:
                     models.append(instantiate_model(model_name,
-                                                    eval_set = eval_set,
+                                                    eval_set = "val",
                                                     val_exp = experiment,
                                                     readout = readout,
                                                     val_loader = val_loader))
@@ -367,48 +346,48 @@ def neural_net_evaluation(cross_val_experiments: list[str],
     if not isinstance(cross_val_experiments, list):
         cross_val_experiments = [cross_val_experiments]
 
-    if eval_set != "test":
-        validation_dataset_id = f"{val_experiment_id}_full_SL3_fixed.cds"
-        val_dataset = _read_dataset(validation_dataset_id)
-        val_loader = _create_dataloader(val_dataset, readout)
-    else:
+    if eval_set == "test":
         validation_dataset_id = f"../raw_data/M{val_experiment_id}_full_SL3_fixed.cds"
         val_dataset = OrganoidDataset.read_classification_dataset(validation_dataset_id)
         val_dataset = OrganoidTrainingDataset(val_dataset, readout = readout)
         _, X_test, _, y_test = val_dataset.arrays
         val_loader = create_dataloader(X_test, y_test, batch_size = 128, shuffle = False, train = False)
+    else:
+        validation_dataset_id = f"{val_experiment_id}_full_SL3_fixed.cds"
+        val_dataset = _read_dataset(validation_dataset_id)
+        val_loader = _create_dataloader(val_dataset, readout)
 
     models = generate_ensemble(
         val_experiments = cross_val_experiments,
         readout = readout,
         output_file = ensemble_output_file,
         model_names = model_names,
-        eval_set = eval_set
     )
     truth_arr, ensemble_pred, single_predictions = ensemble_probability_averaging(models, val_loader, weights = weights)
     single_predictions = {
         key: np.hstack(single_predictions[key]) for key in single_predictions
     }
+    assert -1 not in val_dataset.metadata["IMAGE_ARRAY_INDEX"]
+    df = val_dataset.metadata
 
-    df = val_dataset.metadata.loc[val_dataset.metadata["IMAGE_ARRAY_INDEX"] != -1, :]
     if eval_set == "test":
         df = df[df["set"] == "test"]
-    print("metadata: ", df["loop"].unique().shape)
+    assert pd.Series(df["IMAGE_ARRAY_INDEX"]).is_monotonic_increasing
+
+    print("metadata: ", pd.Series(df["loop"]).unique().shape)
     
     truth_values = pd.DataFrame(data = np.array([np.argmax(el) for el in truth_arr]),
                                 columns = ["truth"],
                                 index = df.index)
     df = pd.concat([df, truth_values], axis = 1)
-    # df["truth"] = np.array([np.argmax(el) for el in truth_arr])
-
-    f1_dfs = []
 
     # ensemble F1
     pred_values = pd.DataFrame(data = ensemble_pred,
                                 columns = ["pred"],
                                 index = df.index)
     df = pd.concat([df, pred_values], axis = 1)
-    # df["pred"] = ensemble_pred
+
+    f1_dfs = []
     
     conf_matrix_df = df.copy()
     print("conf matrix df: ", df["loop"].unique().shape)
@@ -508,13 +487,11 @@ def _assemble_morphometrics_dataframe(train_experiments: list[str],
 
     scaler = StandardScaler()
     scaler.fit(non_val_df[data_columns])
+    second_scaler = MinMaxScaler()
+    second_scaler.fit(non_val_df[data_columns])
 
     non_val_df[data_columns] = scaler.transform(non_val_df[data_columns])
     val_df[data_columns] = scaler.transform(val_df[data_columns])
-
-    # naive bayes methods do not allow negative values
-    second_scaler = MinMaxScaler()
-    second_scaler.fit(non_val_df[data_columns])
 
     non_val_df[data_columns] = second_scaler.transform(non_val_df[data_columns])
     val_df[data_columns] = second_scaler.transform(val_df[data_columns])
@@ -610,3 +587,18 @@ def classifier_evaluation(train_experiments,
 
 
     return f1_scores, conf_matrix, confusion_matrices
+
+# def accumulative_prediction(pred_values):
+#     pred_values = pred_values.to_numpy()
+#     pred_values = np.hstack([pred_values, np.array([0,1])])
+#     pred_one_hot = OneHotEncoder().fit_transform(pred_values.reshape(pred_values.shape[0], 1)).toarray()
+#     pred_one_hot = pred_one_hot[:-2]
+#     pred_values = pred_values[:-2]
+#     assert pred_values.shape[0] == pred_one_hot.shape[0], (pred_values.shape, pred_one_hot.shape)
+#     acc_prediction = []
+#     for i in range(1, pred_values.shape[0]+1):
+#         subarr = pred_one_hot[i-5:i]
+#         acc_prediction.append(np.argmax(np.sum(subarr, axis = 0)))
+#     acc_pred_arr = np.array(acc_prediction).flatten()
+#     return acc_pred_arr
+
