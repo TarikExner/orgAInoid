@@ -181,8 +181,8 @@ def instantiate_model(model_name,
                                eval_set = eval_set,
                                val_exp = val_exp,
                                readout = readout)
-    model = ModelWithTemperature(model, eval_set, val_exp)
-    model.set_temperature(val_loader)
+    # model = ModelWithTemperature(model, eval_set, val_exp)
+    # model.set_temperature(val_loader)
     return model
 
 def _read_dataset(dataset_id) -> Union[OrganoidDataset, OrganoidTrainingDataset]:
