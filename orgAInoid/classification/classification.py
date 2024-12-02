@@ -1055,6 +1055,7 @@ def _cross_validation_n_experiments(model,
             full_dataset = OrganoidDataset.read_classification_dataset(
                 os.path.join(dataset_input_dir, f"{dataset_id}.cds")
             )
+
             start_timepoint = full_dataset.dataset_metadata.start_timepoint
             stop_timepoint = full_dataset.dataset_metadata.stop_timepoint
             bbox_cropped = full_dataset.image_metadata.cropped_bbox
@@ -1244,6 +1245,9 @@ def _cross_validation_n_experiments(model,
                         f"{dataset_id},{start_timepoint}-{stop_timepoint},"
                         f"{bbox_cropped},{bbox_rescaling}\n"
                     )
+            del full_dataset, dataset, X_train, y_train, X_test, y_test, X_val, y_val
+            del train_loader, test_loader, val_loader
+            del model
             gc.collect()
 
     return
