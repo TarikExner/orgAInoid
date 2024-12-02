@@ -156,8 +156,9 @@ def _instantiate_model(model,
                        val_exp: str,
                        readout: Literal["RPE_Final", "RPE_classes", "Lens_Final", "Lens_classes"]):
     model_name = model.__class__.__name__
-    print(f"...loading model {model_name}_{eval_set}_{val_exp}_{readout}")
-    state_dict_path = f"./classifiers/{model_name}_{eval_set}_{val_exp}_{readout}_base_model.pth"
+    model_file_name = f"{model_name}_{eval_set}_f1_{val_exp}_{readout}"
+    print(f"...loading model {model_file_name}")
+    state_dict_path = f"./classifiers/{model_file_name}_base_model.pth"
     model.load_state_dict(torch.load(state_dict_path))
     model.eval()
     model.cuda()
@@ -181,8 +182,8 @@ def instantiate_model(model_name,
                                eval_set = eval_set,
                                val_exp = val_exp,
                                readout = readout)
-    # model = ModelWithTemperature(model, eval_set, val_exp)
-    # model.set_temperature(val_loader)
+    model = ModelWithTemperature(model, eval_set, val_exp)
+    model.set_temperature(val_loader)
     return model
 
 def _read_dataset(dataset_id) -> Union[OrganoidDataset, OrganoidTrainingDataset]:
@@ -319,12 +320,17 @@ def generate_ensemble(val_experiments: list[str],
             for model_name in model_names:
                 print(f"\t{model_name}")
                 # if eval_set == "both":
+                models.append(
+                    instantiate_model(
+                        model_name,
+                        eval_set = "test",
+                        val_exp = experiment,
+                        readout = readout,
+                        val_loader = val_loader
+                    )
+                )
                 if True:
-                    models.append(instantiate_model(model_name,
-                                                    eval_set = "test",
-                                                    val_exp = experiment,
-                                                    readout = readout,
-                                                    val_loader = val_loader))
+                    pass
                 else:
                     models.append(instantiate_model(model_name,
                                                     eval_set = "val",
