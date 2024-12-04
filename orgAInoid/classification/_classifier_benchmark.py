@@ -42,9 +42,9 @@ def run_classifier_comparison(df: pd.DataFrame,
         scores = pd.read_csv(score_file, index_col = False)
         scores = scores[["algorithm", "readout"]].drop_duplicates()
         already_calculated = {}
-        for readout in scores["readout"].unique():
-            already_calculated[readout] = scores.loc[
-                scores["readout"] == readout,
+        for _readout in scores["readout"].unique():
+            already_calculated[_readout] = scores.loc[
+                scores["readout"] == _readout,
                 "algorithm"
             ].tolist()
     if readouts is None:
