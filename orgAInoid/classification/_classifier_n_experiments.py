@@ -126,7 +126,7 @@ def test_for_n_experiments(df: pd.DataFrame,
 
                     all_combinations = list(itertools.combinations(non_val_experiments, n_exp))
                     random.shuffle(all_combinations)
-                    all_combinations = all_combinations[:50] if len(all_combinations) >= 50 else all_combinations
+                    all_combinations = all_combinations[:20] if len(all_combinations) >= 50 else all_combinations
 
                     for permutation, experiments_to_test in enumerate(all_combinations):
                         assert len(experiments_to_test) == len(set(experiments_to_test))
