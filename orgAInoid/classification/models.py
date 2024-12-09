@@ -2048,45 +2048,38 @@ CLASSIFIERS_TO_TEST = {
 }
 
 FINAL_CLASSIFIER_RPE = {
-    "SGDClassifier": characterization(classifier = SGDClassifier,
-                                      scalable = None,
-                                      accepts_empty_class = False,
-                                      allows_multi_class = False,
-                                      multiprocessing = True,
-                                      grid = GRIDS["SGDClassifier"]),
+    "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = True,
+                                               grid = GRIDS["RandomForestClassifier"]),
 
 }
 
 FINAL_CLASSIFIER_LENS = {
-    "SGDClassifier": characterization(classifier = SGDClassifier,
-                                      scalable = None,
-                                      accepts_empty_class = False,
-                                      allows_multi_class = False,
-                                      multiprocessing = True,
-                                      grid = GRIDS["SGDClassifier"]),
+    "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
+                                                      scalable = None,
+                                                      accepts_empty_class = False,
+                                                      allows_multi_class = False,
+                                                      multiprocessing = True,
+                                                      grid = GRIDS["QuadraticDiscriminantAnalysis"]),
 }
 
 FINAL_CLASSIFIER_RPE_CLASSES = {
-    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
-                                               scalable = None,
-                                               accepts_empty_class = True,
-                                               allows_multi_class = True,
-                                               multiprocessing = False,
-                                               grid = GRIDS["DecisionTreeClassifier"]),
+    "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
+                                                       scalable = None,
+                                                       accepts_empty_class = False,
+                                                       allows_multi_class = False,
+                                                       multiprocessing = True,
+                                                       grid = GRIDS["HistGradientBoostingClassifier"]),
 }
 
 FINAL_CLASSIFIER_LENS_CLASSES = {
-    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
-                                               scalable = None,
-                                               accepts_empty_class = True,
-                                               allows_multi_class = True,
-                                               multiprocessing = False,
-                                               grid = GRIDS["DecisionTreeClassifier"]),
-    "KNN": characterization(classifier = KNeighborsClassifier,
-                            scalable = None,
-                            accepts_empty_class = True,
-                            allows_multi_class = True,
-                            multiprocessing = True,
-                            grid = GRIDS["KNN"])
-
+    "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
+                                                      scalable = None,
+                                                      accepts_empty_class = False,
+                                                      allows_multi_class = False,
+                                                      multiprocessing = True,
+                                                      grid = GRIDS["QuadraticDiscriminantAnalysis"]),
 }

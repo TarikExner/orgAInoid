@@ -30,7 +30,6 @@ def _get_classifier(classifier_name,
     if params is None:
         params = {}
 
-
     if CLASSIFIERS_TO_TEST_FULL[classifier_name]["allows_multi_class"]:
         if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"] and not hyperparameter:
             params["n_jobs"] = 16
