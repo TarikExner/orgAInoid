@@ -127,7 +127,7 @@ def test_for_n_experiments(df: pd.DataFrame,
 
                     all_combinations = list(itertools.combinations(non_val_experiments, n_exp))
                     random.shuffle(all_combinations)
-                    all_combinations = all_combinations[:20] if len(all_combinations) >= 50 else all_combinations
+                    all_combinations = all_combinations[:20] if len(all_combinations) >= 20 else all_combinations
 
                     for permutation, experiments_to_test in enumerate(all_combinations):
                         assert len(experiments_to_test) == len(set(experiments_to_test))
@@ -151,7 +151,7 @@ def test_for_n_experiments(df: pd.DataFrame,
 
                         y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
                                                          readout = readout)
-
+                        print(f"Y_train uniques: {np.unique(y_train, axis = 0)}")
                         if np.unique(y_train, axis = 0).shape[0] == 1:
                             print(f"Skipping combination {experiments_to_test} because only one class is present")
                             continue
