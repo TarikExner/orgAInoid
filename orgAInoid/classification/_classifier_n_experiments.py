@@ -111,9 +111,10 @@ def test_for_n_experiments(df: pd.DataFrame,
         for classifier in classifiers_to_test:
 
             if readout in already_calculated:
-                if classifier in already_calculated[readout]:
-                    print(f"Skipping {classifier} for {readout} as it is already calculated")
-                    continue
+                pass
+                # if classifier in already_calculated[readout]:
+                #     print(f"Skipping {classifier} for {readout} as it is already calculated")
+                #     continue
 
             print(f"... running {classifier} on readout {readout}")
             for val_experiment in experiments:
