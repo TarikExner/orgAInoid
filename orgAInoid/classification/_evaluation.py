@@ -576,7 +576,7 @@ def _get_classifier(readout):
         return MultiOutputClassifier(QuadraticDiscriminantAnalysis(**best_params), n_jobs = 16)
     elif readout == "RPE_classes":
         best_params = _get_best_params("HistGradientBoostingClassifier", readout)
-        return HistGradientBoostingClassifier(**best_params)
+        return MultiOutputClassifier(HistGradientBoostingClassifier(**best_params), n_jobs = 16)
     elif readout == "Lens_classes":
         best_params = _get_best_params("QuadraticDiscriminantAnalysis", readout)
         return MultiOutputClassifier(QuadraticDiscriminantAnalysis(**best_params), n_jobs = 16)
