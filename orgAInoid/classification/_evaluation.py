@@ -19,6 +19,8 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 
 from sklearn.multioutput import MultiOutputClassifier
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import NearestCentroid
 
@@ -565,19 +567,19 @@ def _get_best_params(classifier: str,
 
 def _get_classifier(readout):
     if readout == "RPE_Final":
-        best_params = _get_best_params("SGDClassifier", readout)
-        return MultiOutputClassifier(SGDClassifier(**best_params), n_jobs = 16)
-    elif readout == "Lens_Final":
-        best_params = _get_best_params("SGDClassifier", readout)
-        return MultiOutputClassifier(SGDClassifier(**best_params), n_jobs = 16)
-    elif readout == "RPE_classes":
-        best_params = _get_best_params("DecisionTreeClassifier", readout)
-        return DecisionTreeClassifier(**best_params)
-    elif readout == "Lens_classes":
-        best_params = _get_best_params("KNN", readout)
+        best_params = {}
         if "n_jobs" not in best_params:
             best_params["n_jobs"] = 16
-        return KNeighborsClassifier(**best_params)
+        return RandomForestClassifier(**best_params)
+    elif readout == "Lens_Final":
+        best_params = _get_best_params("QuadraticDiscriminantAnalysis", readout)
+        return MultiOutputClassifier(QuadraticDiscriminantAnalysis(**best_params), n_jobs = 16)
+    elif readout == "RPE_classes":
+        best_params = _get_best_params("HistGradientBoostingClassifier", readout)
+        return HistGradientBoostingClassifier(**best_params)
+    elif readout == "Lens_classes":
+        best_params = _get_best_params("QuadraticDiscriminantAnalysis", readout)
+        return MultiOutputClassifier(QuadraticDiscriminantAnalysis(**best_params), n_jobs = 16)
     else:
         raise ValueError("Unknown readout")
 

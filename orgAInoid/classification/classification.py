@@ -988,12 +988,7 @@ def _cross_validation_n_experiments(model,
         "E009",
         "E010",
         "E011",
-        "E012",
-        "E013",
-        "E014",
-        "E017",
-        "E019",
-        "E020"
+        "E012"
     ]
 
     if not os.path.exists(output_dir):
