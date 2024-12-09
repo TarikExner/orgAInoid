@@ -189,7 +189,13 @@ def test_for_n_experiments(df: pd.DataFrame,
                         print(f"     Calculating... {n_exp}: {experiments_to_test}")
                         
                         start = time.time()
-                        clf.fit(X_train, y_train)
+                        try:
+                            clf.fit(X_train, y_train)
+                        except ValueError as e:
+                            print(str(e))
+                            print(f"Skipping {experiments_to_test} due to above ValueError")
+                            continue
+                        
                         train_time = time.time() - start
 
                         y_train_argmax = np.argmax(y_train, axis = 1)
