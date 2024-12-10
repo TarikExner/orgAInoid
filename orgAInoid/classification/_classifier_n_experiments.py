@@ -21,7 +21,7 @@ from .models import (CLASSIFIERS_TO_TEST_FULL,
                      FINAL_CLASSIFIER_LENS_CLASSES)
 from ._utils import _one_hot_encode_labels, _apply_train_test_split
 
-from typing import Optional
+from typing import Optional, Union
 
 def _get_classifier(classifier_name,
                     params: Optional[dict] = None,
@@ -45,11 +45,12 @@ def _get_classifier(classifier_name,
     return clf
 
 def test_for_n_experiments(df: pd.DataFrame,
-                            output_dir: str,
-                            classifier: str,
-                            use_tuned_classifier: bool,
-                            data_columns: list[str],
-                            readout: str):
+                           val_experiments_to_test: Union[list, str],
+                           output_dir: str,
+                           classifier: str,
+                           use_tuned_classifier: bool,
+                           data_columns: list[str],
+                           readout: str):
 
     """\
     The function expects unscaled raw data.
@@ -60,6 +61,8 @@ def test_for_n_experiments(df: pd.DataFrame,
     """
 
     readouts = [readout]
+    if not isinstance(val_experiments_to_test, list):
+        val_experiments_to_test = [val_experiments_to_test]
 
     scores = ",".join([score for score in SCORES_TO_USE])
     resource_metrics = (
@@ -118,6 +121,9 @@ def test_for_n_experiments(df: pd.DataFrame,
 
             print(f"... running {classifier} on readout {readout}")
             for val_experiment in experiments:
+                if val_experiment not in val_experiments_to_test:
+                    continue
+
                 print(f"CURRENT VALIDATION EXPERIMENT: {val_experiment}")
 
                 for n_exp in n_experiments_to_test:
