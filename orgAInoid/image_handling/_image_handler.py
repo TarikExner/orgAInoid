@@ -171,4 +171,3 @@ class ImageHandler:
             return HRNETPredictor(**kwargs)
         else:
             raise ValueError(f"Unknown model name {model_name}!")
-

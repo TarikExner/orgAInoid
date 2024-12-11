@@ -21,7 +21,13 @@ def run_classifier_comparison(df: pd.DataFrame,
                               readouts: Optional[list[str]] = None):
 
     """\
-    The function expects unscaled raw data.
+    Function to run the classifier benchmark.
+
+    df is the dataframe with data_columns consisting of unscaled, raw data.
+
+    The function will run through the classifiers defined in .models.
+
+    Classifiers that have been calculated already will be skipped.
 
     """
 

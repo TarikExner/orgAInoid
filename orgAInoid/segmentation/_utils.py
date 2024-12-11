@@ -24,19 +24,17 @@ def val_transformations() -> A.Compose:
 
 def train_transformations(image_size):
     return A.Compose([
-        A.HorizontalFlip(p=0.5),  # Random horizontal flip
-        A.VerticalFlip(p=0.5),    # Random vertical flip
-        A.RandomRotate90(p=0.5),  # Random 90-degree rotation
-        A.Rotate(limit=45, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
-        A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),  # Shift and scale (rotation already handled)
-        A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1.0), p=0.5),  # Resized crop
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.5),
+        A.RandomRotate90(p=0.5),
+        A.Rotate(limit=45, p=0.5),
+        A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),
+        A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1.0), p=0.5),
 
-        # Apply intensity modifications only to non-masked pixels
         CustomIntensityAdjustment(p=0.5),
         
-        # Normalization and final transformations
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),  # Normalization
-        ToTensorV2()  # Convert to PyTorch tensor
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+        ToTensorV2()
     ], additional_targets={'mask': 'mask'})
 
 
@@ -59,15 +57,13 @@ class SegmentationDataset(Dataset):
         image = self.images[idx]
         mask = self.masks[idx]
 
-        # Apply augmentations
         if self.transforms:
             augmented = self.transforms(image=image, mask=mask)
             image = augmented['image']
             mask = augmented['mask']
 
-        # Convert grayscale image to RGB if needed
         if self.model_type != 'UNet':
-            image = image.repeat(3, 1, 1)  # Repeat the single channel to create an RGB image
+            image = image.repeat(3, 1, 1)
 
         mask = mask.unsqueeze(0)
 
@@ -168,7 +164,6 @@ def _run_segmentation_train_loop(dataset_dir: str,
         
         stop = time.time()
 
-        # Print metrics
         print(f"[INFO] Epoch: {epoch+1}/{n_epochs}, "
               f"Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}, "
               f"Time: {stop-start}")

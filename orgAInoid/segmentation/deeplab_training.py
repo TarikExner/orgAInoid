@@ -20,5 +20,3 @@ def run_deeplabv3_training(image_size: int = 2048,
                                  init_lr = init_lr,
                                  score_output_dir = score_output_dir,
                                  model_output_dir = model_output_dir)
-
-

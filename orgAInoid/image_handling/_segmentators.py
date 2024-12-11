@@ -143,4 +143,3 @@ class HRNETPredictor(MaskPredictor):
         transformed_image = transformed_image.repeat(3,1,1)
         transformed_image = self._add_dim_to_tensor(transformed_image)
         return transformed_image
-

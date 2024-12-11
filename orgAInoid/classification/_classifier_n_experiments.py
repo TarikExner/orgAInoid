@@ -52,11 +52,16 @@ def test_for_n_experiments(df: pd.DataFrame,
                            data_columns: list[str],
                            readout: str):
 
-    """\
-    The function expects unscaled raw data.
 
-    This function is supposed to test how many experiments are necessary
-    for a given F1-score.
+    """\
+    Function to run the experiment of how many experiments are necessary to
+    obtain a reasonable accuracy.
+
+    df is the dataframe with data_columns consisting of unscaled, raw data.
+
+    The function will run through the classifiers defined in .models.
+
+    Classifiers that have been calculated already will be skipped.
 
     """
 
@@ -115,9 +120,6 @@ def test_for_n_experiments(df: pd.DataFrame,
 
             if readout in already_calculated:
                 pass
-                # if classifier in already_calculated[readout]:
-                #     print(f"Skipping {classifier} for {readout} as it is already calculated")
-                #     continue
 
             print(f"... running {classifier} on readout {readout}")
             for val_experiment in experiments:
@@ -198,6 +200,7 @@ def test_for_n_experiments(df: pd.DataFrame,
                         try:
                             clf.fit(X_train, y_train)
                         except ValueError as e:
+                            # Sometimes, QDA sees only one class but more than one is present
                             print(str(e))
                             print(f"Skipping {experiments_to_test} due to above ValueError")
                             continue

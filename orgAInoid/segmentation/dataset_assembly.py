@@ -75,7 +75,3 @@ def assemble_data(target_size: int,
     np.save(os.path.join(output_dir, f"unet_segmentation_masks_{target_size}.npy"), mask_array)
 
     print(f"Dataset assembled successfully for target size {target_size}")
-
-
-if __name__ == "__main__":
-    input_dir = os.getcwd()

@@ -1,5 +1,5 @@
 from skimage.filters import laplace
-from scipy.stats import mode, skew, kurtosis
+from scipy.stats import mode, skew
 import numpy as np
 from scipy.spatial import ConvexHull
 

@@ -130,4 +130,3 @@ class OrganoidMaskImage(OrganoidImage):
 
     def is_binary(self):
         return np.isin(self._img, [0, 1]).all()
-

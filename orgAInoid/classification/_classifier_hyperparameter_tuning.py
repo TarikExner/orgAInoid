@@ -19,6 +19,26 @@ from .models import (CLASSIFIERS_TO_TEST_FULL,
                      CLASSIFIERS_TO_TEST_LENS_CLASSES)
 from ._utils import _one_hot_encode_labels, _apply_train_test_split, conduct_hyperparameter_search
 
+def run_hyperparameter_tuning(df: pd.DataFrame,
+                              output_dir: str,
+                              data_columns: list[str],
+                              readout: str):
+    """\
+    Runs the Hyperparameter tuning based on the readout.
+    """
+    if readout == "RPE_Final":
+        for classifier in CLASSIFIERS_TO_TEST_RPE:
+            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
+    elif readout == "Lens_Final":
+        for classifier in CLASSIFIERS_TO_TEST_LENS:
+            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
+    elif readout == "RPE_classes":
+        for classifier in CLASSIFIERS_TO_TEST_RPE_CLASSES:
+            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
+    else:
+        assert readout == "Lens_classes", "Unknown readout"
+        for classifier in CLASSIFIERS_TO_TEST_LENS_CLASSES:
+            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
 
 def _get_classifier(classifier_name,
                     params: Optional[dict] = None,
@@ -42,25 +62,6 @@ def _get_classifier(classifier_name,
 
     return clf
 
-
-def run_hyperparameter_tuning(df: pd.DataFrame,
-                              output_dir: str,
-                              data_columns: list[str],
-                              readout: str):
-    if readout == "RPE_Final":
-        for classifier in CLASSIFIERS_TO_TEST_RPE:
-            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
-    elif readout == "Lens_Final":
-        for classifier in CLASSIFIERS_TO_TEST_LENS:
-            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
-    elif readout == "RPE_classes":
-        for classifier in CLASSIFIERS_TO_TEST_RPE_CLASSES:
-            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
-    else:
-        assert readout == "Lens_classes", "Unknown readout"
-        for classifier in CLASSIFIERS_TO_TEST_LENS_CLASSES:
-            _run_hyperparameter_tuning(df, output_dir, classifier, data_columns, readout)
-
 def _run_hyperparameter_tuning(df: pd.DataFrame,
                                output_dir: str,
                                classifier: str,
@@ -68,7 +69,13 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                                readout: str):
 
     """\
-    The function expects unscaled raw data.
+    Function to run the classifier hyperparameter tuning.
+
+    df is the dataframe with data_columns consisting of unscaled, raw data.
+
+    The function will run through the classifiers defined in .models.
+
+    Classifiers that have been calculated already will be skipped.
 
     """
 

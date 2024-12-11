@@ -22,9 +22,9 @@ from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, ComplementNB, BernoulliNB, CategoricalNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
-from typing import Optional
 from sklearn.svm import NuSVC, LinearSVC, SVC
 
+from typing import Optional
 
 class ResNet50(nn.Module):
     def __init__(self, num_classes=2, dropout=0.5, pretrained: bool = True, **kwargs):
@@ -36,10 +36,9 @@ class ResNet50(nn.Module):
         else:
             self.resnet50 = models.resnet50(weights=None, **kwargs)
         
-        # Modify the final fully connected layer to match the number of output classes
         self.resnet50.fc = nn.Sequential(
-            nn.Dropout(p=dropout),  # Add dropout layer with p=0.5
-            nn.Linear(in_features=2048, out_features=num_classes)  # Final linear layer
+            nn.Dropout(p=dropout),
+            nn.Linear(in_features=2048, out_features=num_classes)
         )       
         
     def forward(self, x):
@@ -70,10 +69,8 @@ class ResNet50(nn.Module):
             9: ['fc']  # This is the output layer, so it should not be frozen.
         }
 
-        # Total number of layers in the model
         total_layers = len(layer_mapping)
 
-        # Check if freeze_layers is within a valid range
         if abs(freeze_layers) > total_layers:
             raise ValueError(f"freeze_layers cannot be less than {-total_layers} or greater than {total_layers - 1}")
 
@@ -83,13 +80,11 @@ class ResNet50(nn.Module):
         else:
             unfreeze_from = freeze_layers + 1  # If freeze_layers is positive, we freeze up to that layer
 
-        # Freeze layers up to the specified index or negative offset
         for i, (_, layer) in enumerate(self.resnet50.named_children()):
             if i < unfreeze_from:
                 for param in layer.parameters():
                     param.requires_grad = False
 
-        # Ensure the final fully connected layer is always trainable
         for param in self.resnet50.fc.parameters():
             param.requires_grad = True
 
@@ -97,7 +92,6 @@ class VGG16_BN(nn.Module):
     def __init__(self, num_classes=2, dropout = 0.5, pretrained: bool = True, **kwargs):
         super(VGG16_BN, self).__init__()
         
-        # Load the pre-trained VGG16_BN model
         if pretrained:
             self.vgg16_bn = models.vgg16_bn(
                 weights=VGG16_BN_Weights.DEFAULT,
@@ -111,7 +105,6 @@ class VGG16_BN(nn.Module):
                 **kwargs
             )
         
-        # Modify the classifier to match the number of output classes
         self.vgg16_bn.classifier[6] = nn.Linear(in_features=4096, out_features=num_classes)
         
     def forward(self, x):
@@ -129,7 +122,6 @@ class VGG16_BN(nn.Module):
                                If -N, freeze all layers except the last N layers.
                                If the value exceeds the number of layers, raise ValueError.
         """
-        # Layer mapping for VGG16_BN features
         layer_mapping = {
             0: ['features.0', 'features.1', 'features.2'],
             1: ['features.3', 'features.4', 'features.5'],
@@ -151,10 +143,8 @@ class VGG16_BN(nn.Module):
             17: ['features.43']  # Last layer of features
         }
 
-        # Total number of layers in the model
         total_layers = len(layer_mapping) + 1  # Add 1 for classifier
 
-        # Check if freeze_layers is within a valid range
         if abs(freeze_layers) > total_layers:
             raise ValueError(f"freeze_layers cannot be less than {-total_layers} or greater than {total_layers - 1}")
 
@@ -164,13 +154,11 @@ class VGG16_BN(nn.Module):
         else:
             unfreeze_from = freeze_layers + 1  # If freeze_layers is positive, we freeze up to that layer
 
-        # Freeze layers up to the specified index or negative offset
         for i, (_, layer) in enumerate(self.vgg16_bn.named_children()):
             if i < unfreeze_from:
                 for param in layer.parameters():
                     param.requires_grad = False
 
-        # Ensure the final classifier layer is always trainable
         for param in self.vgg16_bn.classifier.parameters():
             param.requires_grad = True
 
@@ -204,7 +192,6 @@ class DenseNet121(nn.Module):
                                If -N, freeze all layers except the last N layers.
                                If the value exceeds the number of layers, raise ValueError.
         """
-        # Define the layer mapping based on the architecture
         layer_mapping = {
             0: ['conv0', 'norm0', 'relu0', 'pool0'],
             1: ['denseblock1'],
@@ -230,16 +217,13 @@ class DenseNet121(nn.Module):
         else:
             unfreeze_from = freeze_layers + 1  # If freeze_layers is positive, freeze up to and including that index
 
-        # Convert the model's layers to a list (focus only on feature layers)
         layers = list(self.densenet121.features.named_children())
 
-        # Freeze layers up to the specified index
         for i, (_, layer) in enumerate(layers):
             if i < unfreeze_from:
                 for param in layer.parameters():
                     param.requires_grad = False
 
-        # Ensure the final classifier layer remains trainable
         for param in self.densenet121.classifier.parameters():
             param.requires_grad = True
 
@@ -247,10 +231,8 @@ class InceptionV3(nn.Module):
     def __init__(self, num_classes=2):
         super(InceptionV3, self).__init__()
         
-        # Load the pre-trained InceptionV3 model
         self.inception_v3 = models.inception_v3(pretrained=True, aux_logits=True)
         
-        # Modify the final fully connected layer to match the number of output classes
         self.inception_v3.fc = nn.Linear(in_features=2048, out_features=num_classes)
         
     def forward(self, x):
@@ -262,7 +244,6 @@ class MobileNetV3_Large(nn.Module):
     def __init__(self, num_classes=2, dropout = 0.5, pretrained: bool = True, **kwargs):
         super(MobileNetV3_Large, self).__init__()
 
-        # Load the pre-trained MobileNetV3-Large model
         if pretrained:
             self.mobilenet_v3_large = models.mobilenet_v3_large(
                 weights=MobileNet_V3_Large_Weights.DEFAULT,
@@ -276,7 +257,6 @@ class MobileNetV3_Large(nn.Module):
                 **kwargs
             )
 
-        # Modify the final classifier to match the number of output classes
         self.mobilenet_v3_large.classifier[3] = nn.Linear(in_features=1280, out_features=num_classes)
         
     def forward(self, x):
@@ -327,16 +307,13 @@ class MobileNetV3_Large(nn.Module):
         else:
             unfreeze_from = freeze_layers + 1  # If freeze_layers is positive, freeze up to and including that index
 
-        # Convert the model's layers to a list (focus on feature layers)
         layers = list(self.mobilenet_v3_large.features.named_children())
 
-        # Freeze layers up to the specified index
         for i, (name, layer) in enumerate(layers):
             if i < unfreeze_from:
                 for param in layer.parameters():
                     param.requires_grad = False
 
-        # Ensure the final classifier layer remains trainable
         for param in self.mobilenet_v3_large.classifier.parameters():
             param.requires_grad = True
 
@@ -345,7 +322,6 @@ class SimpleCNNModel8_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel8_FC3, self).__init__()
         
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
@@ -355,51 +331,38 @@ class SimpleCNNModel8_FC3(nn.Module):
         self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1)
         self.conv8 = nn.Conv2d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 128  # After seven pooling layers, the size is divided by 128
+        self.feature_map_size = img_x_dim // 128
         
-        # Fully connected layers with symmetrical structure
-        self.fc1 = nn.Linear(2048 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(2048 * self.feature_map_size * self.feature_map_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
                 
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
         
-        # Fourth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Fifth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv5(x)))
         
-        # Sixth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv6(x)))
         
-        # Seventh convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv7(x)))
         
-        # Eighth convolutional layer without pooling
         x = F.relu(self.conv8(x))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
 
         return x
         
@@ -408,7 +371,6 @@ class SimpleCNNModel8(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel8, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
@@ -418,49 +380,36 @@ class SimpleCNNModel8(nn.Module):
         self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1)
         self.conv8 = nn.Conv2d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 128 # After seven pooling layers, the size is divided by 128
+        self.feature_map_size = img_x_dim // 128
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(2048 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
-        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
-        self.fc3 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(2048 * self.feature_map_size * self.feature_map_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
-        
-        # Fourth convolutional layer with ReLU and pooling
+
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Fifth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv5(x)))
         
-        # Sixth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv6(x)))
-        
-        # Seventh convolutional layer with ReLU and pooling
+
         x = self.pool(F.relu(self.conv7(x)))
         
-        # Eighth convolutional layer without pooling
         x = F.relu(self.conv8(x))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
 
         return x
 
@@ -468,7 +417,6 @@ class SimpleCNNModel7_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel7_FC3, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
@@ -477,48 +425,36 @@ class SimpleCNNModel7_FC3(nn.Module):
         self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 128  # After seven pooling layers, the size is divided by 128
+        self.feature_map_size = img_x_dim // 128
         
-        # Fully connected layers with symmetrical structure
-        self.fc1 = nn.Linear(1024 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(1024 * self.feature_map_size * self.feature_map_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
         
-        # Fourth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Fifth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv5(x)))
         
-        # Sixth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv6(x)))
         
-        # Seventh convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv7(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
         
         return x
 
@@ -526,7 +462,6 @@ class SimpleCNNModel7(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel7, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
@@ -535,46 +470,34 @@ class SimpleCNNModel7(nn.Module):
         self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 128  # After seven pooling layers, the size is divided by 128
+        self.feature_map_size = img_x_dim // 128
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(1024 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
-        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
-        self.fc3 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(1024 * self.feature_map_size * self.feature_map_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
         
-        # Fourth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Fifth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv5(x)))
         
-        # Sixth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv6(x)))
         
-        # Seventh convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv7(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
 
         return x
 
@@ -582,7 +505,6 @@ class SimpleCNNModel6_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel6_FC3, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
@@ -590,45 +512,34 @@ class SimpleCNNModel6_FC3(nn.Module):
         self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 64  # After six pooling layers, the size is divided by 64
+        self.feature_map_size = img_x_dim // 64
         
-        # Fully connected layers with symmetrical structure
-        self.fc1 = nn.Linear(512 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(512 * self.feature_map_size * self.feature_map_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
-        
-        # Fourth convolutional layer with ReLU and pooling
+
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Fifth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv5(x)))
         
-        # Sixth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv6(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
 
         return x
 
@@ -636,7 +547,6 @@ class SimpleCNNModel6(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel6, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
@@ -644,43 +554,32 @@ class SimpleCNNModel6(nn.Module):
         self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 64  # After six pooling layers, the size is divided by 64
+        self.feature_map_size = img_x_dim // 64
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(512 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
-        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
-        self.fc3 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(512 * self.feature_map_size * self.feature_map_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
-        
-        # Third convolutional layer with ReLU and pooling
+
         x = self.pool(F.relu(self.conv3(x)))
         
-        # Fourth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Fifth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv5(x)))
         
-        # Sixth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv6(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
 
         return x
 
@@ -688,49 +587,38 @@ class SimpleCNNModel5_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel5_FC3, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
         self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 32  # After five pooling layers, the size is divided by 32
+        self.feature_map_size = img_x_dim // 32
         
-        # Fully connected layers with symmetrical structure
-        self.fc1 = nn.Linear(256 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(256 * self.feature_map_size * self.feature_map_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
         
-        # Fourth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Fifth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv5(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
 
         return x
 
@@ -738,47 +626,36 @@ class SimpleCNNModel5(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel5, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
         self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 32  # After five pooling layers, the size is divided by 32
+        self.feature_map_size = img_x_dim // 32
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(256 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
-        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
-        self.fc3 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(256 * self.feature_map_size * self.feature_map_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
-        
-        # Fourth convolutional layer with ReLU and pooling
+
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Fifth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv5(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
 
         return x
 
@@ -787,45 +664,35 @@ class SimpleCNNModel4_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel4_FC3, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 16  # After four pooling layers, the size is divided by 16
+        self.feature_map_size = img_x_dim // 16
         
-        # Fully connected layers with symmetrical structure
-        self.fc1 = nn.Linear(128 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(128 * self.feature_map_size * self.feature_map_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
-        
-        # Fourth convolutional layer with ReLU and pooling
+
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
 
         return x
 
@@ -834,43 +701,33 @@ class SimpleCNNModel4(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel4, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 16  # After four pooling layers, the size is divided by 16
+        self.feature_map_size = img_x_dim // 16
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(128 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
-        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
-        self.fc3 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(128 * self.feature_map_size * self.feature_map_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
-        
-        # Third convolutional layer with ReLU and pooling
+
         x = self.pool(F.relu(self.conv3(x)))
         
-        # Fourth convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv4(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
 
         return x
 
@@ -879,41 +736,32 @@ class SimpleCNNModel3_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel3_FC3, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 8  # After three pooling layers, the size is divided by 8
+        self.feature_map_size = img_x_dim // 8
         
-        # Fully connected layers with symmetrical structure
-        self.fc1 = nn.Linear(64 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(64 * self.feature_map_size * self.feature_map_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
 
         return x
 
@@ -922,39 +770,29 @@ class SimpleCNNModel3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel3, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
-        
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 8  # After three pooling layers, the size is divided by 8
+        self.feature_map_size = img_x_dim // 8
         
-        # Fully connected layers (same as Model 1, 2, and 3)
-        self.fc1 = nn.Linear(64 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
-        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
-        self.fc3 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(64 * self.feature_map_size * self.feature_map_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Third convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv3(x)))
+
+        x = x.view(x.size(0), -1)
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
-        
-        # Fully connected layers with ReLU (same as Model 1, 2, and 3)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
 
         return x
 
@@ -963,37 +801,29 @@ class SimpleCNNModel2_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel2_FC3, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 4  # After two pooling layers, the size is divided by 4
+        self.feature_map_size = img_x_dim // 4
         
-        # Fully connected layers with symmetrical structure
-        self.fc1 = nn.Linear(32 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(32 * self.feature_map_size * self.feature_map_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
 
         return x
 
@@ -1002,35 +832,27 @@ class SimpleCNNModel2(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel2, self).__init__()
 
-        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layers
-        self.feature_map_size = img_x_dim // 4  # After two pooling layers, the size is divided by 4
+        self.feature_map_size = img_x_dim // 4
         
-        # Fully connected layers (same as Model 1 and Model 2)
-        self.fc1 = nn.Linear(32 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
-        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
-        self.fc3 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(32 * self.feature_map_size * self.feature_map_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # First convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Second convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv2(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU (same as Model 1 and Model 2)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
 
         return x
 
@@ -1039,33 +861,26 @@ class SimpleCNNModel1_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel1_FC3, self).__init__()
 
-        # Convolutional layer
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layer
-        self.feature_map_size = img_x_dim // 2  # After one pooling layer, the size is halved
+        self.feature_map_size = img_x_dim // 2
         
-        # Fully connected layers with symmetrical structure
-        self.fc1 = nn.Linear(16 * self.feature_map_size * self.feature_map_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(16 * self.feature_map_size * self.feature_map_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # Convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
         
         return x
 
@@ -1074,31 +889,24 @@ class SimpleCNNModel1(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(SimpleCNNModel1, self).__init__()
 
-        # Convolutional layer
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         
-        # Max pooling layer
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        # Calculate the size of the feature map after the pooling layer
-        self.feature_map_size = img_x_dim // 2  # After one pooling layer, the size is halved
+        self.feature_map_size = img_x_dim // 2
         
-        # Fully connected layers (same as Model 1)
-        self.fc1 = nn.Linear(16 * self.feature_map_size * self.feature_map_size, 128)  # First hidden layer with 128 units
-        self.fc2 = nn.Linear(128, 64)  # Second hidden layer with 64 units
-        self.fc3 = nn.Linear(64, num_classes)  # Output layer for binary classification
+        self.fc1 = nn.Linear(16 * self.feature_map_size * self.feature_map_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # Convolutional layer with ReLU and pooling
         x = self.pool(F.relu(self.conv1(x)))
         
-        # Flatten the tensor while preserving the batch size
-        x = x.view(x.size(0), -1)  # Flattening
+        x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU (same as Model 1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
         
         return x
 
@@ -1107,24 +915,20 @@ class MLP_FC3(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(MLP_FC3, self).__init__()
 
-        # Flatten the image into a vector
-        self.input_size = img_x_dim * img_x_dim * 3  # Flattened image size for grayscale image
+        self.input_size = img_x_dim * img_x_dim * 3
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(self.input_size, 256)  # First hidden layer with 256 units
-        self.fc2 = nn.Linear(256, 128)  # Second hidden layer with 128 units
-        self.fc3 = nn.Linear(128, 64)  # Third hidden layer with 64 units
-        self.fc4 = nn.Linear(64, num_classes)  # Output layer (2 classes for binary classification)
+        self.fc1 = nn.Linear(self.input_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # Flatten the image
         x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU activations
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc4(x)
 
         return x
 
@@ -1133,22 +937,18 @@ class MLP(nn.Module):
     def __init__(self, img_x_dim = 224, num_classes = 2):
         super(MLP, self).__init__()
 
-        # Flatten the image into a vector
-        self.input_size = img_x_dim * img_x_dim * 3  # Flattened image size for grayscale image
+        self.input_size = img_x_dim * img_x_dim * 3
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(self.input_size, 128)  # First hidden layer
-        self.fc2 = nn.Linear(128, 64)               # Second hidden layer (optional)
-        self.fc3 = nn.Linear(64, num_classes)                 # Output layer (2 classes for binary classification)
+        self.fc1 = nn.Linear(self.input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, num_classes)
         
     def forward(self, x):
-        # Flatten the image
         x = x.view(x.size(0), -1)
         
-        # Fully connected layers with ReLU activations
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No activation here if using CrossEntropyLoss
+        x = self.fc3(x)
 
         return x
 
@@ -1678,96 +1478,96 @@ CLASSIFIERS_TO_TEST_2 = {
 }
 
 CLASSIFIERS_TO_TEST_LENS = {
-    # "GaussianNB": characterization(classifier = GaussianNB,
-    #                                scalable = None,
-    #                                accepts_empty_class = True,
-    #                                allows_multi_class = False,
-    #                                multiprocessing = True,
-    #                                grid = GRIDS["GaussianNB"]),
-    # "BernoulliNB": characterization(classifier = BernoulliNB,
-    #                                 scalable = None,
-    #                                 accepts_empty_class = True,
-    #                                 allows_multi_class = False,
-    #                                 multiprocessing = True,
-    #                                 grid = GRIDS["BernoulliNB"]),
-    # "ComplementNB": characterization(classifier = ComplementNB,
-    #                                  scalable = None,
-    #                                  accepts_empty_class = True,
-    #                                  allows_multi_class = False,
-    #                                  multiprocessing = True,
-    #                                  grid = GRIDS["ComplementNB"]),
-    # "NearestCentroid": characterization(classifier = NearestCentroid,
-    #                                     scalable = None,
-    #                                     accepts_empty_class = False,
-    #                                     allows_multi_class = False,
-    #                                     multiprocessing = True,
-    #                                     grid = GRIDS["NearestCentroid"]),
-    # "RidgeClassifier": characterization(classifier = RidgeClassifier,
-    #                                     scalable = None,
-    #                                     accepts_empty_class = True,
-    #                                     allows_multi_class = True,
-    #                                     multiprocessing = False,
-    #                                     grid = GRIDS["RidgeClassifier"]),
-    # "RidgeClassifierCV": characterization(classifier = RidgeClassifierCV,
-    #                                       scalable = None,
-    #                                       accepts_empty_class = True, 
-    #                                       allows_multi_class = True,
-    #                                       multiprocessing = False,
-    #                                       grid = GRIDS["RidgeClassifierCV"]),
-    # "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
-    #                                            scalable = None,
-    #                                            accepts_empty_class = True,
-    #                                            allows_multi_class = True,
-    #                                            multiprocessing = True,
-    #                                            grid = GRIDS["RandomForestClassifier"]),
-    # "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
-    #                                         scalable = None,
-    #                                         accepts_empty_class = True,
-    #                                         allows_multi_class = True,
-    #                                         multiprocessing = False,
-    #                                         grid = GRIDS["ExtraTreeClassifier"]),
-    # "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
-    #                                            scalable = None,
-    #                                            accepts_empty_class = True,
-    #                                            allows_multi_class = True,
-    #                                            multiprocessing = False,
-    #                                            grid = GRIDS["DecisionTreeClassifier"]),
-    # "SGDClassifier": characterization(classifier = SGDClassifier,
-    #                                   scalable = None,
-    #                                   accepts_empty_class = False,
-    #                                   allows_multi_class = False,
-    #                                   multiprocessing = True,
-    #                                   grid = GRIDS["SGDClassifier"]),
-    # "Perceptron": characterization(classifier = Perceptron, 
-    #                                scalable = None, 
-    #                                accepts_empty_class = False,
-    #                                allows_multi_class = False,
-    #                                multiprocessing = True,
-    #                                grid = GRIDS["Perceptron"]),
-    # "LinearDiscriminantAnalysis": characterization(classifier = LinearDiscriminantAnalysis,
-    #                                                scalable = None,
-    #                                                accepts_empty_class = True,
-    #                                                allows_multi_class = False,
-    #                                                multiprocessing = True,
-    #                                                grid = GRIDS["LinearDiscriminantAnalysis"]),
-    # "MLPClassifier": characterization(classifier = MLPClassifier,
-    #                                   scalable = None,
-    #                                   accepts_empty_class = True,
-    #                                   allows_multi_class = True,
-    #                                   multiprocessing = False,
-    #                                   grid = GRIDS["MLPClassifier"]),
-    # "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
-    #                                                    scalable = None,
-    #                                                    accepts_empty_class = False,
-    #                                                    allows_multi_class = False,
-    #                                                    multiprocessing = True,
-    #                                                    grid = GRIDS["HistGradientBoostingClassifier"]),
-    # "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
-    #                                                scalable = None,
-    #                                                accepts_empty_class = False,
-    #                                                allows_multi_class = False,
-    #                                                multiprocessing = True,
-    #                                                grid = GRIDS["GradientBoostingClassifier"]),
+    "GaussianNB": characterization(classifier = GaussianNB,
+                                   scalable = None,
+                                   accepts_empty_class = True,
+                                   allows_multi_class = False,
+                                   multiprocessing = True,
+                                   grid = GRIDS["GaussianNB"]),
+    "BernoulliNB": characterization(classifier = BernoulliNB,
+                                    scalable = None,
+                                    accepts_empty_class = True,
+                                    allows_multi_class = False,
+                                    multiprocessing = True,
+                                    grid = GRIDS["BernoulliNB"]),
+    "ComplementNB": characterization(classifier = ComplementNB,
+                                     scalable = None,
+                                     accepts_empty_class = True,
+                                     allows_multi_class = False,
+                                     multiprocessing = True,
+                                     grid = GRIDS["ComplementNB"]),
+    "NearestCentroid": characterization(classifier = NearestCentroid,
+                                        scalable = None,
+                                        accepts_empty_class = False,
+                                        allows_multi_class = False,
+                                        multiprocessing = True,
+                                        grid = GRIDS["NearestCentroid"]),
+    "RidgeClassifier": characterization(classifier = RidgeClassifier,
+                                        scalable = None,
+                                        accepts_empty_class = True,
+                                        allows_multi_class = True,
+                                        multiprocessing = False,
+                                        grid = GRIDS["RidgeClassifier"]),
+    "RidgeClassifierCV": characterization(classifier = RidgeClassifierCV,
+                                          scalable = None,
+                                          accepts_empty_class = True, 
+                                          allows_multi_class = True,
+                                          multiprocessing = False,
+                                          grid = GRIDS["RidgeClassifierCV"]),
+    "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = True,
+                                               grid = GRIDS["RandomForestClassifier"]),
+    "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
+                                            scalable = None,
+                                            accepts_empty_class = True,
+                                            allows_multi_class = True,
+                                            multiprocessing = False,
+                                            grid = GRIDS["ExtraTreeClassifier"]),
+    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = False,
+                                               grid = GRIDS["DecisionTreeClassifier"]),
+    "SGDClassifier": characterization(classifier = SGDClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = False,
+                                      allows_multi_class = False,
+                                      multiprocessing = True,
+                                      grid = GRIDS["SGDClassifier"]),
+    "Perceptron": characterization(classifier = Perceptron, 
+                                   scalable = None, 
+                                   accepts_empty_class = False,
+                                   allows_multi_class = False,
+                                   multiprocessing = True,
+                                   grid = GRIDS["Perceptron"]),
+    "LinearDiscriminantAnalysis": characterization(classifier = LinearDiscriminantAnalysis,
+                                                   scalable = None,
+                                                   accepts_empty_class = True,
+                                                   allows_multi_class = False,
+                                                   multiprocessing = True,
+                                                   grid = GRIDS["LinearDiscriminantAnalysis"]),
+    "MLPClassifier": characterization(classifier = MLPClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = True,
+                                      allows_multi_class = True,
+                                      multiprocessing = False,
+                                      grid = GRIDS["MLPClassifier"]),
+    "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
+                                                       scalable = None,
+                                                       accepts_empty_class = False,
+                                                       allows_multi_class = False,
+                                                       multiprocessing = True,
+                                                       grid = GRIDS["HistGradientBoostingClassifier"]),
+    "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
+                                                   scalable = None,
+                                                   accepts_empty_class = False,
+                                                   allows_multi_class = False,
+                                                   multiprocessing = True,
+                                                   grid = GRIDS["GradientBoostingClassifier"]),
     "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
                                                       scalable = None,
                                                       accepts_empty_class = False,
@@ -1783,72 +1583,72 @@ CLASSIFIERS_TO_TEST_LENS = {
 }
 
 CLASSIFIERS_TO_TEST_RPE = {
-    # "GaussianNB": characterization(classifier = GaussianNB,
-    #                                scalable = None,
-    #                                accepts_empty_class = True,
-    #                                allows_multi_class = False,
-    #                                multiprocessing = True,
-    #                                grid = GRIDS["GaussianNB"]),
-    # "NearestCentroid": characterization(classifier = NearestCentroid,
-    #                                     scalable = None,
-    #                                     accepts_empty_class = False,
-    #                                     allows_multi_class = False,
-    #                                     multiprocessing = True,
-    #                                     grid = GRIDS["NearestCentroid"]),
-    # "ComplementNB": characterization(classifier = ComplementNB,
-    #                                  scalable = None,
-    #                                  accepts_empty_class = True,
-    #                                  allows_multi_class = False,
-    #                                  multiprocessing = True,
-    #                                  grid = GRIDS["ComplementNB"]),
-    # "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
-    #                                            scalable = None,
-    #                                            accepts_empty_class = True,
-    #                                            allows_multi_class = True,
-    #                                            multiprocessing = True,
-    #                                            grid = GRIDS["RandomForestClassifier"]),
-    # "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
-    #                                         scalable = None,
-    #                                         accepts_empty_class = True,
-    #                                         allows_multi_class = True,
-    #                                         multiprocessing = False,
-    #                                         grid = GRIDS["ExtraTreeClassifier"]),
-    # "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
-    #                                            scalable = None,
-    #                                            accepts_empty_class = True,
-    #                                            allows_multi_class = True,
-    #                                            multiprocessing = False,
-    #                                            grid = GRIDS["DecisionTreeClassifier"]),
-    # "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
-    #                                                   scalable = None,
-    #                                                   accepts_empty_class = False,
-    #                                                   allows_multi_class = False,
-    #                                                   multiprocessing = True,
-    #                                                   grid = GRIDS["QuadraticDiscriminantAnalysis"]),
-    # "SGDClassifier": characterization(classifier = SGDClassifier,
-    #                                   scalable = None,
-    #                                   accepts_empty_class = False,
-    #                                   allows_multi_class = False,
-    #                                   multiprocessing = True,
-    #                                   grid = GRIDS["SGDClassifier"]),
-    # "MLPClassifier": characterization(classifier = MLPClassifier,
-    #                                   scalable = None,
-    #                                   accepts_empty_class = True,
-    #                                   allows_multi_class = True,
-    #                                   multiprocessing = False,
-    #                                   grid = GRIDS["MLPClassifier"]),
-    # "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
-    #                                                    scalable = None,
-    #                                                    accepts_empty_class = False,
-    #                                                    allows_multi_class = False,
-    #                                                    multiprocessing = True,
-    #                                                    grid = GRIDS["HistGradientBoostingClassifier"]),
-    # "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
-    #                                                scalable = None,
-    #                                                accepts_empty_class = False,
-    #                                                allows_multi_class = False,
-    #                                                multiprocessing = True,
-    #                                                grid = GRIDS["GradientBoostingClassifier"]),
+    "GaussianNB": characterization(classifier = GaussianNB,
+                                   scalable = None,
+                                   accepts_empty_class = True,
+                                   allows_multi_class = False,
+                                   multiprocessing = True,
+                                   grid = GRIDS["GaussianNB"]),
+    "NearestCentroid": characterization(classifier = NearestCentroid,
+                                        scalable = None,
+                                        accepts_empty_class = False,
+                                        allows_multi_class = False,
+                                        multiprocessing = True,
+                                        grid = GRIDS["NearestCentroid"]),
+    "ComplementNB": characterization(classifier = ComplementNB,
+                                     scalable = None,
+                                     accepts_empty_class = True,
+                                     allows_multi_class = False,
+                                     multiprocessing = True,
+                                     grid = GRIDS["ComplementNB"]),
+    "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = True,
+                                               grid = GRIDS["RandomForestClassifier"]),
+    "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
+                                            scalable = None,
+                                            accepts_empty_class = True,
+                                            allows_multi_class = True,
+                                            multiprocessing = False,
+                                            grid = GRIDS["ExtraTreeClassifier"]),
+    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = False,
+                                               grid = GRIDS["DecisionTreeClassifier"]),
+    "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
+                                                      scalable = None,
+                                                      accepts_empty_class = False,
+                                                      allows_multi_class = False,
+                                                      multiprocessing = True,
+                                                      grid = GRIDS["QuadraticDiscriminantAnalysis"]),
+    "SGDClassifier": characterization(classifier = SGDClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = False,
+                                      allows_multi_class = False,
+                                      multiprocessing = True,
+                                      grid = GRIDS["SGDClassifier"]),
+    "MLPClassifier": characterization(classifier = MLPClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = True,
+                                      allows_multi_class = True,
+                                      multiprocessing = False,
+                                      grid = GRIDS["MLPClassifier"]),
+    "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
+                                                       scalable = None,
+                                                       accepts_empty_class = False,
+                                                       allows_multi_class = False,
+                                                       multiprocessing = True,
+                                                       grid = GRIDS["HistGradientBoostingClassifier"]),
+    "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
+                                                   scalable = None,
+                                                   accepts_empty_class = False,
+                                                   allows_multi_class = False,
+                                                   multiprocessing = True,
+                                                   grid = GRIDS["GradientBoostingClassifier"]),
     "ExtraTreesClassifier": characterization(classifier = ExtraTreesClassifier,
                                              scalable = None,
                                              accepts_empty_class = True,
@@ -1858,78 +1658,78 @@ CLASSIFIERS_TO_TEST_RPE = {
 }
 
 CLASSIFIERS_TO_TEST_RPE_CLASSES = {
-    # "LinearDiscriminantAnalysis": characterization(classifier = LinearDiscriminantAnalysis,
-    #                                                scalable = None,
-    #                                                accepts_empty_class = True,
-    #                                                allows_multi_class = False,
-    #                                                multiprocessing = True,
-    #                                                grid = GRIDS["LinearDiscriminantAnalysis"]),
-    # "MLPClassifier": characterization(classifier = MLPClassifier,
-    #                                   scalable = None,
-    #                                   accepts_empty_class = True,
-    #                                   allows_multi_class = True,
-    #                                   multiprocessing = False,
-    #                                   grid = GRIDS["MLPClassifier"]),
-    # "SGDClassifier": characterization(classifier = SGDClassifier,
-    #                                   scalable = None,
-    #                                   accepts_empty_class = False,
-    #                                   allows_multi_class = False,
-    #                                   multiprocessing = True,
-    #                                   grid = GRIDS["SGDClassifier"]),
-    # "GaussianNB": characterization(classifier = GaussianNB,
-    #                                scalable = None,
-    #                                accepts_empty_class = True,
-    #                                allows_multi_class = False,
-    #                                multiprocessing = True,
-    #                                grid = GRIDS["GaussianNB"]),
-    # "NearestCentroid": characterization(classifier = NearestCentroid,
-    #                                     scalable = None,
-    #                                     accepts_empty_class = False,
-    #                                     allows_multi_class = False,
-    #                                     multiprocessing = True,
-    #                                     grid = GRIDS["NearestCentroid"]),
-    # "ComplementNB": characterization(classifier = ComplementNB,
-    #                                  scalable = None,
-    #                                  accepts_empty_class = True,
-    #                                  allows_multi_class = False,
-    #                                  multiprocessing = True,
-    #                                  grid = GRIDS["ComplementNB"]),
-    # "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
-    #                                            scalable = None,
-    #                                            accepts_empty_class = True,
-    #                                            allows_multi_class = True,
-    #                                            multiprocessing = True,
-    #                                            grid = GRIDS["RandomForestClassifier"]),
-    # "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
-    #                                         scalable = None,
-    #                                         accepts_empty_class = True,
-    #                                         allows_multi_class = True,
-    #                                         multiprocessing = False,
-    #                                         grid = GRIDS["ExtraTreeClassifier"]),
-    # "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
-    #                                            scalable = None,
-    #                                            accepts_empty_class = True,
-    #                                            allows_multi_class = True,
-    #                                            multiprocessing = False,
-    #                                            grid = GRIDS["DecisionTreeClassifier"]),
-    # "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
-    #                                                   scalable = None,
-    #                                                   accepts_empty_class = False,
-    #                                                   allows_multi_class = False,
-    #                                                   multiprocessing = True,
-    #                                                   grid = GRIDS["QuadraticDiscriminantAnalysis"]),
-    # "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
-    #                                                    scalable = None,
-    #                                                    accepts_empty_class = False,
-    #                                                    allows_multi_class = False,
-    #                                                    multiprocessing = True,
-    #                                                    grid = GRIDS["HistGradientBoostingClassifier"]),
-    # "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
-    #                                                scalable = None,
-    #                                                accepts_empty_class = False,
-    #                                                allows_multi_class = False,
-    #                                                multiprocessing = True,
-    #                                                grid = GRIDS["GradientBoostingClassifier"]),
+    "LinearDiscriminantAnalysis": characterization(classifier = LinearDiscriminantAnalysis,
+                                                   scalable = None,
+                                                   accepts_empty_class = True,
+                                                   allows_multi_class = False,
+                                                   multiprocessing = True,
+                                                   grid = GRIDS["LinearDiscriminantAnalysis"]),
+    "MLPClassifier": characterization(classifier = MLPClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = True,
+                                      allows_multi_class = True,
+                                      multiprocessing = False,
+                                      grid = GRIDS["MLPClassifier"]),
+    "SGDClassifier": characterization(classifier = SGDClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = False,
+                                      allows_multi_class = False,
+                                      multiprocessing = True,
+                                      grid = GRIDS["SGDClassifier"]),
+    "GaussianNB": characterization(classifier = GaussianNB,
+                                   scalable = None,
+                                   accepts_empty_class = True,
+                                   allows_multi_class = False,
+                                   multiprocessing = True,
+                                   grid = GRIDS["GaussianNB"]),
+    "NearestCentroid": characterization(classifier = NearestCentroid,
+                                        scalable = None,
+                                        accepts_empty_class = False,
+                                        allows_multi_class = False,
+                                        multiprocessing = True,
+                                        grid = GRIDS["NearestCentroid"]),
+    "ComplementNB": characterization(classifier = ComplementNB,
+                                     scalable = None,
+                                     accepts_empty_class = True,
+                                     allows_multi_class = False,
+                                     multiprocessing = True,
+                                     grid = GRIDS["ComplementNB"]),
+    "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = True,
+                                               grid = GRIDS["RandomForestClassifier"]),
+    "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
+                                            scalable = None,
+                                            accepts_empty_class = True,
+                                            allows_multi_class = True,
+                                            multiprocessing = False,
+                                            grid = GRIDS["ExtraTreeClassifier"]),
+    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = False,
+                                               grid = GRIDS["DecisionTreeClassifier"]),
+    "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
+                                                      scalable = None,
+                                                      accepts_empty_class = False,
+                                                      allows_multi_class = False,
+                                                      multiprocessing = True,
+                                                      grid = GRIDS["QuadraticDiscriminantAnalysis"]),
+    "HistGradientBoostingClassifier": characterization(classifier = HistGradientBoostingClassifier,
+                                                       scalable = None,
+                                                       accepts_empty_class = False,
+                                                       allows_multi_class = False,
+                                                       multiprocessing = True,
+                                                       grid = GRIDS["HistGradientBoostingClassifier"]),
+    "GradientBoostingClassifier": characterization(classifier = GradientBoostingClassifier,
+                                                   scalable = None,
+                                                   accepts_empty_class = False,
+                                                   allows_multi_class = False,
+                                                   multiprocessing = True,
+                                                   grid = GRIDS["GradientBoostingClassifier"]),
     "RidgeClassifier": characterization(classifier = RidgeClassifier,
                                         scalable = None,
                                         accepts_empty_class = True,
@@ -1946,60 +1746,60 @@ CLASSIFIERS_TO_TEST_RPE_CLASSES = {
 }
 
 CLASSIFIERS_TO_TEST_LENS_CLASSES = {
-    # "GaussianNB": characterization(classifier = GaussianNB,
-    #                                scalable = None,
-    #                                accepts_empty_class = True,
-    #                                allows_multi_class = False,
-    #                                multiprocessing = True,
-    #                                grid = GRIDS["GaussianNB"]),
-    # "NearestCentroid": characterization(classifier = NearestCentroid,
-    #                                     scalable = None,
-    #                                     accepts_empty_class = False,
-    #                                     allows_multi_class = False,
-    #                                     multiprocessing = True,
-    #                                     grid = GRIDS["NearestCentroid"]),
-    # "ComplementNB": characterization(classifier = ComplementNB,
-    #                                  scalable = None,
-    #                                  accepts_empty_class = True,
-    #                                  allows_multi_class = False,
-    #                                  multiprocessing = True,
-    #                                  grid = GRIDS["ComplementNB"]),
-    # "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
-    #                                         scalable = None,
-    #                                         accepts_empty_class = True,
-    #                                         allows_multi_class = True,
-    #                                         multiprocessing = False,
-    #                                         grid = GRIDS["ExtraTreeClassifier"]),
-    # "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
-    #                                            scalable = None,
-    #                                            accepts_empty_class = True,
-    #                                            allows_multi_class = True,
-    #                                            multiprocessing = False,
-    #                                            grid = GRIDS["DecisionTreeClassifier"]),
-    # "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
-    #                                                   scalable = None,
-    #                                                   accepts_empty_class = False,
-    #                                                   allows_multi_class = False,
-    #                                                   multiprocessing = True,
-    #                                                   grid = GRIDS["QuadraticDiscriminantAnalysis"]),
-    # "KNN": characterization(classifier = KNeighborsClassifier,
-    #                         scalable = None,
-    #                         accepts_empty_class = True,
-    #                         allows_multi_class = True,
-    #                         multiprocessing = True,
-    #                         grid = GRIDS["KNN"]),
-    # "MLPClassifier": characterization(classifier = MLPClassifier,
-    #                                   scalable = None,
-    #                                   accepts_empty_class = True,
-    #                                   allows_multi_class = True,
-    #                                   multiprocessing = False,
-    #                                   grid = GRIDS["MLPClassifier"]),
-    # "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
-    #                                            scalable = None,
-    #                                            accepts_empty_class = True,
-    #                                            allows_multi_class = True,
-    #                                            multiprocessing = True,
-    #                                            grid = GRIDS["RandomForestClassifier"]),
+    "GaussianNB": characterization(classifier = GaussianNB,
+                                   scalable = None,
+                                   accepts_empty_class = True,
+                                   allows_multi_class = False,
+                                   multiprocessing = True,
+                                   grid = GRIDS["GaussianNB"]),
+    "NearestCentroid": characterization(classifier = NearestCentroid,
+                                        scalable = None,
+                                        accepts_empty_class = False,
+                                        allows_multi_class = False,
+                                        multiprocessing = True,
+                                        grid = GRIDS["NearestCentroid"]),
+    "ComplementNB": characterization(classifier = ComplementNB,
+                                     scalable = None,
+                                     accepts_empty_class = True,
+                                     allows_multi_class = False,
+                                     multiprocessing = True,
+                                     grid = GRIDS["ComplementNB"]),
+    "ExtraTreeClassifier": characterization(classifier = ExtraTreeClassifier,
+                                            scalable = None,
+                                            accepts_empty_class = True,
+                                            allows_multi_class = True,
+                                            multiprocessing = False,
+                                            grid = GRIDS["ExtraTreeClassifier"]),
+    "DecisionTreeClassifier": characterization(classifier = DecisionTreeClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = False,
+                                               grid = GRIDS["DecisionTreeClassifier"]),
+    "QuadraticDiscriminantAnalysis": characterization(classifier = QuadraticDiscriminantAnalysis,
+                                                      scalable = None,
+                                                      accepts_empty_class = False,
+                                                      allows_multi_class = False,
+                                                      multiprocessing = True,
+                                                      grid = GRIDS["QuadraticDiscriminantAnalysis"]),
+    "KNN": characterization(classifier = KNeighborsClassifier,
+                            scalable = None,
+                            accepts_empty_class = True,
+                            allows_multi_class = True,
+                            multiprocessing = True,
+                            grid = GRIDS["KNN"]),
+    "MLPClassifier": characterization(classifier = MLPClassifier,
+                                      scalable = None,
+                                      accepts_empty_class = True,
+                                      allows_multi_class = True,
+                                      multiprocessing = False,
+                                      grid = GRIDS["MLPClassifier"]),
+    "RandomForestClassifier": characterization(classifier = RandomForestClassifier,
+                                               scalable = None,
+                                               accepts_empty_class = True,
+                                               allows_multi_class = True,
+                                               multiprocessing = True,
+                                               grid = GRIDS["RandomForestClassifier"]),
     "LinearDiscriminantAnalysis": characterization(classifier = LinearDiscriminantAnalysis,
                                                    scalable = None,
                                                    accepts_empty_class = True,

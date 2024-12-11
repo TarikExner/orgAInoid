@@ -6,33 +6,26 @@ import pandas as pd
 from tqdm import tqdm
 
 from ._dataset import OrganoidDataset, OrganoidTrainingDataset
-from ._utils import create_dataloader, _apply_train_test_split, _one_hot_encode_labels
+from ._utils import create_dataloader, _one_hot_encode_labels
 
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from sklearn.linear_model import SGDClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-
 from sklearn.metrics import f1_score, confusion_matrix
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import NearestCentroid
 
 from typing import Literal, Optional, Union
 
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
+from torch.utils.data import DataLoader
 
 from .models import DenseNet121, ResNet50, MobileNetV3_Large
 
-from torch.utils.data import DataLoader
 
 
 class ModelWithTemperature(nn.Module):
@@ -207,38 +200,19 @@ def create_weights(val_scores, method='f1', normalize=True, power=1.0, temperatu
     """
     Creates weights for models based on validation F1 scores using various methodologies.
 
-    Parameters:
-    - val_scores (dict): Dictionary with model names as keys and F1 scores as values.
-    - method (str): Method to use for weight calculation. Options are:
-        - 'f1': Use F1 scores directly.
-        - 'inverse': Use inverse of F1 scores.
-        - 'softmax': Use softmax of F1 scores.
-        - 'power': Use F1 scores raised to a power.
-        - 'temperature': Use softmax with temperature scaling.
-    - normalize (bool): Whether to normalize the weights to sum to 1.
-    - power (float): Exponent to use in the 'power' method.
-    - temperature (float): Temperature parameter for the 'temperature' method.
-
-    Returns:
-    - weights (dict): Dictionary with model names as keys and calculated weights as values.
     """
 
-    # Extract model names and F1 scores
     model_names = list(val_scores.keys())
     f1_scores = np.array(list(val_scores.values()))
     
     if method == 'f1':
-        # Use F1 scores directly
         weights_array = f1_scores.copy()
     elif method == 'softmax':
-        # Use softmax of F1 scores
         exp_scores = np.exp(f1_scores)
         weights_array = exp_scores
     elif method == 'power':
-        # Use F1 scores raised to a power
         weights_array = np.power(f1_scores, power)
     elif method == 'temperature':
-        # Use softmax with temperature scaling
         exp_scores = np.exp(f1_scores / temperature)
         weights_array = exp_scores
     else:
@@ -276,9 +250,7 @@ def ensemble_probability_averaging(models, dataloader, weights=None):
                 probs = F.softmax(logits, dim=1)
                 
                 if weights is not None:
-                    # for now, lets allow keyerrors
                     weight = weights[model.original_name]
-                    # weight = weights.get(model.original_name, 1.0)
                 else:
                     # If no weights provided, use equal weighting
                     weight = 1.0
@@ -308,9 +280,7 @@ def generate_ensemble(val_experiments: list[str],
         return models
 
     else:
-
         models = []
-
         for experiment in val_experiments:
             print(f"\n{experiment}\n")
 
@@ -321,7 +291,6 @@ def generate_ensemble(val_experiments: list[str],
 
             for model_name in model_names:
                 print(f"\t{model_name}")
-                # if eval_set == "both":
                 models.append(
                     instantiate_model(
                         model_name,
@@ -331,15 +300,6 @@ def generate_ensemble(val_experiments: list[str],
                         val_loader = val_loader
                     )
                 )
-                if True:
-                    pass
-                else:
-                    models.append(instantiate_model(model_name,
-                                                    eval_set = "val",
-                                                    val_exp = experiment,
-                                                    readout = readout,
-                                                    val_loader = val_loader))
-        
         with open(output_file, "wb") as file:
             pickle.dump(models, file)
 
