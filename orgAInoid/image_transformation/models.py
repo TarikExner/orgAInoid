@@ -2,48 +2,161 @@ import torch
 import torch.nn as nn
 import math
 
+import torch.nn.functional as F
+
 class PatchEmbedding(nn.Module):
-    def __init__(self, img_size, patch_size, in_channels=1, embed_dim=768):
+    def __init__(self, img_size=224, patch_size=16, in_channels=1, embed_dim=768):
         super(PatchEmbedding, self).__init__()
         self.img_size = img_size
         self.patch_size = patch_size
-        self.num_patches = (img_size[0] // patch_size) * (img_size[1] // patch_size)
-        self.embed_dim = embed_dim
+        self.num_patches_per_image = (img_size // patch_size) ** 2
 
-        # Linear projection of flattened patches
         self.proj = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
-
-    def forward(self, x):
-        # x: [batch_size, seq_length, height, width]
-        batch_size, seq_length, height, width = x.shape
-
-        # Reshape to treat each image in the sequence individually
-        x = x.reshape(batch_size * seq_length, 1, height, width)  # (batch_size * seq_length, 1, height, width)
-
-        # Apply convolution to each patch
-        x = self.proj(x)  # (batch_size * seq_length, embed_dim, num_patches_height, num_patches_width)
         
-        # Flatten the spatial dimensions
-        x = x.flatten(2)  # (batch_size * seq_length, embed_dim, num_patches)
-        x = x.transpose(1, 2)  # (batch_size * seq_length, num_patches, embed_dim)
-
-        # Reshape back to the sequence form
-        x = x.reshape(batch_size, seq_length * self.num_patches, self.embed_dim)  # (batch_size, seq_length * num_patches, embed_dim)
+    def forward(self, x):
+        """
+        Args:
+            x: Tensor of shape (batch_size, num_images, in_channels, img_size, img_size)
+        Returns:
+            patches: Tensor of shape (batch_size, num_images * num_patches_per_image, embed_dim)
+        """
+        batch_size, num_images, in_channels, img_size, _ = x.shape
+        x = x.view(batch_size * num_images, in_channels, img_size, img_size)  # (B*num_images, C, H, W)
+        x = self.proj(x)  # (B*num_images, embed_dim, H/patch, W/patch)
+        x = x.flatten(2)  # (B*num_images, embed_dim, num_patches)
+        x = x.transpose(1, 2)  # (B*num_images, num_patches, embed_dim)
+        x = x.view(batch_size, num_images * self.num_patches_per_image, -1)  # (B, num_images*num_patches, embed_dim)
         return x
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, embed_dim, max_len=5000):
+    def __init__(self, embed_dim, max_seq_length, num_predicted_images=5):
         super(PositionalEncoding, self).__init__()
-        pe = torch.zeros(max_len, embed_dim)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * (-math.log(10000.0) / embed_dim))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
-
+        self.pos_embed = nn.Parameter(torch.zeros(1, max_seq_length, embed_dim))
+        self.num_predicted_images = num_predicted_images
+        nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        
     def forward(self, x):
-        return x + self.pe[:x.size(0), :]
+        """
+        Args:
+            x: Tensor of shape (batch_size, seq_length, embed_dim)
+        Returns:
+            x + pos_embed: Tensor of shape (batch_size, seq_length, embed_dim)
+        """
+        return x + self.pos_embed[:, :x.size(1), :]
+
+
+class TransformerEncoderBlock(nn.Module):
+    def __init__(self, embed_dim, num_heads, mlp_dim, dropout=0.1):
+        super(TransformerEncoderBlock, self).__init__()
+        self.norm1 = nn.LayerNorm(embed_dim)
+        self.attn = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout)
+        self.dropout1 = nn.Dropout(dropout)
+        
+        self.norm2 = nn.LayerNorm(embed_dim)
+        self.mlp = nn.Sequential(
+            nn.Linear(embed_dim, mlp_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(mlp_dim, embed_dim),
+            nn.Dropout(dropout)
+        )
+        
+    def forward(self, x):
+        """
+        Args:
+            x: Tensor of shape (seq_length, batch_size, embed_dim)
+        Returns:
+            x: Tensor of shape (seq_length, batch_size, embed_dim)
+        """
+        # Self-attention block
+        attn_output, _ = self.attn(self.norm1(x), self.norm1(x), self.norm1(x))
+        x = x + self.dropout1(attn_output)
+        
+        # MLP block
+        mlp_output = self.mlp(self.norm2(x))
+        x = x + mlp_output
+        return x
+
+class VisionTransformerPredictor(nn.Module):
+    def __init__(
+        self,
+        img_size=224,
+        patch_size=16,
+        in_channels=1,
+        num_input_images=5,
+        num_predicted_images=5,
+        embed_dim=768,
+        num_heads=12,
+        num_layers=12,
+        mlp_dim=3072,
+        dropout=0.1
+    ):
+        super(VisionTransformerPredictor, self).__init__()
+        self.num_input_images = num_input_images
+        self.num_predicted_images = num_predicted_images
+        self.patch_embed = PatchEmbedding(
+            img_size=img_size,
+            patch_size=patch_size,
+            in_channels=in_channels,
+            embed_dim=embed_dim
+        )
+        num_patches = self.patch_embed.num_patches_per_image * num_input_images
+        
+        self.pos_embed = PositionalEncoding(embed_dim, max_seq_length=num_patches)
+        self.dropout = nn.Dropout(dropout)
+        
+        # Transformer Encoder
+        self.transformer = nn.ModuleList([
+            TransformerEncoderBlock(embed_dim, num_heads, mlp_dim, dropout)
+            for _ in range(num_layers)
+        ])
+        
+        self.norm = nn.LayerNorm(embed_dim)
+        
+        # Prediction Head
+        # For predicting multiple images, we'll output a flattened tensor representing all predicted images
+        self.pred_head = nn.Sequential(
+            nn.Linear(embed_dim, mlp_dim),
+            nn.GELU(),
+            nn.Linear(mlp_dim, num_predicted_images * img_size * img_size)
+        )
+        
+    def forward(self, x):
+        """
+        Args:
+            x: Tensor of shape (batch_size, num_input_images, in_channels, img_size, img_size)
+        Returns:
+            predicted_images: Tensor of shape (batch_size, num_predicted_images, 1, img_size, img_size)
+        """
+        batch_size = x.size(0)
+        
+        # Patch Embedding
+        x = self.patch_embed(x)  # (B, num_input_images*num_patches, embed_dim)
+        
+        # Positional Encoding
+        x = self.pos_embed(x)  # (B, num_input_images*num_patches, embed_dim)
+        x = self.dropout(x)
+        
+        # Prepare for Transformer (seq_length, batch_size, embed_dim)
+        x = x.transpose(0, 1)  # (seq_length, B, embed_dim)
+        
+        # Transformer Encoder
+        for layer in self.transformer:
+            x = layer(x)
+        
+        x = self.norm(x)  # (seq_length, B, embed_dim)
+        
+        # Aggregate the sequence of embeddings
+        # Strategy: Mean pooling over the sequence dimension
+        x = x.mean(dim=0)  # (B, embed_dim)
+        
+        # Prediction Head
+        x = self.pred_head(x)  # (B, num_predicted_images * img_size * img_size)
+        x = x.view(batch_size, self.num_predicted_images, 1, 224, 224)  # (B, num_predicted_images, 1, H, W)
+        
+        return x
+
+
 
 class ImageTransformer(nn.Module):
     def __init__(self, img_size, patch_size, subseries_length, embed_dim, num_heads, num_layers, dropout=0.1):
