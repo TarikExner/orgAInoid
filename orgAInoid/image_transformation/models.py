@@ -4,12 +4,16 @@ import math
 
 import torch.nn.functional as F
 
+import torch
+import torch.nn as nn
+
 class PatchEmbedding(nn.Module):
     def __init__(self, img_size=224, patch_size=16, in_channels=1, embed_dim=768):
         super(PatchEmbedding, self).__init__()
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches_per_image = (img_size // patch_size) ** 2
+        self.num_images = 5  # Number of images in the input sequence
 
         self.proj = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
         
@@ -25,14 +29,13 @@ class PatchEmbedding(nn.Module):
         x = self.proj(x)  # (B*num_images, embed_dim, H/patch, W/patch)
         x = x.flatten(2)  # (B*num_images, embed_dim, num_patches)
         x = x.transpose(1, 2)  # (B*num_images, num_patches, embed_dim)
-        x = x.view(batch_size, num_images * self.num_patches_per_image, -1)  # (B, num_images*num_patches, embed_dim)
+        x = x.reshape(batch_size, num_images * self.num_patches_per_image, -1)  # (B, num_images*num_patches, embed_dim)
         return x
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, embed_dim, max_seq_length, num_predicted_images=5):
+    def __init__(self, embed_dim, max_seq_length):
         super(PositionalEncoding, self).__init__()
         self.pos_embed = nn.Parameter(torch.zeros(1, max_seq_length, embed_dim))
-        self.num_predicted_images = num_predicted_images
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
         
     def forward(self, x):
@@ -43,7 +46,6 @@ class PositionalEncoding(nn.Module):
             x + pos_embed: Tensor of shape (batch_size, seq_length, embed_dim)
         """
         return x + self.pos_embed[:, :x.size(1), :]
-
 
 class TransformerEncoderBlock(nn.Module):
     def __init__(self, embed_dim, num_heads, mlp_dim, dropout=0.1):
@@ -155,8 +157,6 @@ class VisionTransformerPredictor(nn.Module):
         x = x.view(batch_size, self.num_predicted_images, 1, 224, 224)  # (B, num_predicted_images, 1, H, W)
         
         return x
-
-
 
 class ImageTransformer(nn.Module):
     def __init__(self, img_size, patch_size, subseries_length, embed_dim, num_heads, num_layers, dropout=0.1):
