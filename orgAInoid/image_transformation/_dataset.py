@@ -109,7 +109,7 @@ class ImageSequenceDataset(Dataset):
         # List to store tuples of (input_indices, target_indices)
         self.sequence_indices = []
         
-        for name, group in grouped:
+        for _, group in grouped:
             group = group.reset_index(drop=True)
             total_timepoints = len(group)
             # Calculate the maximum starting index to ensure sequences don't exceed available images
@@ -122,7 +122,7 @@ class ImageSequenceDataset(Dataset):
                 self.sequence_indices.append((input_indices, target_indices))
         
         # Convert list to NumPy array for faster indexing
-        self.sequence_indices = np.array(self.sequence_indices, dtype=np.int64)
+        self.sequence_indices = np.array(self.sequence_indices, dtype=object)
         print(f"Total sequences available with gap={self.gap}: {len(self.sequence_indices)}")
     
     def __len__(self):
@@ -140,6 +140,8 @@ class ImageSequenceDataset(Dataset):
             targets (torch.Tensor): Tensor of shape (num_output, 1, 224, 224).
         """
         input_indices, target_indices = self.sequence_indices[idx]
+        input_indices = input_indices.astype(np.int64)
+        target_indices = target_indices.astype(np.int64)
         print(input_indices, target_indices)
         
         # Retrieve input images
