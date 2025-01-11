@@ -149,6 +149,7 @@ class ImageSequenceDataset(Dataset):
             targets (torch.Tensor): Tensor of shape (num_output, channels, height, width).
         """
         input_indices, target_indices = self.sequence_indices[idx]
+        print(input_indices, target_indices)
         
         # Retrieve input images
         inputs = self.image_array[input_indices]  # Shape: (num_input, 224, 224)
@@ -224,7 +225,7 @@ def create_dataloader(img_array: np.ndarray,
                       batch_size: int,
                       shuffle: bool,
                       train: bool,
-                      transformations: Optional[A.Compose] = None,
+                      transformations: Optional[SequenceTransform] = None,
                       **kwargs) -> DataLoader:
     if transformations is None:
         transformations = train_transformations() if train else val_transformations()
