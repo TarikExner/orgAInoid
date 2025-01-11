@@ -36,7 +36,7 @@ class SequenceTransform:
         
         # Apply the same transform using replay data to the rest of the images
         for img in images[1:]:
-            transformed = A.ReplayCompose.apply_replay(self.transform, image=img, replay=replay)
+            transformed = self.transform(image=img, replay=replay)
             transformed_images.append(transformed['image'])
         
         return transformed_images
