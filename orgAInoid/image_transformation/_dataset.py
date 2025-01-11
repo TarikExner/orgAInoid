@@ -174,10 +174,6 @@ class ImageSequenceDataset(Dataset):
         transformed_inputs = transformed_images[:self.num_input]    # Shape: (5, 1, 224, 224)
         transformed_targets = transformed_images[self.num_input:]   # Shape: (5, 1, 224, 224)
         
-        # Convert to torch tensors
-        transformed_inputs = torch.from_numpy(transformed_inputs).float()    # Shape: (5, 1, 224, 224)
-        transformed_targets = torch.from_numpy(transformed_targets).float()  # Shape: (5, 1, 224, 224)
-        
         return transformed_inputs, transformed_targets
 
 def create_dataset(img_array: np.ndarray,
