@@ -41,41 +41,32 @@ class SequenceTransform:
         
         return transformed_images
 
-_train_transformations_pipeline = [
-    A.RandomRotate90(p=0.5),                 # Randomly rotate the image by 90 degrees
-    A.Flip(p=0.5),                           # Randomly flip the image horizontally or vertically
-    A.Transpose(p=0.5),                      # Randomly transpose the image
-    A.ShiftScaleRotate(
-        shift_limit=0.0625, 
-        scale_limit=0.1, 
-        rotate_limit=45, 
-        p=0.75
-    ),                                        # Randomly shift, scale, and rotate the image
-    A.ElasticTransform(
-        alpha=1,
-        sigma=50,
-        p=0.5),  # Elastic deformation
-    A.RandomResizedCrop(
-        height=224, 
-        width=224, 
-        scale=(0.8, 1.0), 
-        ratio=(0.9, 1.1), 
-        p=0.5
-    ),                                        # Randomly crop and resize the image
-    A.GaussianBlur(blur_limit=(3, 7), p=0.5), # Apply Gaussian Blur
-    A.GridDistortion(p=0.5),                 # Apply grid distortion
-    ToTensorV2()
-]
-
-_val_transformations_pipeline = [
-    ToTensorV2()
-]
-
 def train_transformations():
-    return SequenceTransform(_train_transformations_pipeline)
+    return A.Compose([
+        A.RandomRotate90(p=0.5),
+        A.Flip(p=0.5),
+        A.Transpose(p=0.5),
+        A.ShiftScaleRotate(
+            shift_limit=0.0625, 
+            scale_limit=0.1, 
+            rotate_limit=45, 
+            p=0.75
+        ),
+        A.ElasticTransform(alpha=1, sigma=50, p=0.5),
+        A.RandomResizedCrop(
+            height=224, 
+            width=224, 
+            scale=(0.8, 1.0), 
+            ratio=(0.9, 1.1), 
+            p=0.5
+        ),
+        A.GaussianBlur(blur_limit=(3, 7), p=0.5),
+        A.GridDistortion(p=0.5),
+        ToTensorV2()
+    ])
 
 def val_transformations():
-    return SequenceTransform(_val_transformations_pipeline)
+    return A.Compose([ToTensorV2()])
 
 class ImageSequenceDataset(Dataset):
     def __init__(self, image_array, df, num_input=5, num_output=5, gap=0, transform=None):
@@ -145,59 +136,47 @@ class ImageSequenceDataset(Dataset):
             idx (int): Index of the sequence.
 
         Returns:
-            inputs (torch.Tensor): Tensor of shape (num_input, channels, height, width).
-            targets (torch.Tensor): Tensor of shape (num_output, channels, height, width).
+            inputs (torch.Tensor): Tensor of shape (num_input, 1, 224, 224).
+            targets (torch.Tensor): Tensor of shape (num_output, 1, 224, 224).
         """
         input_indices, target_indices = self.sequence_indices[idx]
-        print(input_indices, target_indices)
         
         # Retrieve input images
         inputs = self.image_array[input_indices]  # Shape: (num_input, 1, 224, 224)
         # Retrieve target images
         targets = self.image_array[target_indices]  # Shape: (num_output, 1, 224, 224)
         
-        # Concatenate inputs and targets for joint transformation
-        all_images = np.concatenate((inputs, targets), axis=0)  # Shape: (num_input + num_output, 1, 224, 224)
+        # Concatenate inputs and targets along the sequence dimension
+        # Resulting shape: (num_input + num_output, 1, 224, 224)
+        all_images = np.concatenate((inputs, targets), axis=0)  # Shape: (10, 1, 224, 224)
+        
+        # Reshape to (224, 224, num_input + num_output) for Albumentations (HWC)
+        # This treats the sequence as separate channels of a single image
+        # Current shape: (num_input + num_output, 1, 224, 224)
+        # Desired shape: (224, 224, num_input + num_output)
+        all_images = np.transpose(all_images, (2, 3, 0, 1))  # Shape: (224, 224, 10, 1)
+        all_images = all_images.reshape(224, 224, -1)        # Shape: (224, 224, 10)
         
         # Apply transformations if any
         if self.transform:
-            # Albumentations expects images in HWC format; ensure all_images are in HWC
-            # If images are grayscale, expand dims to (num_images, H, W, 1)
-            if all_images.ndim == 3:
-                all_images = np.expand_dims(all_images, -1)  # Shape: (num_input + num_output, 224, 224, 1)
-            elif all_images.ndim == 4:
-                all_images = np.transpose(all_images, (0,2,3,1)) # Transpose to (224, 224, 1) to confer with albumentations
-            else:
-                raise ValueError("Unexpected image dimensions.")
-            
-            # Convert to list for SequenceTransform
-            all_images = list(all_images)
-            transformed_images = self.transform(all_images)  # List of transformed images
-            
-            # Convert back to NumPy array
-            transformed_images = np.stack(transformed_images)  # Shape: (num_input + num_output, H, W, C)
-            
-            # Remove channel dimension if grayscale
-            if transformed_images.shape[-1] == 1:
-                transformed_images = transformed_images.squeeze(-1)  # Shape: (num_input + num_output, H, W)
+            transformed = self.transform(image=all_images)
+            transformed_images = transformed['image']  # Shape: (224, 224, 10)
         else:
             transformed_images = all_images
         
+        # Reshape back to (num_input + num_output, 224, 224)
+        transformed_images = np.transpose(transformed_images, (2, 0, 1))  # Shape: (10, 224, 224)
+        
+        # Expand channel dimension to (num_input + num_output, 1, 224, 224)
+        transformed_images = transformed_images[:, np.newaxis, :, :]  # Shape: (10, 1, 224, 224)
+        
         # Split back into inputs and targets
-        transformed_inputs = transformed_images[:self.num_input]
-        transformed_targets = transformed_images[self.num_input:]
+        transformed_inputs = transformed_images[:self.num_input]    # Shape: (5, 1, 224, 224)
+        transformed_targets = transformed_images[self.num_input:]   # Shape: (5, 1, 224, 224)
         
         # Convert to torch tensors
-        if isinstance(transformed_inputs, np.ndarray):
-            transformed_inputs = torch.from_numpy(transformed_inputs)
-        if isinstance(transformed_targets, np.ndarray):
-            transformed_targets = torch.from_numpy(transformed_targets)
-        
-        # Add channel dimension if images are grayscale
-        if transformed_inputs.ndim == 3:
-            transformed_inputs = transformed_inputs.unsqueeze(1)  # Shape: (num_input, 1, 224, 224)
-        if transformed_targets.ndim == 3:
-            transformed_targets = transformed_targets.unsqueeze(1)  # Shape: (num_output, 1, 224, 224)
+        transformed_inputs = torch.from_numpy(transformed_inputs).float()    # Shape: (5, 1, 224, 224)
+        transformed_targets = torch.from_numpy(transformed_targets).float()  # Shape: (5, 1, 224, 224)
         
         return transformed_inputs, transformed_targets
 
@@ -225,7 +204,7 @@ def create_dataloader(img_array: np.ndarray,
                       batch_size: int,
                       shuffle: bool,
                       train: bool,
-                      transformations: Optional[SequenceTransform] = None,
+                      transformations: Optional[A.Compose] = None,
                       **kwargs) -> DataLoader:
     if transformations is None:
         transformations = train_transformations() if train else val_transformations()
