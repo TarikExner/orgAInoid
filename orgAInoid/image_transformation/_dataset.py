@@ -156,6 +156,8 @@ class ImageSequenceDataset(Dataset):
         # Desired shape: (224, 224, num_input + num_output)
         all_images = np.transpose(all_images, (2, 3, 0, 1))  # Shape: (224, 224, 10, 1)
         all_images = all_images.reshape(224, 224, -1)        # Shape: (224, 224, 10)
+
+        print(all_images.shape)
         
         # Apply transformations if any
         if self.transform:
@@ -166,9 +168,11 @@ class ImageSequenceDataset(Dataset):
         
         # Reshape back to (num_input + num_output, 224, 224)
         transformed_images = np.transpose(transformed_images, (2, 0, 1))  # Shape: (10, 224, 224)
+        print(transformed_images.shape)
         
         # Expand channel dimension to (num_input + num_output, 1, 224, 224)
         transformed_images = transformed_images[:, np.newaxis, :, :]  # Shape: (10, 1, 224, 224)
+        print(transformed_images.shape)
         
         # Split back into inputs and targets
         transformed_inputs = transformed_images[:self.num_input]    # Shape: (5, 1, 224, 224)
