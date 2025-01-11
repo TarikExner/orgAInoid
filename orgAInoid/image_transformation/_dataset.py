@@ -152,12 +152,12 @@ class ImageSequenceDataset(Dataset):
         print(input_indices, target_indices)
         
         # Retrieve input images
-        inputs = self.image_array[input_indices]  # Shape: (num_input, 224, 224)
+        inputs = self.image_array[input_indices]  # Shape: (num_input, 1, 224, 224)
         # Retrieve target images
-        targets = self.image_array[target_indices]  # Shape: (num_output, 224, 224)
+        targets = self.image_array[target_indices]  # Shape: (num_output, 1, 224, 224)
         
         # Concatenate inputs and targets for joint transformation
-        all_images = np.concatenate((inputs, targets), axis=0)  # Shape: (num_input + num_output, 224, 224)
+        all_images = np.concatenate((inputs, targets), axis=0)  # Shape: (num_input + num_output, 1, 224, 224)
         
         # Apply transformations if any
         if self.transform:
@@ -166,7 +166,7 @@ class ImageSequenceDataset(Dataset):
             if all_images.ndim == 3:
                 all_images = np.expand_dims(all_images, -1)  # Shape: (num_input + num_output, 224, 224, 1)
             elif all_images.ndim == 4:
-                pass  # Already in (num_images, H, W, C)
+                all_images = np.transpose(all_images, (0,2,3,1)) # Transpose to (224, 224, 1) to confer with albumentations
             else:
                 raise ValueError("Unexpected image dimensions.")
             
