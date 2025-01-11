@@ -54,7 +54,6 @@ _train_transformations_pipeline = [
     A.ElasticTransform(
         alpha=1,
         sigma=50,
-        alpha_affine=50,
         p=0.5),  # Elastic deformation
     A.RandomResizedCrop(
         height=224, 
