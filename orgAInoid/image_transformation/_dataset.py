@@ -142,7 +142,6 @@ class ImageSequenceDataset(Dataset):
         input_indices, target_indices = self.sequence_indices[idx]
         input_indices = input_indices.astype(np.int64)
         target_indices = target_indices.astype(np.int64)
-        print(input_indices, target_indices)
         
         # Retrieve input images
         inputs = self.image_array[input_indices]  # Shape: (num_input, 1, 224, 224)
