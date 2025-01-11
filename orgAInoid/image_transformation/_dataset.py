@@ -140,6 +140,7 @@ class ImageSequenceDataset(Dataset):
             targets (torch.Tensor): Tensor of shape (num_output, 1, 224, 224).
         """
         input_indices, target_indices = self.sequence_indices[idx]
+        print(input_indices, target_indices)
         
         # Retrieve input images
         inputs = self.image_array[input_indices]  # Shape: (num_input, 1, 224, 224)
