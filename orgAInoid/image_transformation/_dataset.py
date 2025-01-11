@@ -167,6 +167,7 @@ class ImageSequenceDataset(Dataset):
             transformed_images = all_images
         
         # Reshape back to (num_input + num_output, 224, 224)
+        print(transformed_images.shape)
         transformed_images = np.transpose(transformed_images, (2, 0, 1))  # Shape: (10, 224, 224)
         print(transformed_images.shape)
         
