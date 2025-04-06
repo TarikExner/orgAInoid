@@ -105,7 +105,7 @@ class VisionTransformerPredictor(nn.Module):
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         num_patches = self.patch_embed.num_patches_per_image * num_input_images
         
-        self.pos_embed = PositionalEncoding(embed_dim, max_seq_length=num_patches)
+        self.pos_embed = PositionalEncoding(embed_dim, max_seq_length=num_patches + 1)
         self.dropout = nn.Dropout(dropout)
         
         # Transformer Encoder
