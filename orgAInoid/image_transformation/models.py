@@ -102,6 +102,7 @@ class VisionTransformerPredictor(nn.Module):
             in_channels=in_channels,
             embed_dim=embed_dim
         )
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         num_patches = self.patch_embed.num_patches_per_image * num_input_images
         
         self.pos_embed = PositionalEncoding(embed_dim, max_seq_length=num_patches)
@@ -122,7 +123,7 @@ class VisionTransformerPredictor(nn.Module):
             nn.GELU(),
             nn.Linear(mlp_dim, num_predicted_images * img_size * img_size)
         )
-        
+
     def forward(self, x):
         """
         Args:
@@ -131,86 +132,36 @@ class VisionTransformerPredictor(nn.Module):
             predicted_images: Tensor of shape (batch_size, num_predicted_images, 1, img_size, img_size)
         """
         batch_size = x.size(0)
-        
+
         # Patch Embedding
         x = self.patch_embed(x)  # (B, num_input_images*num_patches, embed_dim)
-        
+
+        # CLS token prepending
+        cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # (B, 1, embed_dim)
+        x = torch.cat((cls_tokens, x), dim=1)  # (B, 1 + num_input_images*num_patches, embed_dim)
+
         # Positional Encoding
-        x = self.pos_embed(x)  # (B, num_input_images*num_patches, embed_dim)
+        x = self.pos_embed(x)  # positional embedding includes the cls token position
         x = self.dropout(x)
-        
-        # Prepare for Transformer (seq_length, batch_size, embed_dim)
-        x = x.transpose(0, 1)  # (seq_length, B, embed_dim)
-        
+
+        # Prepare input for Transformer: (seq_length, batch_size, embed_dim)
+        x = x.transpose(0, 1)
+
         # Transformer Encoder
         for layer in self.transformer:
             x = layer(x)
-        
-        x = self.norm(x)  # (seq_length, B, embed_dim)
-        
-        # Aggregate the sequence of embeddings
-        # Strategy: Mean pooling over the sequence dimension
-        x = x.mean(dim=0)  # (B, embed_dim)
-        
+
+        x = self.norm(x)  # (seq_length, batch_size, embed_dim)
+
+        # Extract the CLS token representation for predictions
+        cls_output = x[0]  # (batch_size, embed_dim)
+
         # Prediction Head
-        x = self.pred_head(x)  # (B, num_predicted_images * img_size * img_size)
-        x = x.view(batch_size, self.num_predicted_images, 1, 224, 224)  # (B, num_predicted_images, 1, H, W)
-        
+        x = self.pred_head(cls_output)  # (batch_size, num_predicted_images * img_size * img_size)
+        x = x.view(batch_size, self.num_predicted_images, 1, self.patch_embed.img_size, self.patch_embed.img_size)
+
         return x
 
-class ImageTransformer(nn.Module):
-    def __init__(self, img_size, patch_size, subseries_length, embed_dim, num_heads, num_layers, dropout=0.1):
-        super(ImageTransformer, self).__init__()
-
-        self.patch_embedding = PatchEmbedding(img_size, patch_size, in_channels=1, embed_dim=embed_dim)
-        self.pos_encoder = PositionalEncoding(embed_dim)
-        
-        # Transformer Encoder
-        encoder_layers = nn.TransformerEncoderLayer(embed_dim, num_heads, dim_feedforward=512, dropout=dropout, batch_first=True)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers, enable_nested_tensor=True)
-        
-        # Decoder to project back to the image space
-        self.decoder = nn.Linear(embed_dim, patch_size * patch_size)
-        
-        self.img_size = img_size  # img_size should be a tuple (height, width)
-        self.patch_size = patch_size
-        self.num_patches = (img_size[0] // patch_size) * (img_size[1] // patch_size)
-
-    def forward(self, x):
-        # Step 1: Patch Embedding
-        # Input x: [batch_size, subseries_length, height, width]
-        batch_size = x.size(0)
-
-        x = self.patch_embedding(x)  # [batch_size, subseries_length * num_patches, embed_dim]
-
-        # Step 2: Positional Encoding
-        x = self.pos_encoder(x)  # Adds positional information to the patch embeddings
-        
-        # Step 3: Transformer Encoder
-        # Transformer expects input of shape (seq_length, batch_size, embed_dim)
-        x = x.transpose(0, 1)  # [seq_length, batch_size, embed_dim]
-        x = self.transformer_encoder(x)  # [seq_length, batch_size, embed_dim]
-        x = x.transpose(0, 1)  # [batch_size, seq_length, embed_dim]
-        
-        # Step 4: Decoding
-        # Decode each patch embedding back to its original patch size
-        x = self.decoder(x)  # [batch_size, seq_length, patch_size * patch_size]
-        
-        x = x.view(batch_size, -1, self.patch_size, self.patch_size)  # [5, 320, 16, 16]
-
-        # Focus only on the last set of patches (n+1 image)
-        x = x[:, -self.num_patches:, :, :]  # [batch_size, num_patches, patch_size, patch_size]
-    
-        # Step 6: Reconstruct the n+1 image from patches
-        num_patches_per_dim_height = self.img_size[0] // self.patch_size
-        num_patches_per_dim_width = self.img_size[1] // self.patch_size
-    
-        x = x.view(batch_size, num_patches_per_dim_height, num_patches_per_dim_width, self.patch_size, self.patch_size)
-    
-        # Permute and reshape to form the final predicted image
-        x = x.permute(0, 1, 3, 2, 4).contiguous().view(batch_size, 1, self.img_size[0], self.img_size[1])
-    
-        return x
 
 class ImageTransformerV2(nn.Module):
     def __init__(self, img_size, patch_size, subseries_length, embed_dim, num_heads, num_layers, dropout, prediction_length=10):
