@@ -382,12 +382,12 @@ class OrganoidDataset:
                              imgs: list[OrganoidImage]) -> OrganoidImage:
         if len(imgs) == 1:
             return imgs[0]
-        if self.metadata.z_projection == "max":
+        if self.dataset_metadata.z_projection == "max":
             projected_array = np.max(
                 [org_image.image for org_image in imgs],
                 axis = 0
             )
-        elif self.metadata.z_projection == "sum":
+        elif self.dataset_metadata.z_projection == "sum":
             projected_array = np.sum(
                 [org_image.image for org_image in imgs],
                 axis = 0
