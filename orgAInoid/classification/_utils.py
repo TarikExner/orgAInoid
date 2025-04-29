@@ -116,6 +116,7 @@ class DatasetMetadata:
     start_timepoint: int
     stop_timepoint: int
     slices: list[str]
+    z_projection: bool
     n_slices: int = field(init = False)
     class_balance: dict = field(default_factory=dict)
 
