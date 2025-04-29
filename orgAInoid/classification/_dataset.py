@@ -58,7 +58,7 @@ class OrganoidDataset:
                  segmentator_input_size: int,
                  segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
                  experiment_dir: str,
-                 z_projection: bool = False,
+                 z_projection: Optional[str] = None,
                  _skip_init: bool = False):
 
         if _skip_init is True:
@@ -382,11 +382,18 @@ class OrganoidDataset:
                              imgs: list[OrganoidImage]) -> OrganoidImage:
         if len(imgs) == 1:
             return imgs[0]
-
-        projected_array = np.max(
-            [org_image.image for org_image in imgs],
-            axis = 0
-        )
+        if self.metadata.z_projection == "max":
+            projected_array = np.max(
+                [org_image.image for org_image in imgs],
+                axis = 0
+            )
+        elif self.metadata.z_projection == "sum":
+            projected_array = np.sum(
+                [org_image.image for org_image in imgs],
+                axis = 0
+            )
+        else:
+            raise ValueError("This shouldnt happen...")
 
         assert projected_array.shape == imgs[0].shape, projected_array.shape
 
