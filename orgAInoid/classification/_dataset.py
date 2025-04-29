@@ -372,11 +372,11 @@ class OrganoidDataset:
                              imgs: list[OrganoidImage]) -> OrganoidImage:
         projected_array = np.sum(
             [org_image.image for org_image in imgs],
-            axis = 2
+            axis = 1
         )
-        assert projected_array.shape[0] == imgs[0].shape[0]
-        assert projected_array.shape[1] == imgs[0].shape[1]
-        assert projected_array.shape[2] == 1
+        assert projected_array.shape[0] == imgs[0].shape[0], projected_array.shape
+        assert projected_array.shape[1] == imgs[0].shape[1], projected_array.shape
+        assert projected_array.shape[2] == 1, projected_array.shape
 
         img = OrganoidImage(path = None)
         img.set_image(projected_array)
