@@ -383,7 +383,7 @@ class OrganoidDataset:
         if len(imgs) == 1:
             return imgs[0]
 
-        projected_array = np.sum(
+        projected_array = np.max(
             [org_image.image for org_image in imgs],
             axis = 0
         )
