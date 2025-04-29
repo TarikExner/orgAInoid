@@ -113,7 +113,11 @@ class OrganoidDataset:
             assert self.X.shape[0] == self.metadata.shape[0] // self.dataset_metadata.n_slices
 
         for readout in self.y:
-            assert self.y[readout].shape[0] == self.metadata.shape[0]
+            if not self.dataset_metadata.z_projection:
+                assert self.y[readout].shape[0] == self.metadata.shape[0]
+            else:
+                assert self.y[readout].shape[0] == self.metadata.shape[0] // self.dataset_metadata.n_slices
+
 
         self._create_class_counts()
 
