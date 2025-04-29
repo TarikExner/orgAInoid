@@ -377,8 +377,6 @@ class OrganoidDataset:
             [org_image.image for org_image in imgs],
             axis = 0
         )
-        print([org_image.shape for org_image in imgs])
-        print(projected_array.shape)
 
         assert projected_array.shape == imgs[0].shape, projected_array.shape
 
