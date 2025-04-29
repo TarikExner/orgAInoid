@@ -58,6 +58,7 @@ class OrganoidDataset:
                  segmentator_input_size: int,
                  segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
                  experiment_dir: str,
+                 z_projection: bool = False,
                  _skip_init: bool = False):
 
         if _skip_init is True:
@@ -98,7 +99,8 @@ class OrganoidDataset:
             readouts_n_classes = readouts_n_classes,
             start_timepoint = start_timepoint,
             stop_timepoint = stop_timepoint,
-            slices = slices
+            slices = slices,
+            z_projection = z_projection
         )
 
         self._metadata = self._preprocess_file_frame(file_frame)
@@ -285,8 +287,9 @@ class OrganoidDataset:
                 image_paths = loop_data["image_path"].tolist()
 
                 loop_images = []
-                for path in image_paths:
-                    image = OrganoidImage(path)
+                if self.dataset_metadata.z_projection:
+                    imgs = [OrganoidImage(path) for path in image_paths]
+                    image = self._create_z_projection(imgs)
                     masked_image = self.img_handler.get_masked_image(
                         image,
                         image_target_dimension = self.image_metadata.dimension,
@@ -301,11 +304,31 @@ class OrganoidDataset:
                         loop_images.append(masked_image)
                     else:
                         loop_images = None
-                        break
+
+                else:
+                    for path in image_paths:
+                        image = OrganoidImage(path)
+                        masked_image = self.img_handler.get_masked_image(
+                            image,
+                            image_target_dimension = self.image_metadata.dimension,
+                            mask_threshold = self.image_metadata.mask_threshold,
+                            clean_mask = self.image_metadata.cleaned_mask,
+                            scale_masked_image = self.image_metadata.scale_masked_image,
+                            crop_bounding_box = self.image_metadata.crop_bounding_box,
+                            rescale_cropped_image = self.image_metadata.rescale_cropped_image,
+                            crop_bounding_box_dimension = self.image_metadata.crop_bounding_box_dimension
+                        )
+                        if masked_image is not None:
+                            loop_images.append(masked_image)
+                        else:
+                            loop_images = None
+                            break
                 
                 # we check if all slices are within the array
                 if loop_images is not None:
-                    if self.dataset_metadata.n_slices != len(loop_images):
+                    if self.dataset_metadata.z_projection:
+                        assert len(loop_images) == 1
+                    elif self.dataset_metadata.n_slices != len(loop_images):
                         loop_images = None
                 
                 if loop_images is not None:
@@ -344,6 +367,20 @@ class OrganoidDataset:
         print(f"In total, {n_failed_images}/{images.shape[0]} images were skipped.")
 
         return images, labels
+
+    def _create_z_projection(self,
+                             imgs: list[OrganoidImage]) -> OrganoidImage:
+        projected_array = np.sum(
+            [org_image.image for org_image in imgs],
+            axis = 2
+        )
+        assert projected_array.shape[0] == imgs[0].shape[0]
+        assert projected_array.shape[1] == imgs[0].shape[1]
+        assert projected_array.shape[2] == 1
+
+        img = OrganoidImage(path = None)
+        img.set_image(projected_array)
+        return img
 
     def merge(self,
               other: "OrganoidDataset",

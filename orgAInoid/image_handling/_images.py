@@ -17,6 +17,10 @@ class OrganoidImage:
         else:
             self._img = self._read_image(path)
 
+    def set_image(self,
+                  img: np.ndarray) -> None:
+        self.image = img
+
     def _read_image(self,
                     path: str) -> np.ndarray:
         """\
