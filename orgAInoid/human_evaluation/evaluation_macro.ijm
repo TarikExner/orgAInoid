@@ -132,9 +132,11 @@ function analyzeImages(evaluatorID) {
     if (File.exists(resultsPath)) {
         Dialog.create("Existing Results File Detected");
         Dialog.addMessage("A results file for Evaluator ID " + evaluatorID + " already exists.");
-        Dialog.addChoice("Do you want to:", newArray("Continue analysis", "Start from scratch"), "Continue analysis");
+        Dialog.addChoice("Do you want to:", newArray("Continue analysis"), "Continue analysis");
         Dialog.show();
 
+        // macro version 2: This if check does nothing anymore since
+        // we do not allow for restart for safety reasons :)
         userChoice = Dialog.getChoice();
         if (userChoice == "Start from scratch") {
             deleted = File.delete(resultsPath);
@@ -169,6 +171,8 @@ function analyzeImages(evaluatorID) {
             }
 
             open(dir + imgName);
+            selectImage(imgName);
+            rename("Image");
             run("Brightness/Contrast...");
             
             waitForUser("Please have a look at this image. " +
@@ -201,7 +205,8 @@ function analyzeImages(evaluatorID) {
             row = evaluatorID + "," + imgName + "," + containsRPE + "," + willDevelopRPE + "," +
                   amountRPE + "," + containsLens + "," + willDevelopLens + "," + lensSize;
             File.append(row, resultsPath);
-
+            
+            selectImage("Image");
             close();
             if (i == 299) {
                 checkContinue();
