@@ -107,7 +107,11 @@ class OrganoidDataset:
 
         self.create_full_dataset(self._metadata)
         
-        assert self.X.shape[0] == self.metadata.shape[0] * self.dataset_metadata.n_slices
+        if not self.dataset_metadata.z_projection:
+            assert self.X.shape[0] == self.metadata.shape[0] * self.dataset_metadata.n_slices
+        else:
+            assert self.X.shape[0] == self.metadata.shape[0] // self.dataset_metadata.n_slices
+
         for readout in self.y:
             assert self.y[readout].shape[0] == self.metadata.shape[0]
 
@@ -359,8 +363,7 @@ class OrganoidDataset:
         if not self.dataset_metadata.z_projection:
             assert images.shape[1] == self.dataset_metadata.n_slices
         else:
-            print("Image shape: ", images.shape)
-
+            assert images.shape[1] == 1
         
         for key, label_list in labels.items():
             if self.dataset_metadata.n_classes_dict[key] != -1:
