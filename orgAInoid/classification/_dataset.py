@@ -355,8 +355,12 @@ class OrganoidDataset:
 
         for label in labels:
             assert images.shape[0] == labels[label].shape[0]
+        
+        if not self.dataset_metadata.z_projection:
+            assert images.shape[1] == self.dataset_metadata.n_slices
+        else:
+            print("Image shape: ", images.shape)
 
-        assert images.shape[1] == self.dataset_metadata.n_slices
         
         for key, label_list in labels.items():
             if self.dataset_metadata.n_classes_dict[key] != -1:
