@@ -370,6 +370,9 @@ class OrganoidDataset:
 
     def _create_z_projection(self,
                              imgs: list[OrganoidImage]) -> OrganoidImage:
+        if len(imgs) == 1:
+            return imgs[0]
+
         projected_array = np.sum(
             [org_image.image for org_image in imgs],
             axis = 0
@@ -377,9 +380,7 @@ class OrganoidDataset:
         print([org_image.shape for org_image in imgs])
         print(projected_array.shape)
 
-        assert projected_array.shape[0] == imgs[0].shape[0], projected_array.shape
-        assert projected_array.shape[1] == imgs[0].shape[1], projected_array.shape
-        assert projected_array.shape[2] == 1, projected_array.shape
+        assert projected_array.shape == imgs[0].shape, projected_array.shape
 
         img = OrganoidImage(path = None)
         img.set_image(projected_array)
