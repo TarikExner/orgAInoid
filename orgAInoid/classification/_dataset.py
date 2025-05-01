@@ -384,13 +384,11 @@ class OrganoidDataset:
             return imgs[0]
 
         if self.dataset_metadata.z_projection == "max":
-            print("running max projection")
             projected_array = np.max(
                 [org_image.image for org_image in imgs],
                 axis = 0
             )
         elif self.dataset_metadata.z_projection == "sum":
-            print("running sum projection")
             projected_array = np.sum(
                 [org_image.image for org_image in imgs],
                 axis = 0
