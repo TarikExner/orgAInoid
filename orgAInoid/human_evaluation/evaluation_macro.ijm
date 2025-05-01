@@ -1,12 +1,11 @@
-
 function greetUserAndGetEvalID() {
     Dialog.create("Welcome to the Organoid Evaluation!");
     Dialog.addMessage("This macro will guide you through the evaluation images.\n" +
     				  " \n" +
-    				  "Please classify at least 500 images.\n" +
+    				  "Please classify at least 5271 images.\n" +
     				  " \n" +
     				  "You are able to exit the classification at any time and resume later. If you resume, enter your evaluator ID and your existing results file will be found.\n" +
-    				  "You will then be asked if you want to continue the analysis or start from scratch.\n" +
+    				  "You will then be asked if you want to continue the analysis. To start from scratch, delete your HEAT .csv file.\n" +
     				  "   \n" + 
     				  "Once you selected the image folder, an image will open.\n" +
  					  "You are then able to set the brightness, contrast, zoom etc.\n" + "   \n" +
@@ -99,31 +98,6 @@ function shuffleImages(array) {
     return array;
 }
 
-function checkContinue() {
-    Dialog.create("Thank You!");
-    Dialog.addMessage("You have completed 300 images!" +
-    				  " \n" +
-                      "Thank you for your effort!");
-	Dialog.addMessage("If you will continue, Cassian will have cookies for you!" + " \n");
-	Dialog.addChoice("                     Do you want to continue?", newArray("Yes", "No"), "Yes");
-    Dialog.addMessage("If you do not wish to continue" +
-                      " \n" +
-                      "please send the results file in the image directory to" +
-                      " \n" +
-                      " \n" +
-                      "cassian.afting@cos.uni-heidelberg.de"+
-                      " \n" +
-                      " \n" +
-                      "You can always come back and continue the analysis later! :)");
-    Dialog.show();
-
-    choice = Dialog.getChoice();
-    if (choice == "No") {
-        print("User chose to exit.");
-        exit("Analysis terminated by the user after 300 images.");
-    }
-}
-
 function analyzeImages(evaluatorID) {
     dir = getDirectory("Select a folder containing .tif images");
     
@@ -208,9 +182,6 @@ function analyzeImages(evaluatorID) {
             
             selectImage("Image");
             close();
-            if (i == 299) {
-                checkContinue();
-            }
         }
     }
     
