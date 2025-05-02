@@ -452,6 +452,8 @@ class OrganoidDataset:
         
         if not self.dataset_metadata.z_projection:
             assert self.X.shape[0] == self._metadata.shape[0]
+        else:
+            assert self.X.shape[0] == self.metadata["IMAGE_ARRAY_INDEX"].nunique()
 
         self._create_class_counts()
 
