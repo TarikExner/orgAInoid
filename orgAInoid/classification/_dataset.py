@@ -449,8 +449,9 @@ class OrganoidDataset:
             self.y[key] = np.vstack([self.y[key], other.y[key]])
 
         self._metadata = pd.concat([self.metadata, other_md], axis = 0)
-
-        assert self.X.shape[0] == self._metadata.shape[0]
+        
+        if not self.dataset_metadata.z_projection:
+            assert self.X.shape[0] == self._metadata.shape[0]
 
         self._create_class_counts()
 
