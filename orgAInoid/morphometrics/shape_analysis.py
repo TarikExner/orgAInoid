@@ -81,6 +81,7 @@ def _calculate_morphometrics_on_image(original_image: OrganoidImage,
     reg_table_df = reg_table_df.drop(["coords", "image_convex", "image_filled", "image_intensity"], axis = 1)
     assert reg_table_df.shape[0] == 1
 
+    print("MORPHOMETRICS")
     print(reg_table_df)
 
     results_frame.loc[
@@ -90,6 +91,9 @@ def _calculate_morphometrics_on_image(original_image: OrganoidImage,
         (results_frame["file_name"] == file_name),
         reg_table_df.columns
     ] = reg_table_df.values
+
+    print("RESULTS")
+    print(results_frame)
 
     return results_frame
 
