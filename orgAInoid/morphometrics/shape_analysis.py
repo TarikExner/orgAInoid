@@ -133,7 +133,7 @@ def run_morphometrics(experiment_id: str,
         slices = ["SL003"]
 
     file_frame = file_frame[file_frame["slice"].isin(slices)]
-    individual_organoids = file_frame[["experiment", "well", "timepoint"]].drop_duplicates()
+    individual_organoids = file_frame[["experiment", "well", "loop"]].drop_duplicates()
 
     result_dataframe = file_frame.copy()
 
