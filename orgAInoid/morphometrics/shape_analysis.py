@@ -99,7 +99,7 @@ def run_morphometrics(experiment_id: str,
                       segmentator_input_size: int = 512,
                       segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"] = "DEEPLABV3",
                       slices: Optional[list[str]] = None,
-                      z_projection = Optional[Literal["max", "sum"]]) -> pd.DataFrame:
+                      z_projection: Optional[Literal["max", "sum"]] = None) -> pd.DataFrame:
     """\
     Convention:
         annotations by Cassian are termed "E001_annotations.csv"
