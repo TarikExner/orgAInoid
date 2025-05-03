@@ -1314,7 +1314,7 @@ class HalvingRandomSearchCV_TE(BaseSuccessiveHalving_TE):
         )
 
 
-def conduct_hyperparameter_search(model,
+def conduct_hyperparameter_search(pipeline,
                                   grid: dict,
                                   method: Literal["HalvingRandomSearchCV",
                                                   "HalvingGridSearchCV",
@@ -1327,7 +1327,7 @@ def conduct_hyperparameter_search(model,
     n_jobs = 16
     if method == "RandomizedSearchCV":
         total_params = sum(len(grid[key]) for key in grid)
-        grid_result = RandomizedSearchCV(estimator = model,
+        grid_result = RandomizedSearchCV(estimator = pipeline,
                                          param_distributions = grid,
                                          scoring = "f1_weighted",
                                          n_iter = min(total_params, 20),
@@ -1337,7 +1337,7 @@ def conduct_hyperparameter_search(model,
                                          error_score = 0.0,
                                          random_state = 187).fit(X_train, y_train)
     elif method == "GridSearchCV":
-        grid_result = GridSearchCV(estimator = model,
+        grid_result = GridSearchCV(estimator = pipeline,
                                    param_grid = grid,
                                    scoring = "f1_weighted",
                                    cv = 5,
@@ -1360,7 +1360,7 @@ def conduct_hyperparameter_search(model,
         #                                  random_state = 187).fit(X_train, y_train)
 
     elif method == "HalvingRandomSearchCV":
-        grid_result = HalvingRandomSearchCV_TE(estimator = model,
+        grid_result = HalvingRandomSearchCV_TE(estimator = pipeline,
                                                param_distributions = grid,
                                                scoring = "f1_weighted",
                                                factor = 3,

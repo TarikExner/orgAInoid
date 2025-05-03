@@ -6,6 +6,7 @@ import gc
 import pickle
 
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.pipeline import Pipeline
 from typing import Optional
 from sklearn.multioutput import MultiOutputClassifier
 
@@ -66,7 +67,8 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                                output_dir: str,
                                classifier: str,
                                data_columns: list[str],
-                               readout: str):
+                               readout: str,
+                               analysis_id: Optional[str] = None):
 
     """\
     Function to run the classifier hyperparameter tuning.
@@ -84,7 +86,10 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
         "algorithm,readout,score_on,experiment,train_time," +
         f"pred_time_train,pred_time_test,pred_time_val,{scores}\n"
     )
-    score_key = "Hyperparameter_Tuning"
+    if analysis_id is not None:
+        score_key = f"HYPERPARAM_{analysis_id}"
+    else:
+        score_key = "Hyperparameter_Tuning"
     score_file = os.path.join(output_dir, f"{score_key}.log")
     if not os.path.isfile(score_file):
         write_to_scores(resource_metrics,
@@ -118,9 +123,6 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
     if not os.path.exists(param_dir):
         os.makedirs(param_dir)
 
-    scaler = StandardScaler()
-    second_scaler = MinMaxScaler()
-
     hyper_df = df.copy()
     hyper_df["group"] = [
         f"{experiment}_{well}"
@@ -131,9 +133,6 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
         )
     ]
 
-    hyper_df[data_columns] = scaler.fit_transform(hyper_df[data_columns])
-    hyper_df[data_columns] = second_scaler.fit_transform(hyper_df[data_columns])
-
     for readout in readouts:
         param_file_name = f"best_params_{classifier}_{readout}.dict"
         param_file_dir = os.path.join(param_dir, param_file_name)
@@ -142,13 +141,18 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             print(f"Calculating hyperparameters of {classifier} for {readout}.")
             clf = _get_classifier(classifier_name = classifier,
                                   hyperparameter = True)
+            pipe = Pipeline([
+                ('scaler', StandardScaler()),
+                ('scaler', MinMaxScaler()),
+                ('classifier', clf)
+            ])
             X = hyper_df[data_columns].to_numpy()
             y = _one_hot_encode_labels(hyper_df[readout].to_numpy(),
                                        readout = readout)
             group_kfold = GroupKFold(n_splits = 5)
             groups = hyper_df["group"].tolist()
             hyperparameter_search = conduct_hyperparameter_search(
-                clf,
+                pipe,
                 grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"],
                 method = "HalvingRandomSearchCV",
                 X_train = X,

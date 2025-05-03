@@ -14,11 +14,11 @@ from ._utils import _one_hot_encode_labels, _apply_train_test_split
 
 from typing import Optional
 
-
 def run_classifier_comparison(df: pd.DataFrame,
                               output_dir: str,
                               data_columns: list[str],
-                              readouts: Optional[list[str]] = None):
+                              readouts: Optional[list[str]] = None,
+                              analysis_id: Optional[str] = None):
 
     """\
     Function to run the classifier benchmark.
@@ -36,7 +36,10 @@ def run_classifier_comparison(df: pd.DataFrame,
         "algorithm,readout,score_on,experiment,train_time," +
         f"pred_time_train,pred_time_test,pred_time_val,{scores}\n"
     )
-    score_key = "Scores"
+    if analysis_id is not None:
+        score_key = f"CLFCOMP_{analysis_id}"
+    else:
+        score_key = "Scores"
     score_file = os.path.join(output_dir, f"{score_key}.log")
     if not os.path.isfile(score_file):
         write_to_scores(resource_metrics,
