@@ -142,7 +142,7 @@ def run_morphometrics(experiment_id: str,
 
     if z_projection:
         constant_columns = [
-            col for col in result_dataframe
+            col for col in result_dataframe.columns
             if col not in ["file_name", "slice"]
         ]
         result_dataframe = result_dataframe[constant_columns].drop_duplicates()
