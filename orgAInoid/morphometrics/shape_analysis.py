@@ -154,10 +154,11 @@ def run_morphometrics(experiment_id: str,
 
     start = time.time()
     for i, row in enumerate(individual_organoids.iterrows()):
-        if i%100 == 0 and i != 0:
-            stop = time.time()
-            print(f"Processed {i}/{result_dataframe.shape[0]} images in {round(stop-start,2)} seconds")
-            start = time.time()
+
+        stop = time.time()
+        print(f"Processed {i+1}/{individual_organoids.shape[0]+1} organoids in {round(stop-start,2)} seconds")
+        start = time.time()
+
         experiment, well, timepoint = row[1]
         organoid_data = file_frame[
             (file_frame["experiment"] == experiment) &
