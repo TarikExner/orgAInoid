@@ -95,16 +95,20 @@ def run_classifier_comparison(df: pd.DataFrame,
                 val_df = df[df["experiment"] == experiment].copy()
                 assert isinstance(val_df, pd.DataFrame)
 
-                scaler.fit(non_val_df[data_columns])
+                # data leakage found in review: removed!
+                # scaler.fit(non_val_df[data_columns])
+                scaler.fit(train_df[data_columns])
+
 
                 train_df[data_columns] = scaler.transform(train_df[data_columns])
                 test_df[data_columns] = scaler.transform(test_df[data_columns])
                 val_df[data_columns] = scaler.transform(val_df[data_columns])
 
-                train_test_df = pd.concat([train_df, test_df], axis = 0)
-
                 second_scaler = MinMaxScaler()
-                second_scaler.fit(train_test_df[data_columns])
+                # data leakage found in review: removed!
+                # train_test_df = pd.concat([train_df, test_df], axis = 0)
+                # second_scaler.fit(train_test_df[data_columns])
+                second_scaler.fit(train_df[data_columns])
 
                 train_df[data_columns] = second_scaler.transform(train_df[data_columns])
                 test_df[data_columns] = second_scaler.transform(test_df[data_columns])
