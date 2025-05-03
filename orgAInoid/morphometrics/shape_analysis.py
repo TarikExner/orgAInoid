@@ -133,7 +133,7 @@ def run_morphometrics(experiment_id: str,
     if slices is None:
         slices = ["SL003"]
 
-    file_frame = file_frame[file_frame["slice"].isin(slices)]
+    file_frame = file_frame[file_frame["slice"].isin(slices)].copy()
     individual_organoids = file_frame[["experiment", "well", "loop"]].drop_duplicates()
 
     result_dataframe = file_frame.copy()
@@ -146,6 +146,8 @@ def run_morphometrics(experiment_id: str,
             if col not in ["file_name", "slice"]
         ]
         result_dataframe = result_dataframe[constant_columns].drop_duplicates()
+        print(constant_columns)
+        print(result_dataframe)
         assert result_dataframe.shape[0] == individual_organoids.shape[0], (result_dataframe.shape[0], individual_organoids.shape[0])
         result_dataframe["slice"] = f"zproj_{z_projection}"
         result_dataframe["file_name"] = placeholder_file_name
