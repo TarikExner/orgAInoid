@@ -206,7 +206,7 @@ def run_morphometrics(experiment_id: str,
                     experiment,
                     well,
                     timepoint,
-                    placeholder_file_name,
+                    file_name,
                     result_dataframe
                 )
 
