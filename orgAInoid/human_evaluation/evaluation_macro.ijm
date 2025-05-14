@@ -156,7 +156,8 @@ function analyzeImages(evaluatorID) {
             			" \n" +
             			"Then press Ok to enter the classfication dialogue!"); 	
 
-			Dialog.create("Image Analysis for: " + imgName);
+			// Dialog.create("Image Analysis for: " + imgName);
+			Dialog.create("Image Analysis questionnaire");
 			
 			Dialog.addRadioButtonGroup("Does the organoid contain RPE?", newArray("Yes", "No"), 1, 2, "No");
 			Dialog.addRadioButtonGroup("Will the organoid develop RPE?", newArray("Yes", "No"), 1, 2, "No");
