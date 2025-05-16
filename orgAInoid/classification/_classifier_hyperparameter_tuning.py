@@ -168,8 +168,10 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             ]
             groups = hyper_df["group"].tolist()
             grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"]
+            new_grid = {}
             for key in grid:
-                grid[f"clf__{key}"] = grid.pop(key)
+                new_grid[f"clf__{key}"] = grid.pop(key)
+            grid = new_grid
             print(grid)
             hyperparameter_search = conduct_hyperparameter_search(
                 pipe,
