@@ -159,10 +159,9 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             for key in grid:
                 new_grid[f"clf__{key}"] = grid[key]
             grid = new_grid
-            print(grid)
             hyperparameter_search = conduct_hyperparameter_search(
                 pipe,
-                grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"],
+                grid = grid, 
                 method = "HalvingRandomSearchCV",
                 X_train = X,
                 y_train = y,
