@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import pandas as pd
-import time
 import gc
 import pickle
 
@@ -12,13 +11,15 @@ from sklearn.multioutput import MultiOutputClassifier
 
 from sklearn.model_selection import GroupKFold
 
-from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
+from ._classifier_scoring import SCORES_TO_USE, write_to_scores
 from .models import (CLASSIFIERS_TO_TEST_FULL,
                      CLASSIFIERS_TO_TEST_RPE,
                      CLASSIFIERS_TO_TEST_LENS,
                      CLASSIFIERS_TO_TEST_RPE_CLASSES,
                      CLASSIFIERS_TO_TEST_LENS_CLASSES)
-from ._utils import _one_hot_encode_labels, _apply_train_test_split, conduct_hyperparameter_search
+from ._utils import (conduct_hyperparameter_search,
+                     _one_hot_encode_labels,
+                     _run_classifier_fit_and_val)
 
 def run_hyperparameter_tuning(df: pd.DataFrame,
                               output_dir: str,
@@ -48,7 +49,6 @@ def _get_classifier(classifier_name,
 
     if params is None:
         params = {}
-
 
     if CLASSIFIERS_TO_TEST_FULL[classifier_name]["allows_multi_class"]:
         if CLASSIFIERS_TO_TEST_FULL[classifier_name]["multiprocessing"] and not hyperparameter:
@@ -81,7 +81,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
     Classifiers that have been calculated already will be skipped.
 
     """
-
+    df = df.sort_values(["experiment", "well", "loop" "slice"])
     scores = ",".join([score for score in SCORES_TO_USE])
     resource_metrics = (
         "algorithm,readout,score_on,experiment,train_time," +
@@ -118,21 +118,16 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
     readouts = [readout]
 
     experiments = df["experiment"].unique().tolist()
-
-    param_dir = os.path.join(output_dir, "best_params/")
+    
+    if analysis_id is not None:
+        param_dir = os.path.join(output_dir, "best_params/", analysis_id)
+    else:
+        param_dir = os.path.join(output_dir, "best_params/")
 
     if not os.path.exists(param_dir):
         os.makedirs(param_dir)
 
     hyper_df = df.copy()
-    hyper_df["group"] = [
-        f"{experiment}_{well}"
-        for experiment, well in
-        zip(
-            hyper_df["experiment"].tolist(),
-            hyper_df["well"].tolist()
-        )
-    ]
 
     for readout in readouts:
         param_file_name = f"best_params_{classifier}_{readout}.dict"
@@ -147,10 +142,30 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                 ('scaler', MinMaxScaler()),
                 ('classifier', clf)
             ])
-            X = hyper_df[data_columns].to_numpy()
-            y = _one_hot_encode_labels(hyper_df[readout].to_numpy(),
-                                       readout = readout)
+            X = np.vstack((
+                hyper_df
+                .groupby(["experiment", "well", "loop"])[data_columns]
+                .apply(lambda x: x.to_numpy().ravel())
+                .to_numpy()
+            ))
+            y = _one_hot_encode_labels(
+                (
+                    hyper_df
+                    .groupby(["experiment", "well", "loop"])[readout]
+                    .first()
+                    .to_numpy()
+                ),
+                readout = readout
+            )
             group_kfold = GroupKFold(n_splits = 5)
+            hyper_df["group"] = [
+                f"{experiment}_{well}"
+                for experiment, well in
+                zip(
+                    hyper_df["experiment"].tolist(),
+                    hyper_df["well"].tolist()
+                )
+            ]
             groups = hyper_df["group"].tolist()
             hyperparameter_search = conduct_hyperparameter_search(
                 pipe,
@@ -183,91 +198,13 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             clf = _get_classifier(classifier_name = classifier,
                                   params = cleaned_best_params)
 
-            scaler = StandardScaler()
+            _run_classifier_fit_and_val(df = df,
+                                        experiment = experiment,
+                                        data_columns = data_columns,
+                                        readout = readout,
+                                        clf = clf,
+                                        classifier_name = classifier,
+                                        output_dir = output_dir,
+                                        score_key = score_key)
 
-            non_val_df = df[df["experiment"] != experiment].copy()
-            assert isinstance(non_val_df, pd.DataFrame)
-
-            train_df, test_df = _apply_train_test_split(non_val_df)
-            val_df = df[df["experiment"] == experiment].copy()
-            assert isinstance(val_df, pd.DataFrame)
-
-            # data leakage found in review: removed!
-            # scaler.fit(non_val_df[data_columns])
-            scaler.fit(train_df[data_columns])
-
-            train_df[data_columns] = scaler.transform(train_df[data_columns])
-            test_df[data_columns] = scaler.transform(test_df[data_columns])
-            val_df[data_columns] = scaler.transform(val_df[data_columns])
-
-
-            second_scaler = MinMaxScaler()
-            # data leakage found in review: removed!
-            # train_test_df = pd.concat([train_df, test_df], axis = 0)
-            # second_scaler.fit(train_test_df[data_columns])
-            second_scaler.fit(train_df[data_columns])
-
-            train_df[data_columns] = second_scaler.transform(train_df[data_columns])
-            test_df[data_columns] = second_scaler.transform(test_df[data_columns])
-            val_df[data_columns] = second_scaler.transform(val_df[data_columns])
-
-            X_train = train_df[data_columns]
-            y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
-                                             readout = readout)
-
-            X_test = test_df[data_columns]
-            y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
-                                            readout = readout)
-
-            X_val = val_df[data_columns]
-            y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
-                                           readout = readout)
-            
-            start = time.time()
-            clf.fit(X_train, y_train)
-            train_time = time.time() - start
-
-            y_train_argmax = np.argmax(y_train, axis = 1)
-            y_test_argmax = np.argmax(y_test, axis = 1)
-            y_val_argmax = np.argmax(y_val, axis = 1)
-            
-            start = time.time()
-            pred_train = clf.predict(X_train)
-            pred_train_argmax = np.argmax(pred_train, axis = 1)
-            pred_time_train = time.time() - start
-
-            start = time.time()
-            pred_test = clf.predict(X_test)
-            pred_test_argmax = np.argmax(pred_test, axis = 1)
-            pred_time_test = time.time() - start
-
-            start = time.time()
-            pred_val = clf.predict(X_val)
-            pred_val_argmax = np.argmax(pred_val, axis = 1)
-            pred_time_val= time.time() - start
-
-            scores = score_classifier(true_arr = y_train_argmax,
-                                      pred_arr = pred_train_argmax,
-                                      readout = readout)
-            score_string = ",".join(scores)
-            write_to_scores(f"{classifier},{readout},train,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                            output_dir = output_dir,
-                            key = score_key)
-
-            scores = score_classifier(true_arr = y_test_argmax,
-                                      pred_arr = pred_test_argmax,
-                                      readout = readout)
-            score_string = ",".join(scores)
-            write_to_scores(f"{classifier},{readout},test,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                            output_dir = output_dir,
-                            key = score_key)
-            scores = score_classifier(true_arr = y_val_argmax,
-                                      pred_arr = pred_val_argmax,
-                                      readout = readout)
-            score_string = ",".join(scores)
-            write_to_scores(f"{classifier},{readout},val,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                            output_dir = output_dir,
-                            key = score_key)
-
-            del clf, X_train, X_test, X_val, y_train, y_test, y_val
-            gc.collect()
+    return

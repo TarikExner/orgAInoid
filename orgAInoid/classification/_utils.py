@@ -10,6 +10,11 @@ import torch.nn.functional as F
 from torch.optim import Optimizer
 from typing import Optional, Union, Literal
 
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from ._classifier_scoring import write_to_scores, score_classifier
+import gc
+import time
+
 from torch_lr_finder import LRFinder
 
 import albumentations as A
@@ -1428,5 +1433,127 @@ def _apply_train_test_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
     test_df = _filter_wells(df, test_wells, ["experiment", "well"])
 
     return train_df, test_df
+
+def _run_classifier_fit_and_val(df: pd.DataFrame,
+                                experiment: str,
+                                data_columns: list[str],
+                                readout: str,
+                                clf,
+                                classifier_name: str,
+                                output_dir: str,
+                                score_key: str) -> None:
+    """Master function to run a classifier fit and validation"""
+    scaler = StandardScaler()
+
+    non_val_df = df[df["experiment"] != experiment].copy()
+    assert isinstance(non_val_df, pd.DataFrame)
+
+    train_df, test_df = _apply_train_test_split(non_val_df)
+    val_df = df[df["experiment"] == experiment].copy()
+    assert isinstance(val_df, pd.DataFrame)
+
+    # data leakage found in review: removed!
+    # scaler.fit(non_val_df[data_columns])
+    scaler.fit(train_df[data_columns])
+
+    train_df[data_columns] = scaler.transform(train_df[data_columns])
+    test_df[data_columns] = scaler.transform(test_df[data_columns])
+    val_df[data_columns] = scaler.transform(val_df[data_columns])
+
+    second_scaler = MinMaxScaler()
+    # data leakage found in review: removed!
+    # train_test_df = pd.concat([train_df, test_df], axis = 0)
+    # second_scaler.fit(train_test_df[data_columns])
+    second_scaler.fit(train_df[data_columns])
+
+    train_df[data_columns] = second_scaler.transform(train_df[data_columns])
+    test_df[data_columns] = second_scaler.transform(test_df[data_columns])
+    val_df[data_columns] = second_scaler.transform(val_df[data_columns])
+
+    train_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
+    test_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
+    val_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
+
+    def _get_data_array(df: pd.DataFrame,
+                        data_columns: list[str]) -> np.ndarray:
+        return np.vstack(
+            (
+                df
+                .groupby(["experiment", "well", "loop"])[data_columns]
+                .apply(lambda x: x.to_numpy().ravel())
+                .to_numpy()
+            )
+        )
+
+    def _get_labels_array(df: pd.DataFrame,
+                          readout: str) -> np.ndarray:
+        return _one_hot_encode_labels(
+            (
+                df 
+                .groupby(["experiment", "well", "loop"])[readout]
+                .first()
+                .to_numpy()
+            ),
+            readout = readout
+        )
+
+
+    X_train = _get_data_array(train_df, data_columns)
+    y_train = _get_labels_array(train_df, readout)
+
+    X_test = _get_data_array(train_df, data_columns)
+    y_test = _get_labels_array(train_df, readout)
+
+    X_val = _get_data_array(train_df, data_columns)
+    y_val = _get_labels_array(train_df, readout)
+    
+    start = time.time()
+    clf.fit(X_train, y_train)
+    train_time = time.time() - start
+
+    y_train_argmax = np.argmax(y_train, axis = 1)
+    y_test_argmax = np.argmax(y_test, axis = 1)
+    y_val_argmax = np.argmax(y_val, axis = 1)
+    
+    start = time.time()
+    pred_train = clf.predict(X_train)
+    pred_train_argmax = np.argmax(pred_train, axis = 1)
+    pred_time_train = time.time() - start
+
+    start = time.time()
+    pred_test = clf.predict(X_test)
+    pred_test_argmax = np.argmax(pred_test, axis = 1)
+    pred_time_test = time.time() - start
+
+    start = time.time()
+    pred_val = clf.predict(X_val)
+    pred_val_argmax = np.argmax(pred_val, axis = 1)
+    pred_time_val= time.time() - start
+
+    scores = score_classifier(true_arr = y_train_argmax,
+                              pred_arr = pred_train_argmax,
+                              readout = readout)
+    score_string = ",".join(scores)
+    write_to_scores(f"{classifier_name},{readout},train,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+                    output_dir = output_dir,
+                    key = score_key)
+
+    scores = score_classifier(true_arr = y_test_argmax,
+                              pred_arr = pred_test_argmax,
+                              readout = readout)
+    score_string = ",".join(scores)
+    write_to_scores(f"{classifier_name},{readout},test,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+                    output_dir = output_dir,
+                    key = score_key)
+    scores = score_classifier(true_arr = y_val_argmax,
+                              pred_arr = pred_val_argmax,
+                              readout = readout)
+    score_string = ",".join(scores)
+    write_to_scores(f"{classifier_name},{readout},val,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+                    output_dir = output_dir,
+                    key = score_key)
+
+    del clf, X_train, X_test, X_val, y_train, y_test, y_val
+    gc.collect()
 
 

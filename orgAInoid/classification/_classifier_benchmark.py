@@ -1,16 +1,12 @@
 import os
-import numpy as np
 import pandas as pd
-import time
-import gc
 
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.multioutput import MultiOutputClassifier
 
-from ._classifier_scoring import SCORES_TO_USE, write_to_scores, score_classifier
+from ._classifier_scoring import SCORES_TO_USE, write_to_scores
 from .models import CLASSIFIERS_TO_TEST_FULL
 
-from ._utils import _one_hot_encode_labels, _apply_train_test_split
+from ._utils import _run_classifier_fit_and_val
 
 from typing import Optional
 
@@ -77,7 +73,6 @@ def run_classifier_comparison(df: pd.DataFrame,
 
             print(f"... running {classifier} on readout {readout}")
             for experiment in experiments:
-
                 if CLASSIFIERS_TO_TEST_FULL[classifier]["allows_multi_class"]:
                     if CLASSIFIERS_TO_TEST_FULL[classifier]["multiprocessing"]:
                         clf = CLASSIFIERS_TO_TEST_FULL[classifier]["classifier"](n_jobs = 16)
@@ -89,94 +84,14 @@ def run_classifier_comparison(df: pd.DataFrame,
                     else:
                         clf = MultiOutputClassifier(CLASSIFIERS_TO_TEST_FULL[classifier]["classifier"](), n_jobs = 16)
 
-                scaler = StandardScaler()
-
-                non_val_df = df[df["experiment"] != experiment].copy()
-                assert isinstance(non_val_df, pd.DataFrame)
-
-                train_df, test_df = _apply_train_test_split(non_val_df)
-                val_df = df[df["experiment"] == experiment].copy()
-                assert isinstance(val_df, pd.DataFrame)
-
-                # data leakage found in review: removed!
-                # scaler.fit(non_val_df[data_columns])
-                scaler.fit(train_df[data_columns])
-
-
-                train_df[data_columns] = scaler.transform(train_df[data_columns])
-                test_df[data_columns] = scaler.transform(test_df[data_columns])
-                val_df[data_columns] = scaler.transform(val_df[data_columns])
-
-                second_scaler = MinMaxScaler()
-                # data leakage found in review: removed!
-                # train_test_df = pd.concat([train_df, test_df], axis = 0)
-                # second_scaler.fit(train_test_df[data_columns])
-                second_scaler.fit(train_df[data_columns])
-
-                train_df[data_columns] = second_scaler.transform(train_df[data_columns])
-                test_df[data_columns] = second_scaler.transform(test_df[data_columns])
-                val_df[data_columns] = second_scaler.transform(val_df[data_columns])
-
-                X_train = train_df[data_columns].to_numpy()
-                y_train = _one_hot_encode_labels(train_df[readout].to_numpy(),
-                                                 readout = readout)
-
-                X_test = test_df[data_columns].to_numpy()
-                y_test = _one_hot_encode_labels(test_df[readout].to_numpy(),
-                                                readout = readout)
-
-                X_val = val_df[data_columns].to_numpy()
-                y_val = _one_hot_encode_labels(val_df[readout].to_numpy(),
-                                               readout = readout)
-                
-                start = time.time()
-                clf.fit(X_train, y_train)
-                train_time = time.time() - start
-
-                y_train_argmax = np.argmax(y_train, axis = 1)
-                y_test_argmax = np.argmax(y_test, axis = 1)
-                y_val_argmax = np.argmax(y_val, axis = 1)
-                
-                start = time.time()
-                pred_train = clf.predict(X_train)
-                pred_train_argmax = np.argmax(pred_train, axis = 1)
-                pred_time_train = time.time() - start
-
-                start = time.time()
-                pred_test = clf.predict(X_test)
-                pred_test_argmax = np.argmax(pred_test, axis = 1)
-                pred_time_test = time.time() - start
-
-                start = time.time()
-                pred_val = clf.predict(X_val)
-                pred_val_argmax = np.argmax(pred_val, axis = 1)
-                pred_time_val= time.time() - start
-
-                scores = score_classifier(true_arr = y_train_argmax,
-                                          pred_arr = pred_train_argmax,
-                                          readout = readout)
-                score_string = ",".join(scores)
-                write_to_scores(f"{classifier},{readout},train,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                                output_dir = output_dir,
-                                key = score_key)
-
-                scores = score_classifier(true_arr = y_test_argmax,
-                                          pred_arr = pred_test_argmax,
-                                          readout = readout)
-                score_string = ",".join(scores)
-                write_to_scores(f"{classifier},{readout},test,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                                output_dir = output_dir,
-                                key = score_key)
-                scores = score_classifier(true_arr = y_val_argmax,
-                                          pred_arr = pred_val_argmax,
-                                          readout = readout)
-                score_string = ",".join(scores)
-                write_to_scores(f"{classifier},{readout},val,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                                output_dir = output_dir,
-                                key = score_key)
-
-                del clf, X_train, X_test, X_val, y_train, y_test, y_val
-                gc.collect()
+                _run_classifier_fit_and_val(df = df,
+                                            experiment = experiment,
+                                            data_columns = data_columns,
+                                            readout = readout,
+                                            clf = clf,
+                                            classifier_name = classifier,
+                                            output_dir = output_dir,
+                                            score_key = score_key)
 
     return
 

@@ -50,7 +50,8 @@ def test_for_n_experiments(df: pd.DataFrame,
                            classifier: str,
                            use_tuned_classifier: bool,
                            data_columns: list[str],
-                           readout: str):
+                           readout: str,
+                           analysis_id: Optional[str] = None):
 
 
     """\
@@ -74,7 +75,11 @@ def test_for_n_experiments(df: pd.DataFrame,
         "algorithm,readout,n_experiments,permutation,score_on,experiment,train_time," +
         f"pred_time_train,pred_time_test,pred_time_val,{scores}\n"
     )
-    score_key = "n_experiments"
+    if analysis_id is not None:
+        score_key = f"NEXP_{analysis_id}"
+    else:
+        score_key = "n_experiments"
+
     score_file = os.path.join(output_dir, f"{score_key}.log")
 
     if not os.path.isfile(score_file):
@@ -110,7 +115,11 @@ def test_for_n_experiments(df: pd.DataFrame,
     else:
         raise ValueError("Unknown readout")
 
-    param_dir = os.path.join(output_dir, "best_params/")
+    if analysis_id is not None:
+        param_dir = os.path.join(output_dir, "best_params/", analysis_id)
+    else:
+        param_dir = os.path.join(output_dir, "best_params/")
+
 
     for readout in readouts:
         param_file_name = f"best_params_{classifier}_{readout}.dict"
