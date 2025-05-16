@@ -81,7 +81,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
     Classifiers that have been calculated already will be skipped.
 
     """
-    df = df.sort_values(["experiment", "well", "loop" "slice"])
+    df = df.sort_values(["experiment", "well", "loop", "slice"])
     scores = ",".join([score for score in SCORES_TO_USE])
     resource_metrics = (
         "algorithm,readout,score_on,experiment,train_time," +
