@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import pandas as pd
 import gc
 import pickle
@@ -18,7 +17,8 @@ from .models import (CLASSIFIERS_TO_TEST_FULL,
                      CLASSIFIERS_TO_TEST_RPE_CLASSES,
                      CLASSIFIERS_TO_TEST_LENS_CLASSES)
 from ._utils import (conduct_hyperparameter_search,
-                     _one_hot_encode_labels,
+                     _get_data_array,
+                     _get_labels_array,
                      _run_classifier_fit_and_val)
 
 def run_hyperparameter_tuning(df: pd.DataFrame,
@@ -142,21 +142,8 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
                 ('minmaxscaler', MinMaxScaler()),
                 ('clf', clf)
             ])
-            X = np.vstack((
-                hyper_df
-                .groupby(["experiment", "well", "loop"])[data_columns]
-                .apply(lambda x: x.to_numpy().ravel())
-                .to_numpy()
-            ))
-            y = _one_hot_encode_labels(
-                (
-                    hyper_df
-                    .groupby(["experiment", "well", "loop"])[readout]
-                    .first()
-                    .to_numpy()
-                ),
-                readout = readout
-            )
+            X = _get_data_array(hyper_df, data_columns)
+            y = _get_labels_array(hyper_df, readout)
             group_kfold = GroupKFold(n_splits = 5)
             hyper_df["group"] = [
                 f"{experiment}_{well}"

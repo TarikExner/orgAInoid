@@ -1434,6 +1434,33 @@ def _apply_train_test_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
 
     return train_df, test_df
 
+def _get_data_array(df: pd.DataFrame,
+                    data_columns: list[str],
+                    slice_col: str = "slice") -> np.ndarray:
+
+    slice_order = np.sort(df[slice_col].unique())
+
+    wide = (
+        df
+        .set_index(["experiment", "well", "loop", slice_col])[data_columns]
+        .unstack(slice_col)
+        .reindex(columns=pd.MultiIndex.from_product([data_columns, slice_order]))
+        .fillna(0)
+    )
+
+    return wide.to_numpy(copy=False)
+
+def _get_labels_array(df: pd.DataFrame,
+                      readout: str,
+                      idx_cols: tuple = ("experiment", "well", "loop")) -> np.ndarray:
+    labels = (
+        df 
+        .drop_duplicates(subset=idx_cols, keep="first")[readout]
+        .to_numpy(copy=False)
+    )
+
+    return _one_hot_encode_labels(labels, readout=readout)
+
 def _run_classifier_fit_and_val(df: pd.DataFrame,
                                 experiment: str,
                                 data_columns: list[str],
@@ -1473,34 +1500,6 @@ def _run_classifier_fit_and_val(df: pd.DataFrame,
     train_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
     test_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
     val_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
-
-    def _get_data_array(df: pd.DataFrame,
-                        data_columns: list[str],
-                        slice_col: str = "slice") -> np.ndarray:
-    
-        slice_order = np.sort(df[slice_col].unique())
-    
-        wide = (
-            df
-            .set_index(["experiment", "well", "loop", slice_col])[data_columns]
-            .unstack(slice_col)
-            .reindex(columns=pd.MultiIndex.from_product([data_columns, slice_order]))
-            .fillna(0)
-        )
-    
-        return wide.to_numpy(copy=False)
-
-    def _get_labels_array(df: pd.DataFrame,
-                          readout: str,
-                          idx_cols: tuple = ("experiment", "well", "loop")) -> np.ndarray:
-        labels = (
-            df 
-            .drop_duplicates(subset=idx_cols, keep="first")[readout]
-            .to_numpy(copy=False)
-        )
-
-        return _one_hot_encode_labels(labels, readout=readout)
-
 
     X_train = _get_data_array(train_df, data_columns)
     y_train = _get_labels_array(train_df, readout)
