@@ -172,10 +172,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             cleaned_best_params = {}
 
             for key, value in best_params.items():
-                if key.startswith("estimator__"):
-                    cleaned_best_params[key.split("estimator__")[1]] = value
-                else:
-                    cleaned_best_params[key] = value
+                cleaned_best_params[key.split("__")[-1]] = value
 
             with open(param_file_dir, "wb") as file:
                 pickle.dump(cleaned_best_params, file)   
