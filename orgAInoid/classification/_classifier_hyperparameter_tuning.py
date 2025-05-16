@@ -125,7 +125,7 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
         param_dir = os.path.join(output_dir, "best_params/")
 
     if not os.path.exists(param_dir):
-        os.makedirs(param_dir)
+        os.makedirs(param_dir, exist_ok = True)
 
     hyper_df = df.copy()
 
@@ -138,9 +138,9 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             clf = _get_classifier(classifier_name = classifier,
                                   hyperparameter = True)
             pipe = Pipeline([
-                ('scaler', StandardScaler()),
-                ('scaler', MinMaxScaler()),
-                ('classifier', clf)
+                ('standardscaler', StandardScaler()),
+                ('minmaxscaler', MinMaxScaler()),
+                ('clf', clf)
             ])
             X = np.vstack((
                 hyper_df
