@@ -1194,7 +1194,7 @@ GRIDS = {
         estimator__tol=[1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
     ),
     "GradientBoostingClassifier": dict(
-        estimator__loss=["log_loss", "deviance", "exponential"],
+        estimator__loss=["log_loss", "exponential"],
         estimator__learning_rate=[
             1 / x for x in [1e-2, 1e-1, 1, 10, 100, 1000, 10_000, 100_000]
         ],
