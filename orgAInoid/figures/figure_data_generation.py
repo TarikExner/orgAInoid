@@ -12,11 +12,173 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 
 import pickle
-import .figure_config as cfg
-import .figure_utils as utils
+from . import figure_config as cfg
 
 from typing import Literal
 
+from scipy.spatial.distance import pdist, squareform, cdist
+from sklearn.decomposition import PCA
+
+def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
+                                                data_columns: list[str],
+                                                dimreds: list[str] = ["UMAP", "TSNE"],
+                                                use_pca: bool = False,
+                                                n_pcs: int = 15,
+                                                timeframe_length: int = 24,
+                                                output_dir: str = "./figure_data/",
+                                                output_filename: str = "dataset_morphometrics.csv") -> pd.DataFrame:
+    
+    if os.path.isfile(os.path.join(output_dir, output_filename)):
+        return pd.read_csv(os.path.join(output_dir, output_filename))
+
+    for experiment in cfg.EXPERIMENTS:
+        exp_data = df.loc[df["experiment"] == experiment, data_columns].to_numpy()
+        exp_data[data_columns] = StandardScaler().fit_transform(exp_data[data_columns])
+        if use_pca:
+            _pca = PCA(
+                n_components = n_pcs
+            ).fit_transform(exp_data[data_columns])
+            dimred_input_data = _pca
+        else:
+            dimred_input_data = exp_data[data_columns].to_numpy()
+
+        for dim_red in dimreds:
+            if dim_red == "UMAP":
+                coords = UMAP().fit_transform(dimred_input_data)
+                df.loc[df["experiment"] == experiment, ["UMAP1", "UMAP2"]] = coords
+            elif dim_red == "TSNE":
+                coords = TSNE().fit_transform(dimred_input_data)
+                df.loc[df["experiment"] == experiment, ["TSNE1", "TSNE2"]] = coords
+            else:
+                raise ValueError(f"Unknown DimRed {dim_red}")
+    timepoints = [f"LO{i}" if i >= 100 else f"LO0{i}" if i>= 10 else f"LO00{i}" for i in range(1,145)]
+    timeframe_dict = {}
+    j = 0
+    for i, timepoint in enumerate(timepoints):
+        if i%timeframe_length== 0:
+            j += 1
+        timeframe_dict[timepoint] = str(j)
+
+    df["timeframe"] = df["loop"].map(timeframe_dict)
+    df["timeframe"] = df["timeframe"].astype(str)
+
+    df.to_csv(
+        os.path.join(
+            output_dir,
+            output_filename
+        )
+    )
+    return df
+
+def calculate_organoid_distances(df: pd.DataFrame,
+                                 data_columns: list[str],
+                                 use_pca: bool = False,
+                                 n_pcs: int = 15,
+                                 output_dir: str = "./figure_data/organoid_distances",
+                                 output_filename: str = "organoid_distances.csv") -> pd.DataFrame:
+    """Calculates the distances between organoids and between loops"""
+
+    if os.path.isfile(os.path.join(output_dir, output_filename)):
+        return pd.read_csv(os.path.join(output_dir, output_filename))
+
+    df[data_columns] = StandardScaler().fit_transform(df[data_columns])
+
+    if use_pca:
+        _pca = PCA(
+            n_components = n_pcs
+        ).fit_transform(df[data_columns])
+        pc_columns = [f"PC{i}" for i in range(1,n_pcs+1)]
+        df[pc_columns] = _pca
+        data_columns = pc_columns
+    else:
+        df[data_columns] = StandardScaler().fit_transform(df[data_columns])
+
+    dist_dfs = []
+    original_data_columns = data_columns
+    for experiment in cfg.EXPERIMENTS:
+        data_columns = original_data_columns
+
+        print(f"Calculating distances for experiment {experiment}")
+        exp_data = df[df["experiment"] == experiment].copy()
+        time_points = sorted(exp_data["loop"].unique())
+
+        exp_data[data_columns] = StandardScaler().fit_transform(exp_data[data_columns])
+        if use_pca:
+            _pca = PCA(
+                n_components = n_pcs
+            ).fit_transform(df[data_columns])
+            pc_columns = [f"PC{i}" for i in range(1,n_pcs+1)]
+            df[pc_columns] = _pca
+            data_columns = pc_columns
+
+        distance_data = []
+
+        # Compute the interorganoid distances at each time point
+        for time_point in time_points:
+            df_time = exp_data[exp_data["loop"] == time_point].sort_values("well")
+            data = df_time[data_columns].values
+            subjects = df_time["well"].values
+            distances = pdist(data, metric = "euclidean")
+            dist_matrix = squareform(distances)
+            idx_upper = np.triu_indices(len(subjects), k = 1)
+            for i, j in zip(*idx_upper):
+                distance_data.append({
+                    "loop": time_point,
+                    "distance_type": "interorganoid",
+                    "distance": dist_matrix[i,j]
+                })
+
+        # Compute intertimepoint distances between consecutive time points
+        for i in range(len(time_points) - 1):
+            time_point_n = time_points[i]
+            time_point_n1 = time_points[i+1]
+            df_n = exp_data[exp_data["loop"] == time_point_n]
+            df_n1 = exp_data[exp_data["loop"] == time_point_n1]
+
+            common_subjects = np.intersect1d(df_n["well"].unique(), df_n1["well"].unique())
+
+            if len(common_subjects) == 0:
+                continue
+
+            df_n_common = df_n[df_n["well"].isin(common_subjects)].sort_values("well")
+            df_n1_common = df_n1[df_n1["well"].isin(common_subjects)].sort_values("well")
+
+            distances = []
+            for well in common_subjects:
+                _distance = cdist(
+                    df_n_common.loc[df_n_common["well"] == well, data_columns].to_numpy(),
+                    df_n1_common.loc[df_n1_common["well"] == well, data_columns].to_numpy()
+                )
+                distances.append(_distance[0][0])
+
+            avg_loop = time_point_n
+            for dist in distances:
+                distance_data.append({
+                    'loop': avg_loop,
+                    'distance_type': 'intraorganoid',
+                    'distance': dist
+                })
+
+        df_distances = pd.DataFrame(distance_data)
+        df_distances["loop"] = [int(loop.split("LO")[1]) for loop in df_distances["loop"].tolist()]
+        df_distances["experiment"] = experiment
+        df_distances['distance'] = df_distances.groupby(['loop', 'distance_type', 'experiment'])['distance']\
+                .transform(lambda x: np.clip(x, x.quantile(0.025), x.quantile(0.975)) if x.name[1] == "intraorganoid" else x)
+        df_distances.to_csv(
+            os.path.join(
+                output_dir,
+                f"{experiment}_distances.csv"
+            )
+        )
+        dist_dfs.append(df_distances)
+    dist_df = pd.concat(dist_dfs, axis = 0)
+    dist_df.to_csv(
+        os.path.join(
+            output_dir,
+            output_filename
+        )
+    )
+    return dist_df
 
 def main():
     # if True, will generate data again
