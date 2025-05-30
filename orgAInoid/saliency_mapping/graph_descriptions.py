@@ -105,7 +105,7 @@ def graph_descriptions(dataset: OrganoidDataset,
                                 "beta": beta
                             }
 
-                            path_overlap, cost_per_node, path_coverage = _analyze_graphs(
+                            path_overlap, cost_per_node, path_coverage = analyze_graphs(
                                 G_fwd, G_bwd, labels, parameters, zarr_path
                             )
 
@@ -154,11 +154,11 @@ def _transfer_parameters_to_df(df: pd.DataFrame,
         df[label] = val
     return df
 
-def _analyze_graphs(G_fwd: nx.DiGraph,
-                    G_bwd: nx.DiGraph,
-                    labels: np.ndarray,
-                    parameters: dict,
-                    zarr_path: str) -> tuple[pd.DataFrame, ...]:
+def analyze_graphs(G_fwd: nx.DiGraph,
+                   G_bwd: nx.DiGraph,
+                   labels: np.ndarray,
+                   parameters: dict,
+                   zarr_path: str) -> tuple[pd.DataFrame, ...]:
     """\
     This function is supposed to run the analysis for the graph descriptions.
     Organoids are segmented using SLIC and a directed graph is constructed

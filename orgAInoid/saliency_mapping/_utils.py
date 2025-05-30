@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from collections import defaultdict
 
-from typing import Optional, Union, Sequence
+from typing import Optional, Union
 
 from ..classification._dataset import OrganoidDataset
 from ..image_handling import OrganoidImage
@@ -88,11 +88,12 @@ def slic_segment_stack(imgs: np.ndarray,
         masked_px = int(mask.sum())
         n_segments = max(1, round(masked_px / pixels_per_superpixel))
 
-        lab = slic(imgs_np[t], mask=mask,
-                   n_segments=n_segments,
-                   compactness=compactness,
-                   start_label=1,
-                   channel_axis=None)
+        lab = slic(imgs_np[t],
+                   mask = mask,
+                   n_segments = n_segments,
+                   compactness = compactness,
+                   start_label = 1,
+                   channel_axis = None)
         lab[~mask] = -1
         labels_stack[t] = lab.astype(np.int32)
 
@@ -199,7 +200,7 @@ def build_backwards_graph(labels_stack: np.ndarray,
     n_props = float(len(prop_cols))
 
     # build standardized feature dict and weighted centroid dict
-    prop_mat  = region_df[prop_cols].to_numpy(np.float32, copy=False)
+    prop_mat = region_df[prop_cols].to_numpy(np.float32, copy=False)
     sigma_vec = prop_mat.std(axis=0, ddof=0)
     sigma_vec[sigma_vec == 0] = 1.0
 
@@ -295,7 +296,7 @@ def build_backwards_graph(labels_stack: np.ndarray,
                 v = (t-1, prv)
                 d_p = float(np.abs(v_cur - feat_dict[v]).sum())
                 area_v = area_dict[v]
-                union  = area_u + area_v - px
+                union = area_u + area_v - px
                 overlap_ratio = px / (union + 1e-8)
 
                 d_c_norm = d_c / max_dist
@@ -364,9 +365,9 @@ def build_forwards_graph(labels_stack: np.ndarray,
     # add nodes
     for _, r in region_df.iterrows():
         key = (int(r.image_idx), int(r.label))
-        feat_dict[key]  = r[prop_cols].to_numpy(np.float32, copy=False) / sigma_vec
+        feat_dict[key] = r[prop_cols].to_numpy(np.float32, copy=False) / sigma_vec
         wcent_dict[key] = (float(r.wcentroid_row), float(r.wcentroid_col))
-        area_dict[key]  = float(r.area)
+        area_dict[key] = float(r.area)
         G.add_node(key, **r[keep_cols].to_dict())
 
     T = labels_stack.shape[0]
@@ -446,7 +447,7 @@ def build_forwards_graph(labels_stack: np.ndarray,
                 v = (t + 1, nxt)
                 d_p = float(np.abs(v_cur - feat_dict[v]).sum())
                 area_v = area_dict[v]
-                union  = area_u + area_v - px
+                union = area_u + area_v - px
                 overlap_ratio = px / (union + 1e-8)
 
                 d_c_norm = d_c / max_dist
