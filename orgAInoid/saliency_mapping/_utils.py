@@ -611,7 +611,7 @@ def forward_paths_from_backward(G_fwd: nx.DiGraph,
                                weight=w_key)
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             continue
-        out[output_node] = fwd_path
+        out[input_node] = fwd_path
 
     return out
 
