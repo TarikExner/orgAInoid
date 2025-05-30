@@ -162,7 +162,7 @@ def _analyze_graphs(G_fwd: nx.DiGraph,
     cost_per_node = compute_input_to_last_costs(G_fwd, weighted = True)
     cost_per_node["used"] = cost_per_node["input_node"].isin(inferred_input_nodes)
 
-    forward_paths = forward_paths_from_backward(G_fwd, inferred_input_nodes, weighted = True)
+    forward_paths = forward_paths_from_backward(G_fwd, backwards_paths, weighted = True)
     path_overlap: pd.DataFrame = compare_forward_backward_paths(forward_paths, backwards_paths)
 
     path_coverage = _transfer_parameters_to_df(path_coverage, parameters)
