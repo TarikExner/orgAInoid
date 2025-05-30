@@ -569,7 +569,52 @@ def shortest_paths_first_to_last(G: nx.DiGraph,
             tgt = min(reach, key=lambda n: len(p_dict[n]))
 
         out[src] = p_dict[tgt]
+
     return out
+
+def forward_paths_from_backward(G_fwd: nx.DiGraph,
+                                back_paths: dict[Node, list[Node]],
+                                weighted: bool = False) -> dict[Node, list[Node]]:
+    """
+    For each output_node in back_paths, take its backward path,
+    pick the final element (the input_node at frame 0), then compute
+    the shortest forward path from that input_node to output_node in G_fwd.
+
+    Parameters
+    ----------
+    back_paths : dict mapping output_node → [backward path nodes ...]
+    G_fwd      : forward graph with edges t→t+1 and 'cost' or unweighted
+    weighted   : if True, use edge-attr 'cost'; else shortest hop count
+
+    Returns
+    -------
+    Dict[output_node, forward_path_list]
+    """
+    out: dict[Node, list[Node]] = {}
+    # pick the right NX routine
+    if weighted:
+        path_fn = nx.shortest_path
+        w_key   = "cost"
+    else:
+        path_fn = nx.shortest_path
+        w_key   = None
+
+    for output_node, bpath in back_paths.items():
+        if not bpath:
+            continue
+        input_node = bpath[-1]   # the seed at frame 0
+        try:
+            # compute forward path
+            fwd_path = path_fn(G_fwd,
+                               source=input_node,
+                               target=output_node,
+                               weight=w_key)
+        except (nx.NetworkXNoPath, nx.NodeNotFound):
+            continue
+        out[output_node] = fwd_path
+
+    return out
+
 
 def compare_forward_backward_paths(fwd: dict[Node, list[Node]],
                                    bwd: dict[Node, list[Node]]) -> pd.DataFrame:
