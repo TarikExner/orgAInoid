@@ -583,7 +583,7 @@ def forward_paths_from_backward(G_fwd: nx.DiGraph,
     weighted=False → fewest hops (unweighted BFS)
     weighted=True  → minimal total 'cost' (Dijkstra on edge-attr 'cost')
     """
-    out: Dict[Node, List[Node]] = {}
+    out: dict[Node, list[Node]] = {}
 
     for output_node, bpath in back_paths.items():
         if not bpath:
