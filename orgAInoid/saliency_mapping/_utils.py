@@ -572,9 +572,9 @@ def shortest_paths_first_to_last(G: nx.DiGraph,
 
     return out
 
-def forward_paths_from_backward(G_fwd: nx.DiGraph,
-                                back_paths: dict[Node, list[Node]],
-                                weighted: bool = False) -> dict[Node, list[Node]]:
+def forward_paths_from_backward_paths(G_fwd: nx.DiGraph,
+                                      back_paths: dict[Node, list[Node]],
+                                      weighted: bool = False) -> dict[Node, dict[Node, list[Node]]]:
     """
     Given back_paths: {output_node → backward‐path ending at input_node},
     compute **all** forward paths from each input_node to every output_node
@@ -598,7 +598,6 @@ def forward_paths_from_backward(G_fwd: nx.DiGraph,
     for output_node, bpath in back_paths.items():
         if not bpath:
             continue
-        output_node: Node
         input_node: Node = bpath[-1]
 
         try:
@@ -738,7 +737,7 @@ def compute_input_to_last_costs(G: nx.DiGraph,
     return pd.DataFrame(records)
 
 def mask_selected_inputs(labels_stack: np.ndarray,
-                         input_nodes: Sequence[Node]) -> np.ndarray:
+                         input_nodes: set[Node]) -> np.ndarray:
     """
     From labels_stack (T×H×W) and a list of input_nodes [(0,label),…],
     return a 2D mask for frame 0 where pixels = 1 if their label is in

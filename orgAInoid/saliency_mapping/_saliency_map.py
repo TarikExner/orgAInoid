@@ -10,7 +10,7 @@ from ._utils import (get_images_and_masks,
                      slic_segment_stack,
                      regionprops_stack,
                      compute_path_level_coverage,
-                     forward_paths_from_backward,
+                     forward_paths_from_backward_paths,
                      compare_forward_backward_paths,
                      overlap_stats,
                      mask_selected_inputs,
@@ -26,13 +26,15 @@ from ..image_handling._image_handler import ImageHandler
 
 def graph_descriptions(dataset: OrganoidDataset,
                        output_dir: str,
-                       zarr_file: str) -> None:
+                       zarr_file: str,
+                       segmentator_input_dir: str = "../segmentation/segmentators",
+                       parameter_grid: Optional[dict] = None) -> tuple[pd.DataFrame, ...]:
     """\
     Function for hyperparameter testing of the graph descriptions.
 
     """
     img_handler = ImageHandler(
-        segmentator_input_dir = "../segmentation/segmentators",
+        segmentator_input_dir = segmentator_input_dir,
         segmentator_input_size = dataset.image_metadata.segmentator_input_size,
         segmentation_model_name = "DEEPLABV3"
     )
@@ -40,17 +42,19 @@ def graph_descriptions(dataset: OrganoidDataset,
     metadata: pd.DataFrame = dataset.metadata
 
     organoid_wells = metadata["well"].unique()
-    experiment = metadata["experiment"].unique()
-    if len(experiment) > 1:
+    experiments = metadata["experiment"].unique()
+    if len(experiments) > 1:
         raise ValueError("There should only be one experiment")
-
-    parameter_grid = {
-        "compactness": [0.001, 0.01, 0.05, 0.1, 0.5, 1, 10], # 7 
-        "pixels_per_superpixel": [50, 100, 250, 500, 1000], # 5
-        "n_connections_per_node": [1, 2, 3, 5, 7, 10], # 6
-        "alpha": [0, 0.2, 0.4, 0.6, 0.8, 1], # 6
-        "beta": [0, 0.2, 0.4, 0.6, 0.8, 1] # 6
-    }
+    experiment = experiments[0]
+    
+    if not parameter_grid:
+        parameter_grid = {
+            "compactness": [0.001, 0.01, 0.1, 1, 10], # 6
+            "pixels_per_superpixel": [50, 100, 250, 500, 1000], # 5
+            "n_connections_per_node": [1, 2, 3, 5], # 6
+            "alpha": [0, 0.5, 1], # 3
+            "beta": [0, 0.5, 1] # 3
+        }
 
     path_level_coverage_result = pd.DataFrame()
     cost_analysis_result = pd.DataFrame()
@@ -118,6 +122,32 @@ def graph_descriptions(dataset: OrganoidDataset,
                                 axis = 0
                             )
 
+    path_overlap_result.to_csv(
+        os.path.join(
+            output_dir,
+            experiment,
+            "_path_overlap_data.csv"
+        ),
+        index = False
+    )
+    path_level_coverage_result.to_csv(
+        os.path.join(
+            output_dir,
+            experiment,
+            "_path_level_coverage.csv"
+        ),
+        index = False
+    )
+    cost_analysis_result.to_csv(
+        os.path.join(
+            output_dir,
+            experiment,
+            "_path_cost_analysis.csv"
+        ),
+        index = False
+    )
+    return path_overlap_result, path_level_coverage_result, cost_analysis_result
+
 def _transfer_parameters_to_df(df: pd.DataFrame,
                                params: dict) -> pd.DataFrame:
     for label, val in params.items():
@@ -160,9 +190,9 @@ def _analyze_graphs(G_fwd: nx.DiGraph,
         for n in path if n[0] == 0
     }
     cost_per_node = compute_input_to_last_costs(G_fwd, weighted = True)
-    cost_per_node["used"] = cost_per_node["input_node"].isin(inferred_input_nodes)
+    cost_per_node["used"] = cost_per_node["input_node"].isin(list(inferred_input_nodes))
 
-    forward_paths = forward_paths_from_backward(G_fwd, backwards_paths, weighted = True)
+    forward_paths = forward_paths_from_backward_paths(G_fwd, backwards_paths, weighted = True)
     path_overlap: pd.DataFrame = compare_forward_backward_paths(forward_paths, backwards_paths)
 
     path_coverage = _transfer_parameters_to_df(path_coverage, parameters)
