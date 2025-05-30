@@ -580,38 +580,32 @@ def forward_paths_from_backward(G_fwd: nx.DiGraph,
     pick the final element (the input_node at frame 0), then compute
     the shortest forward path from that input_node to output_node in G_fwd.
 
-    Parameters
-    ----------
-    back_paths : dict mapping output_node → [backward path nodes ...]
-    G_fwd      : forward graph with edges t→t+1 and 'cost' or unweighted
-    weighted   : if True, use edge-attr 'cost'; else shortest hop count
-
-    Returns
-    -------
-    Dict[output_node, forward_path_list]
+    weighted=False → fewest hops (unweighted BFS)
+    weighted=True  → minimal total 'cost' (Dijkstra on edge-attr 'cost')
     """
-    out: dict[Node, list[Node]] = {}
-    # pick the right NX routine
-    if weighted:
-        path_fn = nx.shortest_path
-        w_key   = "cost"
-    else:
-        path_fn = nx.shortest_path
-        w_key   = None
+    out: Dict[Node, List[Node]] = {}
 
     for output_node, bpath in back_paths.items():
         if not bpath:
             continue
         input_node = bpath[-1]   # the seed at frame 0
+
         try:
-            # compute forward path
-            fwd_path = path_fn(G_fwd,
-                               source=input_node,
-                               target=output_node,
-                               weight=w_key)
+            if weighted:
+                # explicit Dijkstra on 'cost'
+                fwd_path = nx.dijkstra_path(G_fwd,
+                                            source=input_node,
+                                            target=output_node,
+                                            weight="cost")
+            else:
+                # simple shortest‐path (BFS)
+                fwd_path = nx.shortest_path(G_fwd,
+                                            source=input_node,
+                                            target=output_node)
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             continue
-        out[input_node] = fwd_path
+
+        out[output_node] = fwd_path
 
     return out
 
