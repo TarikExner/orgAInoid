@@ -576,79 +576,86 @@ def forward_paths_from_backward(G_fwd: nx.DiGraph,
                                 back_paths: dict[Node, list[Node]],
                                 weighted: bool = False) -> dict[Node, list[Node]]:
     """
-    For each output_node in back_paths, take its backward path,
-    pick the final element (the input_node at frame 0), then compute
-    the shortest forward path from that input_node to output_node in G_fwd.
+    Given back_paths: {output_node → backward‐path ending at input_node},
+    compute **all** forward paths from each input_node to every output_node
+    that maps to it.
 
-    weighted=False → fewest hops (unweighted BFS)
-    weighted=True  → minimal total 'cost' (Dijkstra on edge-attr 'cost')
+    Returns a nested dict:
+      { input_node → { output_node → forward_path_list } }
+
+    weighted=False → fewest hops (BFS)
+    weighted=True  → Dijkstra on edge‐attr 'cost'
     """
-    out: dict[Node, list[Node]] = {}
+    # Prepare the right NX call
+    def get_path(src: Node, tgt: Node) -> list[Node]:
+        if weighted:
+            return nx.dijkstra_path(G_fwd, source=src, target=tgt, weight="cost")
+        else:
+            return nx.shortest_path(G_fwd, source=src, target=tgt)
+
+    out: dict[Node, dict[Node, list[Node]]] = defaultdict(dict)
 
     for output_node, bpath in back_paths.items():
         if not bpath:
             continue
-        input_node = bpath[-1]   # the seed at frame 0
+        output_node: Node
+        input_node: Node = bpath[-1]
 
         try:
-            if weighted:
-                # explicit Dijkstra on 'cost'
-                fwd_path = nx.dijkstra_path(G_fwd,
-                                            source=input_node,
-                                            target=output_node,
-                                            weight="cost")
-            else:
-                # simple shortest‐path (BFS)
-                fwd_path = nx.shortest_path(G_fwd,
-                                            source=input_node,
-                                            target=output_node)
+            fwd_path = get_path(input_node, output_node)
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             continue
 
-        out[input_node] = fwd_path
+        out[input_node][output_node] = fwd_path
 
-    return out
+    return dict(out)
 
-
-def compare_forward_backward_paths(fwd: dict[Node, list[Node]],
+def compare_forward_backward_paths(fwd: dict[Node, dict[Node, list[Node]]],
                                    bwd: dict[Node, list[Node]]) -> pd.DataFrame:
     """
-    Compare forward‐inferred tracks (start→…→end) with backward‐inferred tracks (end→…→start0),
-    and return a DataFrame summarising their overlap for each start node.
+    Compare forward‐inferred tracks (input_node → output_node) with backward‐inferred
+    tracks (output_node → input_node), and return a DataFrame summarising their overlap.
 
-    Columns:
-      - start_node     : (frame 0, label)
-      - end_node       : (last frame, label)
-      - fwd_length     : number of nodes in forward path
-      - bwd_length     : number of nodes in backward path
-      - intersection   : |intersection of node sets|
-      - union          : |union of node sets|
-      - jaccard        : intersection / union
+    Parameters
+    ----------
+    fwd_grouped : dict mapping input_node → dict of (output_node → forward_path)
+    bwd         : dict mapping output_node → backward_path
+
+    Returns
+    -------
+    DataFrame with columns:
+      - start_node   : input_node (frame 0, label)
+      - end_node     : output_node (last frame, label)
+      - fwd_length   : length of forward path
+      - bwd_length   : length of backward path
+      - intersection : size of intersection of the two node sets
+      - union        : size of union of the two node sets
+      - jaccard      : intersection / union
     """
     records = []
-    for start, path_f in fwd.items():
-        end = path_f[-1]
-        path_b = bwd.get(end)
-        if path_b is None:
-            continue
+    for start_node, out_dict in fwd.items():
+        for end_node, path_f in out_dict.items():
+            path_b = bwd.get(end_node)
+            if path_b is None:
+                continue
+            # reverse backward path to go from start to end
+            path_b_rev = list(reversed(path_b))
 
-        path_b_rev = list(reversed(path_b))
+            set_f = set(path_f)
+            set_b = set(path_b_rev)
+            inter = len(set_f & set_b)
+            uni   = len(set_f | set_b)
+            j     = inter / uni if uni else 0.0
 
-        set_f = set(path_f)
-        set_b = set(path_b_rev)
-        i = len(set_f & set_b)
-        u = len(set_f | set_b)
-        j = i / u if u else 0.0
-
-        records.append({
-            "start_node": start,
-            "end_node": end,
-            "fwd_length": len(path_f),
-            "bwd_length": len(path_b_rev),
-            "intersection": i,
-            "union": u,
-            "jaccard": j
-        })
+            records.append({
+                "start_node": start_node,
+                "end_node": end_node,
+                "fwd_length": len(path_f),
+                "bwd_length": len(path_b_rev),
+                "intersection": inter,
+                "union": uni,
+                "jaccard": j
+            })
 
     return pd.DataFrame(records)
 
