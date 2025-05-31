@@ -160,7 +160,7 @@ def graph_descriptions(dataset: OrganoidDataset,
         _save_csv(path_overlap_result, output_dir, path_overlap_file_name)
         print(
             f"""\
-            \n\nANALYZED WELL {well} in {time.time()-start} seconds!\n\n
+            \nANALYZED WELL {well} in {time.time()-start} seconds!\n
             """
         )
 
@@ -216,8 +216,7 @@ def analyze_graphs(G_fwd: nx.DiGraph,
         n for path in backwards_paths.values()
         for n in path if n[0] == 0
     }
-    cost_per_node = compute_input_to_last_costs(G_fwd, weighted = True)
-    cost_per_node["used"] = cost_per_node["input_node"].isin(list(inferred_input_nodes))
+    cost_per_node = compute_input_to_last_costs(G_fwd, backwards_paths, weighted = True)
 
     forward_paths = forward_paths_from_backward_paths(G_fwd, backwards_paths, weighted = True)
     path_overlap: pd.DataFrame = compare_forward_backward_paths(forward_paths, backwards_paths)

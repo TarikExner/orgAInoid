@@ -648,8 +648,8 @@ def compare_forward_backward_paths(fwd: dict[Node, dict[Node, list[Node]]],
             j     = inter / uni if uni else 0.0
 
             records.append({
-                "start_node": start_node,
-                "end_node": end_node,
+                "start_node": start_node[1],
+                "end_node": end_node[1],
                 "fwd_length": len(path_f),
                 "bwd_length": len(path_b_rev),
                 "intersection": inter,
@@ -686,56 +686,64 @@ def compute_path_level_coverage(G: nx.DiGraph,
     return pd.DataFrame(records)
 
 def compute_input_to_last_costs(G: nx.DiGraph,
+                                backward_paths: dict[Node, list[Node]],
                                 weighted: bool = True) -> pd.DataFrame:
     """
-    For each input node (frame 0) in the forward graph G, compute the minimal
-    path cost to any output node (last frame).
+    For each pair of input (frame 0) and output (last frame) nodes,
+    compute the shortest path cost. Additionally, flag paths that were
+    actually used in the backward path trace.
 
-    Returns a DataFrame with columns:
-      - input_node: tuple (frame, label)
-      - label: the super-pixel label (int)
-      - min_cost: minimal cost (float), np.inf if unreachable
-      - reachable: bool, True if any path exists
+    Returns a DataFrame with:
+      - input_node: (frame, label)
+      - output_node: (frame, label)
+      - min_cost: cost (or np.inf if unreachable)
+      - used: bool, whether this pair was part of a backward path
     """
-    # identify input (frame 0) and output (last frame) nodes
     first_f = min(f for f, _ in G.nodes())
-    last_f  = max(f for f, _ in G.nodes())
-    inputs  = [n for n in G.nodes() if n[0] == first_f]
-    outputs = {n for n in G.nodes() if n[0] == last_f}
+    last_f = max(f for f, _ in G.nodes())
+    inputs = [n for n in G.nodes() if n[0] == first_f]
+    outputs = [n for n in G.nodes() if n[0] == last_f]
 
-    # select the appropriate shortest-path length function
+    # Determine path cost function
     if weighted:
-        length_fn = nx.single_source_dijkstra_path_length
+        path_length_fn = nx.single_source_dijkstra_path_length
         weight_key = "cost"
     else:
-        length_fn = nx.single_source_shortest_path_length
+        path_length_fn = nx.single_source_shortest_path_length
         weight_key = None
+
+    # Create set of used input-output pairs
+    used_pairs = {
+        (path[0], output) for output, path in backward_paths.items()
+        if path and path[0][0] == first_f and output[0] == last_f
+    }
 
     records = []
     for inp in inputs:
-        # compute all distances/costs from this input
         try:
-            lengths = length_fn(G, inp, weight=weight_key)
+            lengths = path_length_fn(G, inp, weight=weight_key)
         except Exception:
             lengths = {}
 
-        # pick minimal cost among reachable outputs
-        out_costs = [lengths[out] for out in outputs if out in lengths]
-        if out_costs:
-            min_cost = float(min(out_costs))
-            reachable = True
-        else:
-            min_cost = float(np.inf)
-            reachable = False
+        for out in outputs:
+            if out in lengths:
+                min_cost = float(lengths[out])
+                reachable = True
+            else:
+                min_cost = float(np.inf)
+                reachable = False
 
-        records.append({
-            "input_node": inp,
-            "label": inp[1],
-            "min_cost": min_cost,
-            "reachable": reachable
-        })
+            used = (inp, out) in used_pairs
+            records.append({
+                "input_node": inp[1],
+                "output_node": out[1],
+                "min_cost": min_cost,
+                "reachable": reachable,
+                "used": used
+            })
 
     return pd.DataFrame(records)
+
 
 def mask_selected_inputs(labels_stack: np.ndarray,
                          input_nodes: set[Node]) -> np.ndarray:
