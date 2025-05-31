@@ -67,13 +67,22 @@ def graph_descriptions(dataset: OrganoidDataset,
     zarr_path = os.path.join(output_dir, zarr_file)
 
     def _already_analyzed(well: str, output_dir: str):
-        path_coverage_df = pd.read_csv(os.path.join(output_dir, path_level_coverage_file_name))
+        try:
+            path_coverage_df = pd.read_csv(os.path.join(output_dir, path_level_coverage_file_name))
+        except FileNotFoundError:
+            return False
         if well not in path_coverage_df["well"].unique():
             return False
-        path_overlap_df = pd.read_csv(os.path.join(output_dir, path_overlap_file_name))
+        try:
+            path_overlap_df = pd.read_csv(os.path.join(output_dir, path_overlap_file_name))
+        except FileNotFoundError:
+            return False
         if well not in path_overlap_df["well"].unique():
             return False
-        cost_analysis_df = pd.read_csv(os.path.join(output_dir, cost_analysis_file_name))
+        try:
+            cost_analysis_df = pd.read_csv(os.path.join(output_dir, cost_analysis_file_name))
+        except FileNotFoundError:
+            return False
         if well not in cost_analysis_df["well"].unique():
             return False
         return True
