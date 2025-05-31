@@ -48,17 +48,15 @@ def graph_descriptions(dataset: OrganoidDataset,
     
     if not parameter_grid:
         parameter_grid = {
-            "compactness": [0.001, 0.01, 0.1, 1, 10], # 6
-            "pixels_per_superpixel": [50, 100, 250, 500, 1000], # 5
-            "n_connections_per_node": [1, 2, 3, 5], # 6
+            "compactness": [0.001, 0.01, 0.1, 1], # 4
+            "pixels_per_superpixel": [1000, 500, 250, 100, 50], # 5 
+            "n_connections_per_node": [1, 2, 3, 5], # 4
             "alpha": [0, 0.5, 1], # 3
             "beta": [0, 0.5, 1] # 3
         }
 
     path_level_coverage_file_name = f"{experiment}_path_level_coverage.csv"
     cost_analysis_file_name = f"{experiment}_path_cost_analysis.csv"
-    # path_overlap_file_name= f"{experiment}_path_overlap_data.csv"
-
 
     zarr_path = os.path.join(output_dir, zarr_file)
 
@@ -69,12 +67,6 @@ def graph_descriptions(dataset: OrganoidDataset,
             return False
         if well not in path_coverage_df["well"].unique():
             return False
-        # try:
-        #     path_overlap_df = pd.read_csv(os.path.join(output_dir, path_overlap_file_name))
-        # except FileNotFoundError:
-        #     return False
-        # if well not in path_overlap_df["well"].unique():
-        #     return False
         try:
             cost_analysis_df = pd.read_csv(os.path.join(output_dir, cost_analysis_file_name))
         except FileNotFoundError:
@@ -92,7 +84,6 @@ def graph_descriptions(dataset: OrganoidDataset,
             )
             continue
 
-        # path_overlap_result = pd.DataFrame()
         cost_analysis_result = pd.DataFrame()
         path_level_coverage_result = pd.DataFrame()
 
@@ -142,10 +133,6 @@ def graph_descriptions(dataset: OrganoidDataset,
                                 G_fwd, G_bwd, labels, parameters, zarr_path
                             )
 
-                            # path_overlap_result = pd.concat(
-                            #     [path_overlap_result, path_overlap],
-                            #     axis = 0
-                            # )
                             cost_analysis_result = pd.concat(
                                 [cost_analysis_result, cost_per_node],
                                 axis = 0
@@ -157,7 +144,7 @@ def graph_descriptions(dataset: OrganoidDataset,
         # we save the data for every well
         _save_csv(path_level_coverage_result, output_dir, path_level_coverage_file_name)
         _save_csv(cost_analysis_result, output_dir, cost_analysis_file_name)
-        # _save_csv(path_overlap_result, output_dir, path_overlap_file_name)
+
         print(
             f"""\
             \nANALYZED WELL {well} in {time.time()-start} seconds!\n
