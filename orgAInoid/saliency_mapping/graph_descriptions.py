@@ -166,7 +166,7 @@ def _save_csv(file: pd.DataFrame,
               output_dir: str,
               file_name: str) -> None:
     file_path = os.path.join(output_dir, file_name)
-    if os.path.isfile:
+    if os.path.isfile(file_path):
         df = pd.read_csv(file_path, index_col = False)
         file = pd.concat([df, file], axis = 0)
     file.to_csv(file_path, index = False)
