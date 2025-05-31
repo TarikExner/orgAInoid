@@ -55,13 +55,8 @@ def graph_descriptions(dataset: OrganoidDataset,
             "beta": [0, 0.5, 1] # 3
         }
 
-    path_level_coverage_result = pd.DataFrame()
     path_level_coverage_file_name = f"{experiment}_path_level_coverage.csv"
-
-    cost_analysis_result = pd.DataFrame()
     cost_analysis_file_name = f"{experiment}_path_cost_analysis.csv"
-
-    path_overlap_result = pd.DataFrame()
     path_overlap_file_name= f"{experiment}_path_overlap_data.csv"
 
     zarr_path = os.path.join(output_dir, zarr_file)
@@ -95,6 +90,10 @@ def graph_descriptions(dataset: OrganoidDataset,
             """
             )
             continue
+
+        path_overlap_result = pd.DataFrame()
+        cost_analysis_result = pd.DataFrame()
+        path_level_coverage_result = pd.DataFrame()
 
         imgs, masks = get_images_and_masks(dataset, well, img_handler)
 
@@ -217,6 +216,8 @@ def analyze_graphs(G_fwd: nx.DiGraph,
         for n in path if n[0] == 0
     }
     cost_per_node = compute_input_to_last_costs(G_fwd, backwards_paths, weighted = True)
+    cost_per_node["zero_weights_fwd_total"] = overlap_percentage_fwd
+    cost_per_node["zero_weights_bwd_total"] = overlap_percentage_bwd
 
     forward_paths = forward_paths_from_backward_paths(G_fwd, backwards_paths, weighted = True)
     path_overlap: pd.DataFrame = compare_forward_backward_paths(forward_paths, backwards_paths)

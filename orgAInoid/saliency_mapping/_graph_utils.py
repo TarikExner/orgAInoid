@@ -228,7 +228,7 @@ def build_backwards_graph(labels_stack: np.ndarray,
         return float(np.hypot(ra - rb, ca - cb))
 
     # build edges
-    for t in tqdm(range(T - 1, 0, -1), desc="edges (backward)"):
+    for t in tqdm(range(T - 1, 0, -1), desc="Building Graph (backward)"):
         cur_lab = labels_stack[t]
         prv_lab = labels_stack[t - 1]
 
@@ -379,7 +379,7 @@ def build_forwards_graph(labels_stack: np.ndarray,
         return float(np.hypot(ra - rb, ca - cb))
 
     # build forward edges
-    for t in tqdm(range(T - 1), desc="edges (forward)"):
+    for t in tqdm(range(T - 1), desc="Building graph (forward)"):
         cur_lab = labels_stack[t]
         nxt_lab = labels_stack[t + 1]
 
@@ -704,7 +704,6 @@ def compute_input_to_last_costs(G: nx.DiGraph,
     inputs = [n for n in G.nodes() if n[0] == first_f]
     outputs = [n for n in G.nodes() if n[0] == last_f]
 
-    # Determine path cost function
     if weighted:
         path_length_fn = nx.single_source_dijkstra_path_length
         weight_key = "cost"
@@ -714,7 +713,7 @@ def compute_input_to_last_costs(G: nx.DiGraph,
 
     # Create set of used input-output pairs
     used_pairs = {
-        (path[-1], output) for output, path in backward_paths.items()
+        (path[-1], output): path for output, path in backward_paths.items()
         if path and path[-1][0] == first_f and output[0] == last_f
     }
 
@@ -733,13 +732,28 @@ def compute_input_to_last_costs(G: nx.DiGraph,
                 min_cost = float(np.inf)
                 reachable = False
 
-            used = (inp, out) in used_pairs
+            path = used_pairs.get((inp, out))
+            if path:
+                edge_weights = [
+                    G.edges[path[i], path[i+1]].get("weight", 0)
+                    for i in range(len(path) - 1)
+                ]
+                if edge_weights:
+                    pct_zero_weight = sum(w == 0 for w in edge_weights) / len(edge_weights)
+                else:
+                    pct_zero_weight = np.nan
+                used = True
+            else:
+                pct_zero_weight = np.nan
+                used = False
+
             records.append({
                 "input_node": inp[1],
                 "output_node": out[1],
                 "min_cost": min_cost,
                 "reachable": reachable,
-                "used": used
+                "used": used,
+                "pct_zero_weight": pct_zero_weight
             })
 
     return pd.DataFrame(records)
