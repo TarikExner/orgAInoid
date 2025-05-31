@@ -57,7 +57,8 @@ def graph_descriptions(dataset: OrganoidDataset,
 
     path_level_coverage_file_name = f"{experiment}_path_level_coverage.csv"
     cost_analysis_file_name = f"{experiment}_path_cost_analysis.csv"
-    path_overlap_file_name= f"{experiment}_path_overlap_data.csv"
+    # path_overlap_file_name= f"{experiment}_path_overlap_data.csv"
+
 
     zarr_path = os.path.join(output_dir, zarr_file)
 
@@ -68,12 +69,12 @@ def graph_descriptions(dataset: OrganoidDataset,
             return False
         if well not in path_coverage_df["well"].unique():
             return False
-        try:
-            path_overlap_df = pd.read_csv(os.path.join(output_dir, path_overlap_file_name))
-        except FileNotFoundError:
-            return False
-        if well not in path_overlap_df["well"].unique():
-            return False
+        # try:
+        #     path_overlap_df = pd.read_csv(os.path.join(output_dir, path_overlap_file_name))
+        # except FileNotFoundError:
+        #     return False
+        # if well not in path_overlap_df["well"].unique():
+        #     return False
         try:
             cost_analysis_df = pd.read_csv(os.path.join(output_dir, cost_analysis_file_name))
         except FileNotFoundError:
@@ -91,7 +92,7 @@ def graph_descriptions(dataset: OrganoidDataset,
             )
             continue
 
-        path_overlap_result = pd.DataFrame()
+        # path_overlap_result = pd.DataFrame()
         cost_analysis_result = pd.DataFrame()
         path_level_coverage_result = pd.DataFrame()
 
@@ -137,14 +138,14 @@ def graph_descriptions(dataset: OrganoidDataset,
                                 "beta": beta
                             }
 
-                            path_overlap, cost_per_node, path_coverage = analyze_graphs(
+                            cost_per_node, path_coverage = analyze_graphs(
                                 G_fwd, G_bwd, labels, parameters, zarr_path
                             )
 
-                            path_overlap_result = pd.concat(
-                                [path_overlap_result, path_overlap],
-                                axis = 0
-                            )
+                            # path_overlap_result = pd.concat(
+                            #     [path_overlap_result, path_overlap],
+                            #     axis = 0
+                            # )
                             cost_analysis_result = pd.concat(
                                 [cost_analysis_result, cost_per_node],
                                 axis = 0
@@ -156,7 +157,7 @@ def graph_descriptions(dataset: OrganoidDataset,
         # we save the data for every well
         _save_csv(path_level_coverage_result, output_dir, path_level_coverage_file_name)
         _save_csv(cost_analysis_result, output_dir, cost_analysis_file_name)
-        _save_csv(path_overlap_result, output_dir, path_overlap_file_name)
+        # _save_csv(path_overlap_result, output_dir, path_overlap_file_name)
         print(
             f"""\
             \nANALYZED WELL {well} in {time.time()-start} seconds!\n
@@ -215,19 +216,21 @@ def analyze_graphs(G_fwd: nx.DiGraph,
         n for path in backwards_paths.values()
         for n in path if n[0] == 0
     }
-    cost_per_node = compute_input_to_last_costs(G_fwd, backwards_paths, weighted = True)
+    forward_paths = forward_paths_from_backward_paths(G_fwd, backwards_paths, weighted = True)
+
+    cost_per_node = compute_input_to_last_costs(G_fwd, backwards_paths, forward_paths, weighted = True)
     cost_per_node["non_zero_weights_fwd_total"] = overlap_percentage_fwd
     cost_per_node["non_zero_weights_bwd_total"] = overlap_percentage_bwd
 
-    forward_paths = forward_paths_from_backward_paths(G_fwd, backwards_paths, weighted = True)
-    path_overlap: pd.DataFrame = compare_forward_backward_paths(forward_paths, backwards_paths)
 
     path_coverage = _transfer_parameters_to_df(path_coverage, parameters)
-    path_overlap = _transfer_parameters_to_df(path_overlap, parameters)
     cost_per_node = _transfer_parameters_to_df(cost_per_node, parameters)
 
     masked_label = mask_selected_inputs(labels, inferred_input_nodes)
     save_to_zarr(masked_label, parameters, zarr_path)
 
-    return path_overlap, cost_per_node, path_coverage
+    # path_overlap: pd.DataFrame = compare_forward_backward_paths(forward_paths, backwards_paths)
+    # path_overlap = _transfer_parameters_to_df(path_overlap, parameters)
+
+    return cost_per_node, path_coverage
 

@@ -687,6 +687,7 @@ def compute_path_level_coverage(G: nx.DiGraph,
 
 def compute_input_to_last_costs(G: nx.DiGraph,
                                 backward_paths: dict[Node, list[Node]],
+                                forward_paths: dict[Node, dict[Node, list[Node]]],
                                 weighted: bool = True) -> pd.DataFrame:
     """
     For each pair of input (frame 0) and output (last frame) nodes,
@@ -700,8 +701,8 @@ def compute_input_to_last_costs(G: nx.DiGraph,
       - used: bool, whether this pair was part of a backward path
     """
     first_f = min(f for f, _ in G.nodes())
-    last_f = max(f for f, _ in G.nodes())
-    inputs = [n for n in G.nodes() if n[0] == first_f]
+    last_f  = max(f for f, _ in G.nodes())
+    inputs  = [n for n in G.nodes() if n[0] == first_f]
     outputs = [n for n in G.nodes() if n[0] == last_f]
 
     if weighted:
@@ -713,7 +714,6 @@ def compute_input_to_last_costs(G: nx.DiGraph,
         length_func = nx.single_source_shortest_path_length
         weight_key = None
 
-    # Precompute shortest path lengths
     all_lengths = {}
     for inp in inputs:
         try:
@@ -721,7 +721,6 @@ def compute_input_to_last_costs(G: nx.DiGraph,
         except Exception:
             all_lengths[inp] = {}
 
-    # Used input-output pairs from backward paths
     used_pairs = {
         (path[-1], output) for output, path in backward_paths.items()
         if path and path[-1][0] == first_f and output[0] == last_f
@@ -736,6 +735,12 @@ def compute_input_to_last_costs(G: nx.DiGraph,
             used = (inp, out) in used_pairs
 
             pct_zero_weight = None
+            fwd_length = np.nan
+            bwd_length = np.nan
+            intersection = np.nan
+            union = np.nan
+            jaccard = np.nan
+
             if reachable:
                 try:
                     path = path_func(G, inp, out, weight=weight_key)
@@ -745,6 +750,23 @@ def compute_input_to_last_costs(G: nx.DiGraph,
                 except (nx.NetworkXNoPath, nx.NodeNotFound):
                     pct_zero_weight = None
 
+            if used:
+                path_f = forward_paths.get(inp, {}).get(out)
+                path_b = backward_paths.get(out)
+                if path_f and path_b:
+                    path_b_rev = list(reversed(path_b))
+                    set_f = set(path_f)
+                    set_b = set(path_b_rev)
+                    inter = len(set_f & set_b)
+                    uni = len(set_f | set_b)
+                    j = inter / uni if uni else 0.0
+
+                    fwd_length = len(path_f)
+                    bwd_length = len(path_b_rev)
+                    intersection = inter
+                    union = uni
+                    jaccard = j
+
             records.append({
                 "input_node": inp[1],
                 "output_node": out[1],
@@ -752,6 +774,11 @@ def compute_input_to_last_costs(G: nx.DiGraph,
                 "reachable": reachable,
                 "used": used,
                 "pct_zero_weight": pct_zero_weight,
+                "fwd_length": fwd_length,
+                "bwd_length": bwd_length,
+                "intersection": intersection,
+                "union": union,
+                "jaccard": jaccard
             })
 
     return pd.DataFrame(records)
