@@ -216,8 +216,8 @@ def analyze_graphs(G_fwd: nx.DiGraph,
         for n in path if n[0] == 0
     }
     cost_per_node = compute_input_to_last_costs(G_fwd, backwards_paths, weighted = True)
-    cost_per_node["zero_weights_fwd_total"] = overlap_percentage_fwd
-    cost_per_node["zero_weights_bwd_total"] = overlap_percentage_bwd
+    cost_per_node["non_zero_weights_fwd_total"] = overlap_percentage_fwd
+    cost_per_node["non_zero_weights_bwd_total"] = overlap_percentage_bwd
 
     forward_paths = forward_paths_from_backward_paths(G_fwd, backwards_paths, weighted = True)
     path_overlap: pd.DataFrame = compare_forward_backward_paths(forward_paths, backwards_paths)

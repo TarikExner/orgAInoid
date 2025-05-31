@@ -700,26 +700,28 @@ def compute_input_to_last_costs(G: nx.DiGraph,
       - used: bool, whether this pair was part of a backward path
     """
     first_f = min(f for f, _ in G.nodes())
-    last_f  = max(f for f, _ in G.nodes())
-    inputs  = [n for n in G.nodes() if n[0] == first_f]
+    last_f = max(f for f, _ in G.nodes())
+    inputs = [n for n in G.nodes() if n[0] == first_f]
     outputs = [n for n in G.nodes() if n[0] == last_f]
 
     if weighted:
-        path_length_fn = nx.single_source_dijkstra_path_length
+        path_func = nx.shortest_path
+        length_func = nx.single_source_dijkstra_path_length
         weight_key = "cost"
     else:
-        path_length_fn = nx.single_source_shortest_path_length
+        path_func = nx.shortest_path
+        length_func = nx.single_source_shortest_path_length
         weight_key = None
 
-    # Precompute all shortest path lengths from input nodes
+    # Precompute shortest path lengths
     all_lengths = {}
     for inp in inputs:
         try:
-            all_lengths[inp] = path_length_fn(G, inp, weight=weight_key)
+            all_lengths[inp] = length_func(G, inp, weight=weight_key)
         except Exception:
             all_lengths[inp] = {}
 
-    # Build set of used (input, output) pairs from backward paths
+    # Used input-output pairs from backward paths
     used_pairs = {
         (path[-1], output) for output, path in backward_paths.items()
         if path and path[-1][0] == first_f and output[0] == last_f
@@ -734,17 +736,14 @@ def compute_input_to_last_costs(G: nx.DiGraph,
             used = (inp, out) in used_pairs
 
             pct_zero_weight = None
-            if used:
-                path = backward_paths[out]
-                path = list(reversed(path))  # Reverse it to follow forward order
-
-                weights = []
-                for a, b in zip(path[:-1], path[1:]):
-                    w = G.edges[a, b].get("weight", 0.0)
-                    weights.append(w)
-
-                n_zero = sum(1 for w in weights if w == 0.0)
-                pct_zero_weight = n_zero / len(weights) if weights else None
+            if reachable:
+                try:
+                    path = path_func(G, inp, out, weight=weight_key)
+                    weights = [G.edges[a, b].get("weight", 0.0) for a, b in zip(path[:-1], path[1:])]
+                    n_zero = sum(1 for w in weights if w == 0.0)
+                    pct_zero_weight = n_zero / len(weights) if weights else None
+                except (nx.NetworkXNoPath, nx.NodeNotFound):
+                    pct_zero_weight = None
 
             records.append({
                 "input_node": inp[1],
