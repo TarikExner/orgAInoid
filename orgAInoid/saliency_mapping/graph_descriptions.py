@@ -3,32 +3,31 @@ import os
 import pandas as pd
 import networkx as nx
 import numpy as np
+import time
 
 from typing import Optional
 
-from ._utils import (get_images_and_masks,
-                     slic_segment_stack,
-                     regionprops_stack,
-                     compute_path_level_coverage,
-                     forward_paths_from_backward_paths,
-                     compare_forward_backward_paths,
-                     overlap_stats,
-                     mask_selected_inputs,
-                     save_to_zarr,
-                     compute_input_to_last_costs,
-                     shortest_paths_last_to_first,
-                     build_backwards_graph,
-                     build_forwards_graph)
+from ._graph_utils import (get_images_and_masks,
+                           slic_segment_stack,
+                           regionprops_stack,
+                           compute_path_level_coverage,
+                           forward_paths_from_backward_paths,
+                           compare_forward_backward_paths,
+                           overlap_stats,
+                           mask_selected_inputs,
+                           save_to_zarr,
+                           compute_input_to_last_costs,
+                           shortest_paths_last_to_first,
+                           build_backwards_graph,
+                           build_forwards_graph)
 from ..classification._dataset import OrganoidDataset
 from ..image_handling._image_handler import ImageHandler
-
-
 
 def graph_descriptions(dataset: OrganoidDataset,
                        output_dir: str,
                        zarr_file: str,
                        segmentator_input_dir: str = "../segmentation/segmentators",
-                       parameter_grid: Optional[dict] = None) -> tuple[pd.DataFrame, ...]:
+                       parameter_grid: Optional[dict] = None) -> None:
     """\
     Function for hyperparameter testing of the graph descriptions.
 
@@ -57,18 +56,39 @@ def graph_descriptions(dataset: OrganoidDataset,
         }
 
     path_level_coverage_result = pd.DataFrame()
+    path_level_coverage_file_name = f"{experiment}_path_level_coverage.csv"
+
     cost_analysis_result = pd.DataFrame()
+    cost_analysis_file_name = f"{experiment}_path_cost_analysis.csv"
+
     path_overlap_result = pd.DataFrame()
+    path_overlap_file_name= f"{experiment}_path_overlap_data.csv"
 
     zarr_path = os.path.join(output_dir, zarr_file)
 
+    def _already_analyzed(well: str, output_dir: str):
+        path_coverage_df = pd.read_csv(os.path.join(output_dir, path_level_coverage_file_name))
+        if well not in path_coverage_df["well"].unique():
+            return False
+        path_overlap_df = pd.read_csv(os.path.join(output_dir, path_overlap_file_name))
+        if well not in path_overlap_df["well"].unique():
+            return False
+        cost_analysis_df = pd.read_csv(os.path.join(output_dir, cost_analysis_file_name))
+        if well not in cost_analysis_df["well"].unique():
+            return False
+        return True
+    
     for well in organoid_wells:
+        start = time.time()
+        if _already_analyzed(well, output_dir):
+            continue
+
         imgs, masks = get_images_and_masks(dataset, well, img_handler)
 
         for pix_per_suppix in parameter_grid["pixels_per_superpixel"]:
+
             for compactness in parameter_grid["compactness"]:
         
-                ### additional for loops!
                 labels = slic_segment_stack(
                     imgs,
                     masks,
@@ -121,32 +141,26 @@ def graph_descriptions(dataset: OrganoidDataset,
                                 [path_level_coverage_result, path_coverage],
                                 axis = 0
                             )
+        # we save the data for every well
+        _save_csv(path_level_coverage_result, output_dir, path_level_coverage_file_name)
+        _save_csv(cost_analysis_result, output_dir, cost_analysis_file_name)
+        _save_csv(path_level_coverage_result, output_dir, path_overlap_file_name)
+        print(
+            f"""\
+            \n\nANALYZED WELL {well} in {time.time()-start} seconds!\n\n
+            """
+        )
 
-    path_overlap_result.to_csv(
-        os.path.join(
-            output_dir,
-            experiment,
-            "_path_overlap_data.csv"
-        ),
-        index = False
-    )
-    path_level_coverage_result.to_csv(
-        os.path.join(
-            output_dir,
-            experiment,
-            "_path_level_coverage.csv"
-        ),
-        index = False
-    )
-    cost_analysis_result.to_csv(
-        os.path.join(
-            output_dir,
-            experiment,
-            "_path_cost_analysis.csv"
-        ),
-        index = False
-    )
-    return path_overlap_result, path_level_coverage_result, cost_analysis_result
+    return 
+
+def _save_csv(file: pd.DataFrame,
+              output_dir: str,
+              file_name: str) -> None:
+    file_path = os.path.join(output_dir, file_name)
+    if os.path.isfile:
+        df = pd.read_csv(file_path, index_col = False)
+        file = pd.concat([df, file], axis = 0)
+    file.to_csv(file_path, index = False)
 
 def _transfer_parameters_to_df(df: pd.DataFrame,
                                params: dict) -> pd.DataFrame:
