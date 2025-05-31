@@ -700,8 +700,8 @@ def compute_input_to_last_costs(G: nx.DiGraph,
       - used: bool, whether this pair was part of a backward path
     """
     first_f = min(f for f, _ in G.nodes())
-    last_f = max(f for f, _ in G.nodes())
-    inputs = [n for n in G.nodes() if n[0] == first_f]
+    last_f  = max(f for f, _ in G.nodes())
+    inputs  = [n for n in G.nodes() if n[0] == first_f]
     outputs = [n for n in G.nodes() if n[0] == last_f]
 
     if weighted:
@@ -711,41 +711,40 @@ def compute_input_to_last_costs(G: nx.DiGraph,
         path_length_fn = nx.single_source_shortest_path_length
         weight_key = None
 
-    # Create set of used input-output pairs
+    # Precompute all shortest path lengths from input nodes
+    all_lengths = {}
+    for inp in inputs:
+        try:
+            all_lengths[inp] = path_length_fn(G, inp, weight=weight_key)
+        except Exception:
+            all_lengths[inp] = {}
+
+    # Build set of used (input, output) pairs from backward paths
     used_pairs = {
-        (path[-1], output): path for output, path in backward_paths.items()
+        (path[-1], output) for output, path in backward_paths.items()
         if path and path[-1][0] == first_f and output[0] == last_f
     }
 
     records = []
     for inp in inputs:
-        try:
-            lengths = path_length_fn(G, inp, weight=weight_key)
-        except Exception:
-            lengths = {}
-
+        lengths = all_lengths.get(inp, {})
         for out in outputs:
-            if out in lengths:
-                min_cost = float(lengths[out])
-                reachable = True
-            else:
-                min_cost = float(np.inf)
-                reachable = False
+            min_cost = float(lengths[out]) if out in lengths else float('inf')
+            reachable = out in lengths
+            used = (inp, out) in used_pairs
 
-            path = used_pairs.get((inp, out))
-            if path:
-                edge_weights = [
-                    G.edges[path[i], path[i+1]].get("weight", 0)
-                    for i in range(len(path) - 1)
-                ]
-                if edge_weights:
-                    pct_zero_weight = sum(w == 0 for w in edge_weights) / len(edge_weights)
-                else:
-                    pct_zero_weight = np.nan
-                used = True
-            else:
-                pct_zero_weight = np.nan
-                used = False
+            pct_zero_weight = None
+            if used:
+                path = backward_paths[out]
+                path = list(reversed(path))  # Reverse it to follow forward order
+
+                weights = []
+                for a, b in zip(path[:-1], path[1:]):
+                    w = G.edges[a, b].get("weight", 0.0)
+                    weights.append(w)
+
+                n_zero = sum(1 for w in weights if w == 0.0)
+                pct_zero_weight = n_zero / len(weights) if weights else None
 
             records.append({
                 "input_node": inp[1],
@@ -753,7 +752,7 @@ def compute_input_to_last_costs(G: nx.DiGraph,
                 "min_cost": min_cost,
                 "reachable": reachable,
                 "used": used,
-                "pct_zero_weight": pct_zero_weight
+                "pct_zero_weight": pct_zero_weight,
             })
 
     return pd.DataFrame(records)
