@@ -90,6 +90,10 @@ def graph_descriptions(dataset: OrganoidDataset,
     for well in organoid_wells:
         start = time.time()
         if _already_analyzed(well, output_dir):
+            print(f"""
+                Skipping well {well} as it has been already analyzed!
+            """
+            )
             continue
 
         imgs, masks = get_images_and_masks(dataset, well, img_handler)
