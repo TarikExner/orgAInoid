@@ -714,8 +714,8 @@ def compute_input_to_last_costs(G: nx.DiGraph,
 
     # Create set of used input-output pairs
     used_pairs = {
-        (path[0], output) for output, path in backward_paths.items()
-        if path and path[0][0] == first_f and output[0] == last_f
+        (path[-1], output) for output, path in backward_paths.items()
+        if path and path[-1][0] == first_f and output[0] == last_f
     }
 
     records = []
