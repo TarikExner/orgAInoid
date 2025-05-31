@@ -153,7 +153,7 @@ def graph_descriptions(dataset: OrganoidDataset,
         # we save the data for every well
         _save_csv(path_level_coverage_result, output_dir, path_level_coverage_file_name)
         _save_csv(cost_analysis_result, output_dir, cost_analysis_file_name)
-        _save_csv(path_level_coverage_result, output_dir, path_overlap_file_name)
+        _save_csv(path_overlap_result, output_dir, path_overlap_file_name)
         print(
             f"""\
             \n\nANALYZED WELL {well} in {time.time()-start} seconds!\n\n
