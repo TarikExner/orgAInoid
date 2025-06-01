@@ -76,7 +76,7 @@ def graph_descriptions(dataset: OrganoidDataset,
         return True
     
     for well in organoid_wells:
-        start = time.time()
+        well_start = time.time()
         if _already_analyzed(well, output_dir):
             print(f"""
                 Skipping well {well} as it has been already analyzed!
@@ -128,7 +128,8 @@ def graph_descriptions(dataset: OrganoidDataset,
                                 "alpha": alpha,
                                 "beta": beta
                             }
-
+                            
+                            analysis_start = time.time()
                             cost_per_node, path_coverage = analyze_graphs(
                                 G_fwd, G_bwd, labels, parameters, zarr_path
                             )
@@ -141,13 +142,18 @@ def graph_descriptions(dataset: OrganoidDataset,
                                 [path_level_coverage_result, path_coverage],
                                 axis = 0
                             )
+                            print(parameters)
+                            analysis_time = time.time() - analysis_start
+                            print(f"... analyzed in {analysis_time} seconds!")
+
         # we save the data for every well
         _save_csv(path_level_coverage_result, output_dir, path_level_coverage_file_name)
         _save_csv(cost_analysis_result, output_dir, cost_analysis_file_name)
-
+        
+        well_time = time.time() - well_start
         print(
             f"""\
-            \nANALYZED WELL {well} in {time.time()-start} seconds!\n
+            \nANALYZED WELL {well} in {well_time} seconds!\n
             """
         )
 
