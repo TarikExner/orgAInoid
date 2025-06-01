@@ -49,7 +49,7 @@ def graph_descriptions(dataset: OrganoidDataset,
     if not parameter_grid:
         parameter_grid = {
             "compactness": [0.001, 0.01, 0.1, 1], # 4
-            "pixels_per_superpixel": [1000, 300, 100], # 3
+            "pixels_per_superpixel": [900, 300, 100], # 3
             "n_connections_per_node": [1, 3, 5], # 3
             "alpha": [0.1, 0.3, 0.5], # 3
             "beta": [0.1, 0.3, 0.5] # 3
