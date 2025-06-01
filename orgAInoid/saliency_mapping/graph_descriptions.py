@@ -49,9 +49,9 @@ def graph_descriptions(dataset: OrganoidDataset,
         parameter_grid = {
             "compactness": [0.001, 0.01, 0.1, 1], # 4
             "pixels_per_superpixel": [900, 300, 100], # 3
-            "n_connections_per_node": [1, 3, 5], # 3
-            "alpha": [0.1, 0.5], # 3
-            "beta": [0.1, 0.5] # 3
+            "n_connections_per_node": [1, 3], # 3 should be fine for keeping connections :)
+            "alpha": [0.1, 0.5], # 2
+            "beta": [0.1, 0.5] # 2
         }
 
     path_level_coverage_file_name = f"{experiment}_path_level_coverage.csv"
