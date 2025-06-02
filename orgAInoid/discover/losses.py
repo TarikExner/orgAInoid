@@ -30,7 +30,7 @@ pass any floats when you instantiate each loss.
 """
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 import torch.nn as nn
@@ -38,8 +38,6 @@ import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
 
 class ReconLoss(nn.Module):
-    """Pixel reconstruction loss (L1 or L2)."""
-
     def __init__(self, mode: str = "l1", weight: float = 1.0):
         super().__init__()
         self.weight = weight
@@ -50,65 +48,50 @@ class ReconLoss(nn.Module):
         else:
             raise ValueError("mode must be 'l1' or 'l2'")
 
-    def forward(self, recon: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def forward(self, recon: torch.Tensor, target: torch.Tensor):
         return self.weight * self.fn(recon, target)
 
 class GanLoss:
-    """Stateless hinge GAN loss.
-
-    Use like:
-        g_loss = GanLoss.g_loss(fake_logits)
-        d_loss = GanLoss.d_loss(real_logits, fake_logits)
-    """
+    @staticmethod
+    def d_loss(real: torch.Tensor, fake: torch.Tensor, weight: float = 1.0):
+        return weight * 0.5 * (F.relu(1.0 - real).mean() + F.relu(1.0 + fake).mean())
 
     @staticmethod
-    def d_loss(real_logits: torch.Tensor, fake_logits: torch.Tensor, weight: float = 1.0) -> torch.Tensor:
-        loss_real = F.relu(1.0 - real_logits).mean()
-        loss_fake = F.relu(1.0 + fake_logits).mean()
-        return weight * 0.5 * (loss_real + loss_fake)
-
-    @staticmethod
-    def g_loss(fake_logits: torch.Tensor, weight: float = 1.0) -> torch.Tensor:
-        return weight * (-fake_logits.mean())
+    def g_loss(fake: torch.Tensor, weight: float = 1.0):
+        return weight * (-fake.mean())
 
 class VggPerceptual(nn.Module):
-    """Perceptual distance in VGG‑19 reluX_1 features."""
-
     def __init__(self, weight: float = 1.0, layer: str = "relu2_1", resize: bool = False):
         super().__init__()
         self.weight = weight
         vgg = vgg19(weights=VGG19_Weights.IMAGENET1K_V1).features.eval()
         for p in vgg.parameters():
             p.requires_grad_(False)
+        # slice until desired layer id
+        cut = {
+            "relu1_1": 2,
+            "relu2_1": 7,
+            "relu3_1": 12,
+            "relu4_1": 21,
+            "relu5_1": 30,
+        }[layer]
+        self.sub = nn.Sequential(*list(vgg.children())[: cut + 1])
         self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
         self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
-        self.sub = nn.Sequential()
-        for name, module in vgg._modules.items():
-            self.sub.add_module(name, module)
-            if name == {
-                "relu1_1": "1",
-                "relu2_1": "6",
-                "relu3_1": "11",
-                "relu4_1": "20",
-                "relu5_1": "29",
-            }[layer]:
-                break
         self.resize = resize
 
-    def _norm(self, x: torch.Tensor) -> torch.Tensor:
+    def _norm(self, x):
         return (x - self.mean) / self.std
 
-    def forward(self, recon: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        if self.resize and recon.shape[-1] != 224:
-            recon = F.interpolate(recon, size=224, mode="bilinear", align_corners=False)
-            target = F.interpolate(target, size=224, mode="bilinear", align_corners=False)
-        recon_f = self.sub(self._norm(recon))
-        target_f = self.sub(self._norm(target))
-        return self.weight * F.l1_loss(recon_f, target_f)
+    def forward(self, x_hat: torch.Tensor, x: torch.Tensor):
+        if self.resize and x_hat.shape[-1] != 224:
+            x_hat = F.interpolate(x_hat, size=224, mode="bilinear", align_corners=False)
+            x = F.interpolate(x, size=224, mode="bilinear", align_corners=False)
+        fx = self.sub(self._norm(x))
+        fhat = self.sub(self._norm(x_hat))
+        return self.weight * F.l1_loss(fhat, fx)
 
 class ClassifierPerceptual(nn.Module):
-    """Keeps the frozen classifier score close between x and x̂."""
-
     def __init__(self, classifier: nn.Module, weight: float = 1.0):
         super().__init__()
         self.cls = classifier.eval()
@@ -116,68 +99,59 @@ class ClassifierPerceptual(nn.Module):
             p.requires_grad_(False)
         self.weight = weight
 
-    def forward(self, recon: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def forward(self, x_hat: torch.Tensor, x: torch.Tensor):
         with torch.no_grad():
-            y_target = self.cls(target).detach()
-        y_recon = self.cls(recon)
-        return self.weight * F.l1_loss(y_recon, y_target)
+            y = self.cls(x).detach()
+        y_hat = self.cls(x_hat)
+        return self.weight * F.l1_loss(y_hat, y)
 
+
+# ───────────────────── covariance whitening loss ───────────────────
 class CovWhitening(nn.Module):
-    """Penalise off‑diagonal covariance to encourage disentanglement."""
-
     def __init__(self, weight: float = 1.0):
         super().__init__()
         self.weight = weight
 
-    def forward(self, z: torch.Tensor) -> torch.Tensor:
-        # z: [B, D]
-        z = z - z.mean(dim=0, keepdim=True)
-        cov = (z.t() @ z) / (z.size(0) - 1)  # [D, D]
-        off_diag = cov - torch.diag(torch.diag(cov))
-        return self.weight * (off_diag.pow(2).mean())
+    def forward(self, z: torch.Tensor):
+        z = z - z.mean(0, keepdim=True)
+        cov = (z.t() @ z) / (z.size(0) - 1)
+        off = cov - torch.diag(torch.diag(cov))
+        return self.weight * off.pow(2).mean()
 
 
-# ───────────────────── disentanglement + BCE head ──────────────────
-
-
+# ───────────────────── disentanglement loss ────────────────────────
 class DisentangleLoss(nn.Module):
-    """Combines CE for which‑feature task and BCE on 14‑unit head."""
-
     def __init__(self, weight_ce: float = 1.0, weight_bce: float = 1.0):
         super().__init__()
-        self.w_ce = weight_ce
-        self.w_bce = weight_bce
+        self.w_ce, self.w_bce = weight_ce, weight_bce
         self.ce = nn.CrossEntropyLoss()
         self.bce = nn.BCELoss()
 
-    def forward(
-        self,
-        logits: torch.Tensor,  # [B, D] from which‑feature CNN
-        targets: torch.Tensor,  # [B] integer idx of feature perturbed
-        head_pred: torch.Tensor,  # [B, 1] from 14‑unit head
-        cls_score: torch.Tensor,  # [B, 1] frozen classifier score of original
-    ) -> torch.Tensor:
-        loss_ce = self.ce(logits, targets)
-        loss_bce = self.bce(head_pred, cls_score)
-        return self.w_ce * loss_ce + self.w_bce * loss_bce
+    def forward(self, logits: torch.Tensor, idx: torch.Tensor, head: torch.Tensor, cls_score: torch.Tensor):
+        return self.w_ce * self.ce(logits, idx) + self.w_bce * self.bce(head, cls_score)
 
-def build_loss_dict(
-    classifier: nn.Module,
-    lambdas: Dict[str, float] | None = None,
-) -> Dict[str, nn.Module]:
-    """Factory that returns the six losses in a dict keyed by name."""
-
+def build_loss_dict(classifier: nn.Module,
+                    *,
+                    lambdas: Optional[Dict[str, float]] = None,
+                    device: Optional[Union[torch.device, str]] = None) -> Dict[str, nn.Module]:
+    """Return loss dict, all moved to *device* (default → classifier.device)."""
     if lambdas is None:
-        # paper defaults
         lambdas = {"recon": 5, "gan": 1, "vgg": 5, "cls": 1, "cov": 1, "dis": 1}
 
-    loss_dict: Dict[str, nn.Module] = {
+    if device is None:
+        device = next(classifier.parameters()).device
+    device = torch.device(device)
+
+    losses: Dict[str, nn.Module] = {
         "recon": ReconLoss(weight=lambdas["recon"]),
-        # gan handled separately because needs both real & fake logits
         "vgg": VggPerceptual(weight=lambdas["vgg"]),
         "cls": ClassifierPerceptual(classifier, weight=lambdas["cls"]),
         "cov": CovWhitening(weight=lambdas["cov"]),
-        # DisentangleLoss splits its two parts inside
         "dis": DisentangleLoss(weight_ce=lambdas["dis"], weight_bce=lambdas["dis"]),
     }
-    return loss_dict
+
+    # move param‑bearing losses to the target device
+    for m in losses.values():
+        if isinstance(m, nn.Module):
+            m.to(device)
+    return losses

@@ -16,13 +16,10 @@ its pieces into a larger project.
 """
 from __future__ import annotations
 
-import argparse
 import itertools
-import json
-import os
 import numpy as np
 from pathlib import Path
-from typing import Dict, Sequence
+from typing import Sequence
 
 import albumentations as A
 import torch
