@@ -86,10 +86,7 @@ class _ArrayDataset(Dataset):
         return img
 
     def __getitem__(self, idx):
-        img = np.repeat(self.images[idx], 3, axis = 0)
-        img = self._to_numpy(img)
-        # img = self._to_numpy(self.images[idx])
-        ### CAVE orgAInoid specific!!!
+        img = self._to_numpy(self.images[idx])
         img = self.transform(image=img)["image"]  # tensor CHW in [0–1] (float32)
         return img, 0
 
