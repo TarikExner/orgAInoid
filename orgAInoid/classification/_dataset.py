@@ -449,17 +449,17 @@ class OrganoidDataset:
             self.y[key] = np.vstack([self.y[key], other.y[key]])
 
         self._metadata = pd.concat([self.metadata, other_md], axis = 0)
-        
-        if not self.dataset_metadata.z_projection:
-            assert self.X.shape[0] == self._metadata.shape[0]
-        else:
-            assert self.X.shape[0] == self.metadata["IMAGE_ARRAY_INDEX"].nunique()
+
+        if hasattr(self.dataset_metadata, "z_projection"):
+            if not self.dataset_metadata.z_projection:
+                assert self.X.shape[0] == self._metadata.shape[0]
+            else:
+                assert self.X.shape[0] == self.metadata["IMAGE_ARRAY_INDEX"].nunique()
 
         self._create_class_counts()
 
         self.dataset_metadata.timepoints = combined_timepoints
         self.dataset_metadata.calculate_start_and_stop_timepoint()
-
 
         return self
 
