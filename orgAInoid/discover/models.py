@@ -62,7 +62,6 @@ class ResidualBlockSN(nn.Module):
         out = F.relu(out + self.shortcut(x), inplace=True)
         return out
 
-
 class Encoder(nn.Module):
     def __init__(self, in_channels=3, latent_dim=350, base_channels=128):
         super().__init__()
@@ -79,6 +78,7 @@ class Encoder(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = sn_linear(c * 8, latent_dim)
         self.swish = Swish()
+
     def forward(self, x):
         x = self.stem(x)
         x = self.layer1(x)
@@ -87,7 +87,6 @@ class Encoder(nn.Module):
         x = self.layer4(x)
         x = self.avgpool(x).flatten(1)
         return self.swish(self.fc(x))
-
 
 class Decoder(nn.Module):
     def __init__(self, out_channels=3, latent_dim=350, base_channels=128, img_size=224):
@@ -125,14 +124,38 @@ class Discriminator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-# ─────────────── factory (kept API‑compatible) ────────────────────
+class Disentangler(nn.Module):
+    """Predicts which latent unit was perturbed (soft-max over D)
+       and a 1-neuron head fed by the 14 “salient” latents."""
+    def __init__(self, latent_dim=350, salient_idx=range(14)):
+        super().__init__()
+        # small CNN from supplement Table 4
+        self.net = nn.Sequential(
+            sn_conv(3, 64, 3, 1, 1), nn.ReLU(inplace=True),
+            sn_conv(64, 128, 3, 2, 1), nn.ReLU(inplace=True),
+            sn_conv(128, 256, 3, 2, 1), nn.ReLU(inplace=True),
+            sn_conv(256, 512, 3, 2, 1), nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            sn_linear(512, latent_dim)                    # logits, no soft-max
+        )
+        self.head = sn_linear(len(salient_idx), 1)        # BCE head
+        self.salient_idx = list(salient_idx)
+
+    def forward(self, x, z):
+        """x = perturbed reconstruction; z = latent vector"""
+        logits = self.net(x)                              # [B, D]
+        salient = z[:, self.salient_idx]                  # [B, 14]
+        head_out = torch.sigmoid(self.head(salient))      # [B, 1]
+        return logits, head_out
 
 def build_models(*,
                  input_channels=3,
                  img_size=224,
                  latent_dim=350,
-                 base_channels=128) -> Tuple[Encoder, Decoder, Discriminator]:
+                 base_channels=128) -> Tuple[Encoder, Decoder, Discriminator, Disentangler]:
     enc = Encoder(input_channels, latent_dim, base_channels)
     dec = Decoder(input_channels, latent_dim, base_channels, img_size)
     disc = Discriminator(input_channels, base_channels)
-    return enc, dec, disc
+    dis = Disentangler(latent_dim)
+    return enc, dec, disc, dis

@@ -137,8 +137,8 @@ def train(*,
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    encoder, decoder, disc = build_models(img_size=img_size, latent_dim=latent_dim)
-    encoder, decoder, disc = encoder.to(device), decoder.to(device), disc.to(device)
+    encoder, decoder, disc, dis = build_models(img_size=img_size, latent_dim=latent_dim)
+    encoder, decoder, disc, dis = encoder.to(device), decoder.to(device), disc.to(device), dis.to(device)
 
     classifier = classifier.to(device).eval()
     for p in classifier.parameters():
@@ -153,6 +153,11 @@ def train(*,
     )
     opt_d = optim.Adam(
         disc.parameters(),
+        lr=lr,
+        betas=(0.5, 0.999)
+    )
+    opt_dis = optim.Adam(
+        dis.parameters(),
         lr=lr,
         betas=(0.5, 0.999)
     )
@@ -173,16 +178,32 @@ def train(*,
                 recons = decoder(z)
                 fake_logits = disc(recons)
 
+                # choose one random latent index per sample
+                idx = torch.randint(0, latent_dim, (imgs.size(0),), device=device)
+                # create perturbed latents (+0.25σ, paper’s value)
+                z_pert = z.clone()
+                z_pert[torch.arange(imgs.size(0)), idx] += 0.25
+                x_pert = decoder(z_pert) # reconstruction after perturb
+                logits, head_pred = dis(x_pert, z)    # CNN + 14-unit head
+
                 loss_recon = losses["recon"](recons, imgs)
                 loss_vgg = losses["vgg"](recons, imgs)
                 loss_cls = losses["cls"](recons, imgs)
                 loss_cov = losses["cov"](z)
-                loss_dis = torch.tensor(0.0, device=device)
+                loss_dis = losses["dis"](
+                    logits, idx, head_pred,
+                    classifier(imgs).detach()
+                )
                 g_adv = GanLoss.g_loss(fake_logits)
+                gan_warm = min(epoch/5, 1.)
+                g_total = loss_recon + g_adv * gan_warm + loss_vgg + loss_cls + loss_cov + loss_dis
 
-                g_total = loss_recon + g_adv + loss_vgg + loss_cls + loss_cov + loss_dis
+                loss_dis.backward()
+
             scaler.scale(g_total).backward()
             scaler.step(opt_g)
+            opt_dis.zero_grad(set_to_none=True)
+            opt_dis.step()
 
             # ── discriminator ─────────────────────────────────────
             opt_d.zero_grad(set_to_none=True)

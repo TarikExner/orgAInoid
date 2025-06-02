@@ -105,8 +105,6 @@ class ClassifierPerceptual(nn.Module):
         y_hat = self.cls(x_hat)
         return self.weight * F.l1_loss(y_hat, y)
 
-
-# ───────────────────── covariance whitening loss ───────────────────
 class CovWhitening(nn.Module):
     def __init__(self, weight: float = 1.0):
         super().__init__()
@@ -118,8 +116,6 @@ class CovWhitening(nn.Module):
         off = cov - torch.diag(torch.diag(cov))
         return self.weight * off.pow(2).mean()
 
-
-# ───────────────────── disentanglement loss ────────────────────────
 class DisentangleLoss(nn.Module):
     def __init__(self, weight_ce: float = 1.0, weight_bce: float = 1.0):
         super().__init__()
