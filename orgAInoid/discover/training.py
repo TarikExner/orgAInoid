@@ -144,7 +144,7 @@ def train(*,
     for p in classifier.parameters():
         p.requires_grad_(False)
 
-    losses = build_loss_dict(classifier)
+    losses = build_loss_dict(classifier, device = device)
 
     opt_g = optim.Adam(
         itertools.chain(encoder.parameters(), decoder.parameters()),
@@ -172,7 +172,6 @@ def train(*,
             imgs = imgs.to(device)
 
             # ── generator ──────────────────────────────────────────
-            opt_g.zero_grad(set_to_none=True)
             with autocast():
                 z = encoder(imgs)
                 recons = decoder(z)
@@ -195,15 +194,18 @@ def train(*,
                     classifier(imgs).detach()
                 )
                 g_adv = GanLoss.g_loss(fake_logits)
-                gan_warm = min(epoch/5, 1.)
-                g_total = loss_recon + g_adv * gan_warm + loss_vgg + loss_cls + loss_cov + loss_dis
 
-                loss_dis.backward()
+            gan_warm = min(epoch / 5.0, 1.0)
+            g_total  = loss_recon + gan_warm * g_adv + loss_vgg + loss_cls + loss_cov  # ← no loss_dis
 
+            opt_g.zero_grad(set_to_none=True)
             scaler.scale(g_total).backward()
             scaler.step(opt_g)
+
+            # ---------------- Disentangler CNN ---------
             opt_dis.zero_grad(set_to_none=True)
-            opt_dis.step()
+            scaler.scale(loss_dis).backward()
+            scaler.step(opt_dis)
 
             # ── discriminator ─────────────────────────────────────
             opt_d.zero_grad(set_to_none=True)

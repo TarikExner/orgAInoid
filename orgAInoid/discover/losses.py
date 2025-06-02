@@ -121,9 +121,13 @@ class DisentangleLoss(nn.Module):
         super().__init__()
         self.w_ce, self.w_bce = weight_ce, weight_bce
         self.ce = nn.CrossEntropyLoss()
-        self.bce = nn.BCELoss()
+        self.bce = nn.BCEWithLogitsLoss()
 
-    def forward(self, logits: torch.Tensor, idx: torch.Tensor, head: torch.Tensor, cls_score: torch.Tensor):
+    def forward(self,
+                logits: torch.Tensor,
+                idx: torch.Tensor,
+                head: torch.Tensor,
+                cls_score: torch.Tensor):
         return self.w_ce * self.ce(logits, idx) + self.w_bce * self.bce(head, cls_score)
 
 def build_loss_dict(classifier: nn.Module,
