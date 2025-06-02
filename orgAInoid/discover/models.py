@@ -26,64 +26,62 @@ can average over spatial dims for a scalar real/fake score.
 """
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
+
+class ResidualBlock(nn.Module):
+    def __init__(self, ch_in: int, ch_out: int, stride: int = 1):
+        super().__init__()
+        self.conv1 = nn.Conv2d(ch_in, ch_out, 3, stride, 1, bias=False)
+        self.bn1 = nn.BatchNorm2d(ch_out)
+        self.conv2 = nn.Conv2d(ch_out, ch_out, 3, 1, 1, bias=False)
+        self.bn2 = nn.BatchNorm2d(ch_out)
+
+        if stride != 1 or ch_in != ch_out:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(ch_in, ch_out, 1, stride, bias=False),
+                nn.BatchNorm2d(ch_out),
+            )
+        else:
+            self.shortcut = nn.Identity()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = F.relu(self.bn1(self.conv1(x)), inplace=True)
+        out = self.bn2(self.conv2(out))
+        out = out + self.shortcut(x)
+        out = F.relu(out, inplace=True)
+        return out
+
+# ───────────────────────── encoder & decoder ───────────────────────
 
 class Encoder(nn.Module):
-    """Simple ResNet‑like encoder → latent vector."""
-
-    def __init__(
-        self,
-        in_channels: int = 3,
-        latent_dim: int = 350,
-        base_channels: int = 64) -> None:
+    def __init__(self,
+                 in_channels: int = 3,
+                 latent_dim: int = 350,
+                 base_channels: int = 64):
         super().__init__()
-
         self.stem = nn.Sequential(
-            nn.Conv2d(in_channels, base_channels, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.Conv2d(in_channels, base_channels, 7, 2, 3, bias=False),
             nn.BatchNorm2d(base_channels),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-        )  # → H/4, W/4
-
-        # ─── four simple residual blocks ─────────────────────────────────
-        def res_block(ch_in: int, ch_out: int, stride: int = 1):
-            down = stride != 1 or ch_in != ch_out
-            layers = [
-                nn.Conv2d(ch_in, ch_out, 3, stride, 1, bias=False),
-                nn.BatchNorm2d(ch_out),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(ch_out, ch_out, 3, 1, 1, bias=False),
-                nn.BatchNorm2d(ch_out),
-            ]
-            shortcut = (
-                nn.Sequential(
-                    nn.Conv2d(ch_in, ch_out, 1, stride, bias=False), nn.BatchNorm2d(ch_out)
-                )
-                if down
-                else nn.Identity()
-            )
-            return nn.Sequential(*layers, shortcut, nn.ReLU(inplace=True))
-
+            nn.MaxPool2d(3, 2, 1),
+        )
         c = base_channels
-        self.layer1 = res_block(c, c)  # H/4
-        self.layer2 = res_block(c, c * 2, stride=2)  # H/8
-        self.layer3 = res_block(c * 2, c * 4, stride=2)  # H/16
-        self.layer4 = res_block(c * 4, c * 8, stride=2)  # H/32
-
+        self.layer1 = ResidualBlock(c, c)
+        self.layer2 = ResidualBlock(c, c * 2, stride=2)
+        self.layer3 = ResidualBlock(c * 2, c * 4, stride=2)
+        self.layer4 = ResidualBlock(c * 4, c * 8, stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(c * 8, latent_dim)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         x = self.stem(x)
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-        z = self.fc(x)
-        return z  # [B, latent_dim]
-
+        x = self.avgpool(x).flatten(1)
+        return self.fc(x)
 
 class Decoder(nn.Module):
     """Mirror of the encoder using transposed‑convs."""
