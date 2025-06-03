@@ -158,29 +158,80 @@ class MLPDiscriminator(nn.Module):
         # z: [B, 350]
         return self.net(z).view(-1)  # [B]
 
+class ResBlockDown(nn.Module):
+    def __init__(self, ch_in, ch_out):
+        super().__init__()
+        # First BN→ReLU→Conv(stride=2)
+        self.bn1   = nn.BatchNorm2d(ch_in)
+        self.conv1 = sn_conv(ch_in, ch_out, 3, 2, 1)
+        # Second BN→ReLU→Conv(stride=1)
+        self.bn2   = nn.BatchNorm2d(ch_out)
+        self.conv2 = sn_conv(ch_out, ch_out, 3, 1, 1)
+        # Skip path: 1×1 conv with stride=2
+        self.skip  = sn_conv(ch_in, ch_out, 1, 2, 0)
+
+    def forward(self, x):
+        # main path
+        out = self.bn1(x)
+        out = F.relu(out, inplace=True)
+        out = self.conv1(out)
+        out = self.bn2(out)
+        out = F.relu(out, inplace=True)
+        out = self.conv2(out)
+        # skip path
+        sc  = self.skip(x)
+        return out + sc
+
 class Disentangler(nn.Module):
-    """Predicts which latent unit was perturbed (soft-max over D)
-       and a 1-neuron head fed by the 14 “salient” latents."""
     def __init__(self, latent_dim=350, salient_idx=range(14)):
         super().__init__()
-        # small CNN from supplement Table 4
-        self.net = nn.Sequential(
-            sn_conv(3, 64, 3, 1, 1), nn.ReLU(inplace=True),
-            sn_conv(64, 128, 3, 2, 1), nn.ReLU(inplace=True),
-            sn_conv(128, 256, 3, 2, 1), nn.ReLU(inplace=True),
-            sn_conv(256, 512, 3, 2, 1), nn.ReLU(inplace=True),
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            sn_linear(512, latent_dim)                    # logits, no soft-max
-        )
-        self.head = sn_linear(len(salient_idx), 1)        # BCE head
+        # ─── Table 4 CNN backbone ─────────────────────────────────
+        self.initial_conv = sn_conv(3, 64, 3, 1, 1)
+        # According to Table 4:
+        #   Input → Conv2D(3→64, 3×3, stride=1) → ReLU
+        #   → ResBlockDown(64→512, kernel=3, stride=2) → ReLU inside
+        #   → ResBlockDown(512→1024, 3×3, stride=2) → ReLU inside
+        #   → ResBlockDown(1024→1024, 3×3, stride=2) → ReLU inside
+        #   → ResBlockDown(1024→1024, 3×3, stride=2) → ReLU inside
+        self.res1 = ResBlockDown(64,   512)
+        self.res2 = ResBlockDown(512, 1024)
+        self.res3 = ResBlockDown(1024,1024)
+        self.res4 = ResBlockDown(1024,1024)
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))  # → [B,1024,1,1]
+        self.flatten = nn.Flatten()               # → [B, 1024]
+
+        # ─── Dense → 350 (Swish + no Softmax here; CrossEntropyLoss expects raw logits) ──
+        # Table 4 says “Swish” before “Softmax,” so we implement swish = x * sigmoid(x).
+        self.fc_logits = sn_linear(1024, latent_dim)
+
+        # ─── 14‐unit “salient” head → 1 (Sigmoid) ─────────────────────
         self.salient_idx = list(salient_idx)
+        self.head = sn_linear(len(salient_idx), 1)
 
     def forward(self, x, z):
-        """x = perturbed reconstruction; z = latent vector"""
-        logits = self.net(x)                              # [B, D]
-        salient = z[:, self.salient_idx]                  # [B, 14]
-        head_out = torch.sigmoid(self.head(salient))      # [B, 1]
+        # x: [B,3,224,224], z: [B, latent_dim]
+        out = self.initial_conv(x)           # [B,64,H,W]
+        out = F.relu(out, inplace=True)
+
+        out = self.res1(out)  # → [B,512,32,32]
+        out = self.res2(out)  # → [B,1024,16,16]
+        out = self.res3(out)  # → [B,1024, 8, 8]
+        out = self.res4(out)  # → [B,1024, 4, 4]
+
+        out = self.pool(out)  # → [B,1024,1,1]
+        out = self.flatten(out)  # → [B,1024]
+
+        # Swish activation
+        sw = out * torch.sigmoid(out)  # [B,1024]
+
+        # Final 350‐way logits (for CrossEntropyLoss)
+        logits = self.fc_logits(sw)  # [B,350]
+
+        # BCE head: take just the 14 “salient” dims of z and sigmoid
+        salient = z[:, self.salient_idx]     # [B,14]
+        head_logit = self.head(salient)      # [B,1]
+        head_out   = torch.sigmoid(head_logit)  # [B,1]
+
         return logits, head_out
 
 def build_models(*,
