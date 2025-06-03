@@ -56,6 +56,7 @@ class ResidualBlockSN(nn.Module):
             nn.Sequential(sn_conv(ch_in, ch_out, 1, stride, 0), nn.BatchNorm2d(ch_out))
             if stride != 1 or ch_in != ch_out else nn.Identity()
         )
+
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)), inplace=True)
         out = self.bn2(self.conv2(out))
@@ -100,6 +101,7 @@ class Decoder(nn.Module):
         self.up4 = nn.Sequential(sn_conv_t(c, c // 2), nn.BatchNorm2d(c // 2), nn.ReLU(inplace=True))
         self.final = nn.Sequential(sn_conv_t(c // 2, out_channels), nn.Tanh())
         self.init_res = init_res
+
     def forward(self, z):
         b = z.size(0)
         x = self.fc(z).view(b, -1, self.init_res, self.init_res)
@@ -121,6 +123,7 @@ class Discriminator(nn.Module):
             sn_conv(c * 8, 1, 4, 1, 1),
         ]
         self.model = nn.Sequential(*layers)
+
     def forward(self, x):
         return self.model(x)
 

@@ -11,6 +11,8 @@ These helpers keep notebooks short and avoid boilerplate.
 from __future__ import annotations
 
 import glob
+from PIL import Image
+import io
 from pathlib import Path
 from typing import Sequence
 
@@ -80,19 +82,33 @@ def plot_loss_curves(log_dir: str | Path, tags: list[str] | None = None):
 
 # ───────────────────── display recon grids ─────────────────────────
 
+
 def show_recon_grid(log_dir: str | Path, epoch: int):
     """Display the reconstruction grid saved at *epoch* in TensorBoard."""
     tag = "sample/recon"
+    log_dir = Path(log_dir)
+
+    # Initialize EventAccumulator and load all events
     ea = event_accumulator.EventAccumulator(str(log_dir))
     ea.Reload()
-    images = ea.Images(tag)
-    for im in images:
+
+    # Check that the tag exists
+    tags = ea.Tags().get("images", [])
+    if tag not in tags:
+        print(f"No images logged under tag '{tag}' in {log_dir}.")
+        return
+
+    # Iterate through all images with that tag
+    for im in ea.Images(tag):
         if im.step == epoch:
-            fig = plt.figure(figsize=(8, 4))
-            img = torchvision.io.decode_image(torch.tensor(im.encoded_image_string))
-            img = img.permute(1, 2, 0).numpy()
-            plt.imshow(img)
+            # im.encoded_image_string is a bytes object (e.g. PNG)
+            pil_img = Image.open(io.BytesIO(im.encoded_image_string)).convert("RGB")
+
+            plt.figure(figsize=(8, 4))
+            plt.imshow(pil_img)
             plt.axis("off")
+            plt.title(f"Reconstruction grid (epoch {epoch})")
             plt.show()
             return
-    print(f"Epoch {epoch} not found in {tag}.")
+
+    print(f"Epoch {epoch} not found under tag '{tag}'.")

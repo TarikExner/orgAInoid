@@ -185,27 +185,34 @@ def train(*,
                 x_pert = decoder(z_pert) # reconstruction after perturb
                 logits, head_pred = dis(x_pert, z)    # CNN + 14-unit head
 
+                cls_raw = classifier(imgs)                  # [B, 2] or [B, 1]
+                if cls_raw.size(1) == 2:
+                    cls_score = torch.softmax(cls_raw, dim=1)[:, 1:2]  # [B,1]
+                else:
+                    cls_score = cls_raw
+
                 loss_recon = losses["recon"](recons, imgs)
                 loss_vgg = losses["vgg"](recons, imgs)
                 loss_cls = losses["cls"](recons, imgs)
                 loss_cov = losses["cov"](z)
                 loss_dis = losses["dis"](
                     logits, idx, head_pred,
-                    classifier(imgs).detach()
+                    cls_score.detach()
                 )
                 g_adv = GanLoss.g_loss(fake_logits)
 
             gan_warm = min(epoch / 5.0, 1.0)
             g_total  = loss_recon + gan_warm * g_adv + loss_vgg + loss_cls + loss_cov  # ← no loss_dis
 
+            # ---------------- Disentangler CNN ---------
+            opt_dis.zero_grad(set_to_none=True)
+            # Retain the graph so we can also backprop g_total later
+            scaler.scale(loss_dis).backward(retain_graph=True)
+            scaler.step(opt_dis)
+
             opt_g.zero_grad(set_to_none=True)
             scaler.scale(g_total).backward()
             scaler.step(opt_g)
-
-            # ---------------- Disentangler CNN ---------
-            opt_dis.zero_grad(set_to_none=True)
-            scaler.scale(loss_dis).backward()
-            scaler.step(opt_dis)
 
             # ── discriminator ─────────────────────────────────────
             opt_d.zero_grad(set_to_none=True)
@@ -219,13 +226,14 @@ def train(*,
 
             writer.add_scalar("loss/g_total", g_total.item(), global_step)
             writer.add_scalar("loss/d_total", d_total.item(), global_step)
+            writer.add_scalar("loss/dis_loss", loss_dis.item(), global_step)
             pbar.set_postfix(g=f"{g_total.item():.3f}", d=f"{d_total.item():.3f}")
             global_step += 1
 
         with torch.no_grad():
             grid = torchvision.utils.make_grid(
                 torch.cat([imgs[:8], recons[:8]]),
-                nrow=8, normalize=True, value_range=(0, 1)
+                nrow=8, normalize=False
             )
             writer.add_image("sample/recon", grid, epoch)
 
@@ -235,8 +243,10 @@ def train(*,
             "enc": encoder.state_dict(),
             "dec": decoder.state_dict(),
             "disc": disc.state_dict(),
+            "disent": dis.state_dict(),
             "opt_g": opt_g.state_dict(),
             "opt_d": opt_d.state_dict(),
+            "opt_dis": opt_dis.state_dict(),
             "scaler": scaler.state_dict(),
         }, ckpt_path)
         print(f"checkpoint saved → {ckpt_path}")

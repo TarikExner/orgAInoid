@@ -136,6 +136,7 @@ def build_loss_dict(classifier: nn.Module,
                     device: Optional[Union[torch.device, str]] = None) -> Dict[str, nn.Module]:
     """Return loss dict, all moved to *device* (default → classifier.device)."""
     if lambdas is None:
+        # corresponds to settings in the paper
         lambdas = {"recon": 5, "gan": 1, "vgg": 5, "cls": 1, "cov": 1, "dis": 1}
 
     if device is None:

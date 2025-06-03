@@ -90,7 +90,8 @@ def create_dataloader_discover(img_array: np.ndarray,
 def discover_transformations(image_size: int = 224) -> A.Compose:
     return A.Compose([
         A.HorizontalFlip(p=0.5),
-        A.Rotate(limit=15, p=0.5),
+        A.VerticalFlip(p=0.5),
+        A.Rotate(limit=360, p=0.5),
         A.ColorJitter(brightness=0.1, contrast=0.1, p=0.5),
 
         # Normalization
