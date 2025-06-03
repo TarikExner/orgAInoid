@@ -28,7 +28,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from typing import Tuple
+from typing import Tuple, Union
 
 def sn_conv(c_in, c_out, k=3, s=1, p=1):
     return nn.utils.spectral_norm(nn.Conv2d(c_in, c_out, k, s, p, bias=False))
@@ -111,7 +111,7 @@ class Decoder(nn.Module):
         x = self.up4(x)
         return self.final(x)
 
-class Discriminator(nn.Module):
+class PatchGANDiscriminator(nn.Module):
     def __init__(self, in_channels=3, base_channels=128):
         super().__init__()
         c = base_channels
@@ -126,6 +126,37 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+class MLPDiscriminator(nn.Module):
+    def __init__(self, latent_dim=350):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(latent_dim, 2048),
+            nn.BatchNorm1d(2048),
+            nn.LeakyReLU(0.2),
+            nn.Linear(2048, 2048),
+            nn.BatchNorm1d(2048),
+            nn.LeakyReLU(0.2),
+            nn.Linear(2048, 2048),
+            nn.BatchNorm1d(2048),
+            nn.LeakyReLU(0.2),
+            nn.Linear(2048, 2048),
+            nn.BatchNorm1d(2048),
+            nn.LeakyReLU(0.2),
+            nn.Linear(2048, 2048),
+            nn.BatchNorm1d(2048),
+            nn.LeakyReLU(0.2),
+            nn.Linear(2048, 2048),
+            nn.BatchNorm1d(2048),
+            nn.LeakyReLU(0.2),
+            nn.Linear(2048,   1),
+            nn.BatchNorm1d(1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, z):
+        # z: [B, 350]
+        return self.net(z).view(-1)  # [B]
 
 class Disentangler(nn.Module):
     """Predicts which latent unit was perturbed (soft-max over D)
@@ -156,9 +187,13 @@ def build_models(*,
                  input_channels=3,
                  img_size=224,
                  latent_dim=350,
-                 base_channels=128) -> Tuple[Encoder, Decoder, Discriminator, Disentangler]:
+                 patch_gan: bool = False,
+                 base_channels=128) -> Tuple[Encoder, Decoder, Union[PatchGANDiscriminator, MLPDiscriminator], Disentangler]:
     enc = Encoder(input_channels, latent_dim, base_channels)
     dec = Decoder(input_channels, latent_dim, base_channels, img_size)
-    disc = Discriminator(input_channels, base_channels)
+    if patch_gan:
+        disc = PatchGANDiscriminator(input_channels, base_channels)
+    else:
+        disc = MLPDiscriminator(latent_dim)
     dis = Disentangler(latent_dim)
     return enc, dec, disc, dis
