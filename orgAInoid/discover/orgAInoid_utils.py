@@ -92,7 +92,7 @@ def discover_transformations(image_size: int = 224) -> A.Compose:
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.5),
         A.Rotate(limit=360, p=0.5),
-        A.ColorJitter(brightness=0.1, contrast=0.1, p=0.5),
+        # A.ColorJitter(brightness=0.1, contrast=0.1, p=0.5),
 
         # Normalization
         NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
