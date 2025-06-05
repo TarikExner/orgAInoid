@@ -205,89 +205,95 @@ class MLPDiscriminator(nn.Module):
         return self.net(z).view(-1)  # [B]
 
 class Disentangler(nn.Module):
-    def __init__(self, latent_dim=350, salient_idx: range = range(14)):
-        """
-        Disentangler, as per Table 4 (“Supplementary Table 4: Disentangler architecture”).
+    """
+    Disentangler for 3×224×224 input, matching Supplementary Table 4 (but adapted
+    so that the final feature map is always 1024×4×4 before flattening).
 
-        Args:
-          latent_dim:  Number of latent dimensions (350 in the paper).
-          salient_idx: Sequence of 14 integers (indices in [0..latent_dim−1]) indicating
-                       which subset of the latent vector to feed into the “salient” head.
+    Args:
+      latent_dim:  Number of latent dimensions (350 in the paper).
+      salient_idx: Sequence of 14 indices in [0..latent_dim−1] for the “salient” head.
 
-        Architecture:
-          1) Conv2D(3→64, 3×3, stride=1, padding=1), Spectral Norm, no BN, ReLU
-          2) ResBlockDown(64→512)               → [B,512,32,32]
-          3) ResBlockDown(512→512)              → [B,512,16,16]
-          4) ResBlockDown(512→1024)             → [B,1024, 8, 8]
-          5) ResBlockDown(1024→1024)            → [B,1024, 4, 4]
-          6) Flatten (B, 1024,4,4) → (B, 16 384)
-          7) Swish on 16 384
-          8) Dense(16 384→350), no BN, no SN, then Softmax → this is the “350‐way output”
-          9) Separate “salient” head: z[:, salient_idx] → (B,14) → Dense(14→1, SN) → Sigmoid.
+    Architecture:
+      1) Conv2D(3→64, 3×3, stride=1, pad=1), SN, no BN, ReLU
+      2) ResBlockDown(64→512)    → (B,512,H/2,W/2)
+      3) ResBlockDown(512→512)   → (B,512,H/4,W/4)
+      4) ResBlockDown(512→1024)  → (B,1024,H/8,W/8)
+      5) ResBlockDown(1024→1024) → (B,1024,H/16,W/16)
+      6) AdaptiveAvgPool2d((4,4)) → (B,1024,4,4)
+      7) Flatten → (B, 1024*4*4 = 16 384)
+      8) Swish (x * sigmoid(x)) → (B, 16 384)
+      9) Linear(16 384→350) → logits_350, then Softmax → (B,350)
+     10) Salient head: take z[:, salient_idx] (B,14) → SNLinear(14→1) → Sigmoid → (B,1)
 
-        Returns:
-          logits_350:  FloatTensor of shape (B,350), after Softmax
-          head_out:   FloatTensor of shape (B, 1), after Sigmoid on (B,14)→(B,1).
-        """
+    In forward(x,z) we return (logits_350, head_out).  Here x∈ℝ^{B×3×224×224},
+    and z∈ℝ^{B×latent_dim} is only used by the “salient” head (step 10).
+    """
+    def __init__(self, latent_dim: int = 350, salient_idx: range = range(14)):
         super().__init__()
+        self.latent_dim = latent_dim
+        self.salient_idx = list(salient_idx)
 
-        # ─── 1) First Conv: 3→64, 3×3, stride=1, pad=1, SN, ReLU ─────────────
+        # 1) Initial Conv: 3→64, 3×3, stride=1, pad=1, SN, no BN, ReLU
         self.initial_conv = sn_conv(3, 64, k=3, s=1, p=1)
 
-        # ─── 2) Four ResBlockDown blocks with the exact channel transitions ─────
-        #    (64→512), (512→512), (512→1024), (1024→1024), each with stride=2 on the first conv
-        self.res1 = ResBlockDown(64, 512)   # → [B,512, 32, 32]
-        self.res2 = ResBlockDown(512, 512)   # → [B,512, 16, 16]
-        self.res3 = ResBlockDown(512, 1024)  # → [B,1024, 8,  8]
-        self.res4 = ResBlockDown(1024, 1024)  # → [B,1024, 4,  4]
+        # 2) Four ResBlockDown layers (64→512→512→1024→1024)
+        self.res1 = ResBlockDown(64,   512)   # -> (B,512,112,112)
+        self.res2 = ResBlockDown(512,  512)   # -> (B,512, 56, 56)
+        self.res3 = ResBlockDown(512,  1024)  # -> (B,1024,28, 28)
+        self.res4 = ResBlockDown(1024, 1024)  # -> (B,1024,14, 14)
 
-        # ─── 3) Flatten the (1024,4,4) → length = 1024*4*4 = 16 384 ──────────────
+        # 3) Force final map to (4×4) regardless of input:
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((4, 4))  # → (B,1024,4,4)
+
+        # 4) Flatten (B,1024,4,4) → (B, 16 384)
         self.flatten = nn.Flatten()
 
-        # ─── 4) Swish on that 16 384‐dim vector ─────────────────────────────────
-        #     (we’ll implement in forward as x * sigmoid(x))
-        #     Then Dense(16 384→350), followed by Softmax
-        self.fc_logits = nn.Linear(1024 * 4 * 4, latent_dim)  # no SN here, no BN
+        # 5) Swish on 16 384 dims
+        #    We'll apply `x * sigmoid(x)` inside forward.
 
-        # ─── 5) Separate Salient‐Head (14→1, with SN + Sigmoid) ────────────────
-        self.salient_idx = list(salient_idx)
-        self.head        = sn_linear(len(self.salient_idx), 1)
+        # 6) Dense(16 384→350), no SN, no BN
+        self.fc_logits = nn.Linear(1024 * 4 * 4, latent_dim)
 
-    def forward(self, x, z):
+        # 7) Salient head: SNLinear(14→1)
+        self.head = sn_linear(len(self.salient_idx), 1)
+
+    def forward(self, x: torch.Tensor, z: torch.Tensor):
         """
         Args:
-          x: (B, 3, 224, 224) – image in DenseNet/VGG‐normalized space
-          z: (B, 350)       – latent vector from Encoder
+          x: (B, 3, 224, 224) — diff‐image, already normalized.
+          z: (B, latent_dim)  — latent vector from encoder, used only by the salient head.
 
         Returns:
-          (logits_350, head_out):
-            logits_350: (B,350) after Softmax
-            head_out:   (B,1)  after Sigmoid on the 14‐dim salient slice
+          logits_350: FloatTensor (B, 350), after Softmax
+          head_out:   FloatTensor (B, 1), after Sigmoid on the salient slice
         """
-        # 1) Initial Conv + ReLU
-        out = self.initial_conv(x)    # → [B, 64, 224, 224]
+        # 1) Initial conv + ReLU  → (B, 64, 224, 224)
+        out = self.initial_conv(x)
         out = F.relu(out, inplace=True)
 
-        # 2) Four ResBlockDowns
-        out = self.res1(out)          # → [B, 512, 32,  32]
-        out = self.res2(out)          # → [B, 512, 16,  16]
-        out = self.res3(out)          # → [B,1024, 8,   8]
-        out = self.res4(out)          # → [B,1024, 4,   4]
+        # 2) Four ResBlockDowns → eventually (B,1024,14,14)
+        out = self.res1(out)     # → (B, 512, 112, 112)
+        out = self.res2(out)     # → (B, 512,  56,  56)
+        out = self.res3(out)     # → (B,1024,  28,  28)
+        out = self.res4(out)     # → (B,1024,  14,  14)
 
-        # 3) Flatten (1024×4×4 → 16 384)
-        out = self.flatten(out)       # → [B, 1024*4*4 = 16384]
+        # 3) Adaptive average pool to (4×4)
+        out = self.adaptive_pool(out)  # → (B,1024, 4, 4)
 
-        # 4) Swish on 16 384 dims:  x * sigmoid(x)
-        out = out * torch.sigmoid(out)  # → [B,16384]
+        # 4) Flatten → (B, 1024*4*4 = 16384)
+        out = self.flatten(out)       # → (B,16384)
 
-        # 5) Dense(16384→350) to get raw 350 logits, then Softmax
-        logits_350 = self.fc_logits(out)       # → [B, 350]
-        logits_350 = F.softmax(logits_350, dim=1)  # Softmax over the 350 dims
+        # 5) Swish: x * sigmoid(x)
+        out = out * torch.sigmoid(out)  # → (B,16384)
 
-        # 6) Salient head: pick only the 14 specified latent dims from z
-        salient = z[:, self.salient_idx]       # → [B, 14]
-        head_logit = self.head(salient)        # → [B, 1]   (SN‐Linear(14→1))
-        head_out   = torch.sigmoid(head_logit) # → [B, 1]
+        # 6) Dense(16384→350) → Softmax over dim=1
+        logits_350 = self.fc_logits(out)        # → (B,350)
+        logits_350 = F.softmax(logits_350, dim=1)
+
+        # 7) Salient head: pick 14 dims from z, apply SNLinear(14→1), then Sigmoid
+        salient = z[:, self.salient_idx]       # → (B,14)
+        head_logit = self.head(salient)        # → (B, 1)
+        head_out   = torch.sigmoid(head_logit) # → (B, 1)
 
         return logits_350, head_out
 
