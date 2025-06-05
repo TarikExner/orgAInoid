@@ -530,36 +530,39 @@ class DisentangleLoss(nn.Module):
 
 class ClassificationSubsetLoss(nn.Module):
     """
-    Implements L_classification_subset = BCE(Z_subset_score, IVF-CLF(x)),
-    where Z_subset_score is a single‐neuron sigmoid prediction from the first
-    `subset_size` latent features, and IVF-CLF(x) is the true classification score.
+    Implements L_classification_subset = BCE( logit(subset_of_z),  IVF-CLF(x) ),
+    where the first `subset_size` dimensions of z are linearly combined into a single
+    logit, and we compare that (via a sigmoid internally) to the true IVF-CLF score.
+    We use BCEWithLogitsLoss to ensure proper behavior under AMP.
 
-    The “classification‐driving” subset defaults to the first `subset_size`
-    entries of z.  A weight parameter multiplies the final BCE loss.
+    In the paper, they wrote “Dense(14→1) with Sigmoid, then binary cross‐entropy against IVF-CLF(x).”
+    Using BCEWithLogitsLoss here is mathematically identical but safe under torch.cuda.amp.
     """
     def __init__(self, subset_size: int = 14, weight: float = 1.0):
         """
         Args:
-            subset_size: How many latent dims (starting from index 0) to use for this head.
-            weight:      Scalar factor to multiply the BCE loss.
+            subset_size: Number of latent dims (starting at index 0) to use for this head.
+            weight:      Scalar multiplier λ₆ for this loss.
         """
         super().__init__()
         self.subset_size = subset_size
         self.weight = weight
 
-        # Single‐neuron classifier: Dense(subset_size → 1), no BN, no spectral norm
+        # Single‐neuron “logit‐head”: Linear( subset_size → 1 ), no bias suppression
         self.fc = nn.Linear(subset_size, 1)
+
+        # BCEWithLogitsLoss combines sigmoid + BCE, safe for autocast
+        self.bce_logits = nn.BCEWithLogitsLoss(reduction="mean")
 
     def forward(self, z: torch.Tensor, true_scores: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            z:           FloatTensor of shape (B, latent_dim).  We assume latent_dim >= subset_size.
-                         The first `subset_size` columns are the “classification‐driving” subset.
-            true_scores: FloatTensor of shape (B,) or (B,1), containing IVF‐CLF(x) scores
-                         (each a real value in [0,1]).  If shape is (B,), we unsqueeze to (B,1).
+            z:           FloatTensor of shape (B, latent_dim), latent vectors from encoder.
+            true_scores: FloatTensor of shape (B,) or (B,1), containing the IVF-CLF(x) “score”
+                         in [0,1] for each sample.
 
         Returns:
-            A scalar tensor = weight * BCE(Z_subset_score, true_scores).
+            Scalar tensor = weight * BCEWithLogits( logit, true_score ).
         """
         B, D = z.shape
         assert D >= self.subset_size, (
@@ -569,18 +572,17 @@ class ClassificationSubsetLoss(nn.Module):
         # 1) Extract the first `subset_size` features from z
         z_subset = z[:, : self.subset_size]    # shape (B, subset_size)
 
-        # 2) Compute a single‐neuron logit and then sigmoid
+        # 2) Compute the raw logit (no sigmoid here)
         logit = self.fc(z_subset)              # shape (B, 1)
-        pred_score = torch.sigmoid(logit)      # shape (B, 1)
 
-        # 3) Prepare true_scores to shape (B,1)
+        # 3) Ensure true_scores is shape (B, 1)
         if true_scores.dim() == 1:
             true_scores = true_scores.view(B, 1)
         else:
             true_scores = true_scores.view(B, 1)
 
-        # 4) Compute BCE between pred_score and true_scores
-        loss = F.binary_cross_entropy(pred_score, true_scores)
+        # 4) Compute BCEWithLogitsLoss between raw logit and true [0,1] score
+        loss = self.bce_logits(logit, true_scores)  # mean over batch
 
         return self.weight * loss
 
