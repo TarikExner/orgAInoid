@@ -487,9 +487,8 @@ class OrganoidDataset:
         merged = self._metadata.sort_values("IMAGE_ARRAY_INDEX", ascending = True)
         for annotation in annotations:
             self.dataset_metadata.add_readout(annotation, annotations_n_classes)
-            merged_no_dups = merged[["experiment", "well", "loop", annotation]].copy().drop_duplicates()
             encoded_labels = self._one_hot_encode_labels(
-                merged_no_dups[annotation].to_numpy(),
+                merged[annotation].to_numpy(),
                 readout = annotation
             )
             assert encoded_labels.shape[0] == self.X.shape[0]
