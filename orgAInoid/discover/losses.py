@@ -189,6 +189,19 @@ class FeatureHook:
 This extracts the bottom 10 conv layers for better runtime
 """
 MOBILENETV3_LAYER_NAMES_TOP10 = [
+    "mobilenet_v3_large.features.0.conv",
+    "mobilenet_v3_large.features.1.conv.0",
+    "mobilenet_v3_large.features.1.conv.3",
+    "mobilenet_v3_large.features.1.conv.6",
+    "mobilenet_v3_large.features.2.conv.0",
+    "mobilenet_v3_large.features.2.conv.3",
+    "mobilenet_v3_large.features.2.conv.6",
+    "mobilenet_v3_large.features.3.conv.0",
+    "mobilenet_v3_large.avgpool",
+    "mobilenet_v3_large.classifier.0",
+]
+
+MOBILENETV3_LAYER_NAMES_TOP10_LAST = [
     "mobilenet_v3_large.features.13.conv.0",
     "mobilenet_v3_large.features.13.conv.3",
     "mobilenet_v3_large.features.13.conv.6",
@@ -207,18 +220,20 @@ MOBILENETV3_LAYER_NAMES_TOP10 = [
     "mobilenet_v3_large.classifier.3"
 ]
 
-MOBILENETV3_LAYER_NAMES_FULL = [
-    "mobilenet_v3_large.features.15.conv.0",
-    "mobilenet_v3_large.features.15.conv.3",
-    "mobilenet_v3_large.features.15.conv.6",
-
-    "mobilenet_v3_large.features.16.conv",
-
-    "mobilenet_v3_large.avgpool",
-    "mobilenet_v3_large.classifier.3"
+DENSENET121_LAYER_NAMES_TOP10 = [
+    "densenet121.features.conv0",
+    "densenet121.features.denseblock1.denselayer1.conv1",
+    "densenet121.features.denseblock1.denselayer1.conv2",
+    "densenet121.features.denseblock1.denselayer2.conv1",
+    "densenet121.features.denseblock1.denselayer2.conv2",
+    "densenet121.features.denseblock1.denselayer3.conv1",
+    "densenet121.features.denseblock1.denselayer3.conv2",
+    "densenet121.features.transition1.conv",
+    "densenet121.features.norm5",
+    "densenet121.classifier",
 ]
 
-DENSENET121_LAYER_NAMES_TOP10 = [
+DENSENET121_LAYER_NAMES_TOP10_LAST = [
     "densenet121.features.denseblock4.denselayer11.conv1",
     "densenet121.features.denseblock4.denselayer11.conv2",
     "densenet121.features.denseblock4.denselayer12.conv1",
@@ -233,18 +248,20 @@ DENSENET121_LAYER_NAMES_TOP10 = [
     "densenet121.classifier.1"
 ]
 
-DENSENET121_LAYER_NAMES_FULL = [
-    *[f"densenet121.features.denseblock3.denselayer{i}.conv1" for i in range(24)],
-    *[f"densenet121.features.denseblock3.denselayer{i}.conv2" for i in range(24)],
-
-    *[f"densenet121.features.denseblock4.denselayer{i}.conv1" for i in range(16)],
-    *[f"densenet121.features.denseblock4.denselayer{i}.conv2" for i in range(16)],
-
-    "densenet121.features.norm5",
-    "densenet121.classifier.1"
+RESNET50_LAYER_NAMES_TOP10 = [
+    "resnet50.conv1",
+    "resnet50.layer1.0.conv1",
+    "resnet50.layer1.0.conv2",
+    "resnet50.layer1.0.conv3",
+    "resnet50.layer1.1.conv1",
+    "resnet50.layer1.1.conv2",
+    "resnet50.layer1.1.conv3",
+    "resnet50.layer1.2.conv1",
+    "resnet50.avgpool",
+    "resnet50.fc",
 ]
 
-RESNET50_LAYER_NAMES_TOP10 = [
+RESNET50_LAYER_NAMES_TOP10_LAST = [
     "resnet50.layer4.2.conv3",
     "resnet50.layer4.2.conv2",
     "resnet50.layer4.2.conv1",
@@ -275,6 +292,27 @@ RESNET50_LAYER_NAMES_FULL = [
     "resnet50.fc.1"
 ]
 
+MOBILENETV3_LAYER_NAMES_FULL = [
+    "mobilenet_v3_large.features.15.conv.0",
+    "mobilenet_v3_large.features.15.conv.3",
+    "mobilenet_v3_large.features.15.conv.6",
+
+    "mobilenet_v3_large.features.16.conv",
+
+    "mobilenet_v3_large.avgpool",
+    "mobilenet_v3_large.classifier.3"
+]
+
+DENSENET121_LAYER_NAMES_FULL = [
+    *[f"densenet121.features.denseblock3.denselayer{i}.conv1" for i in range(24)],
+    *[f"densenet121.features.denseblock3.denselayer{i}.conv2" for i in range(24)],
+
+    *[f"densenet121.features.denseblock4.denselayer{i}.conv1" for i in range(16)],
+    *[f"densenet121.features.denseblock4.denselayer{i}.conv2" for i in range(16)],
+
+    "densenet121.features.norm5",
+    "densenet121.classifier.1"
+]
 
 class ClassificationPerceptualLoss(nn.Module):
     """
