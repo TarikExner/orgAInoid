@@ -472,6 +472,10 @@ class OrganoidDataset:
         df: dataframe storing experiment, well and the annotation data
         """
 
+        if annotations in self._metadata.columns:
+            print("Annotation already contained!")
+            return
+
         if not isinstance(annotations, list):
             annotations = [annotations]
         assert "experiment" in df.columns, "'experiment' has to be one of the columns"
