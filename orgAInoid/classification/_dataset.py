@@ -491,7 +491,11 @@ class OrganoidDataset:
                 merged[annotation].to_numpy(),
                 readout = annotation
             )
-            assert encoded_labels.shape[0] == self.X.shape[0]
+            if hasattr(self.dataset_metadata, "z_projection"):
+                if not self.dataset_metadata.z_projection:
+                    assert encoded_labels.shape[0] == self.X.shape[0]
+                else:
+                    pass
             self.y[annotation] = encoded_labels
         self._create_class_counts()
         return
