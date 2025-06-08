@@ -180,7 +180,7 @@ def train(*,
 
     for epoch in range(1, epochs + 1):
         pbar = tqdm(dataloader, desc=f"Epoch {epoch}/{epochs}")
-        for batch in pbar:
+        for batch, _ in pbar:
             # ── 1) Load batch ───────────────────────────────────────────────────
             # Assume dataloader returns just the image tensor (B,3,224,224)
             x = batch.to(device)                           # real images
@@ -211,6 +211,8 @@ def train(*,
             with autocast():
                 z = encoder(x)                             # (B, latent_dim)
                 recons = decoder(z)                        # (B,3,224,224)
+
+                loss_pix = F.l1_loss(recons, x)
 
                 # 3a) L_ImageNet-CLF (#1): VGG perceptual between recons & x
                 loss_vgg = vgg_loss_fn(recons, x)
@@ -269,6 +271,7 @@ def train(*,
                 loss_disent = dis_loss_fn(diff_images, true_indices)
 
                 # 3g) Total generator‐side loss = weighted sum of #1, #2(gen), #3, #4, #5, #6
+                pixelwise_weight = 2 if epoch > 5 else 0.5
                 total_gen_loss = (
                       loss_vgg
                     + loss_gan
@@ -276,11 +279,19 @@ def train(*,
                     + loss_cov
                     + loss_disent
                     + loss_csl
+                    + loss_pix * pixelwise_weight
                 )
 
             # b) Backpropagate generator loss
             opt_g.zero_grad()
             scaler.scale(total_gen_loss).backward()
+            scaler.unscale_(opt_g)
+
+            # 3) Clip generator gradients, exploding losses for COV
+            torch.nn.utils.clip_grad_norm_(
+                itertools.chain(encoder.parameters(), decoder.parameters()),
+                max_norm=1.0
+            )
             scaler.step(opt_g)
             scaler.update()
 
@@ -316,6 +327,7 @@ def train(*,
             writer.add_scalar("loss/disent_loss", loss_disent.item(), global_step)
             writer.add_scalar("loss/csl_loss", loss_csl.item(), global_step)
             writer.add_scalar("loss/disent_only", loss_disent_only.item(), global_step)
+            writer.add_scalar("loss/pixelwise", loss_pix.item() * pixelwise_weight, global_step)
 
             global_step += 1
 

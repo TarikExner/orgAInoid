@@ -464,8 +464,14 @@ class OrganoidDataset:
         return self
 
     def add_annotations(self,
-                        annotations: Union[list[str],str],
+                        annotations: Union[list[str], str],
+                        annotations_n_classes: int,
                         df: pd.DataFrame) -> None:
+        """\
+        annotations: name for the new readout
+        df: dataframe storing experiment, well and the annotation data
+        """
+
         if not isinstance(annotations, list):
             annotations = [annotations]
         assert "experiment" in df.columns, "'experiment' has to be one of the columns"
@@ -480,7 +486,7 @@ class OrganoidDataset:
         merged = self._metadata[self._metadata["IMAGE_ARRAY_INDEX"] != -1].copy()
         merged = self._metadata.sort_values("IMAGE_ARRAY_INDEX", ascending = True)
         for annotation in annotations:
-            self.dataset_metadata.readouts.append(annotation)
+            self.dataset_metadata.add_readout(annotation, annotations_n_classes)
             merged_no_dups = merged[["experiment", "well", "loop", annotation]].copy().drop_duplicates()
             encoded_labels = self._one_hot_encode_labels(
                 merged_no_dups[annotation].to_numpy(),

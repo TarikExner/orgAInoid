@@ -128,6 +128,16 @@ class DatasetMetadata:
     def __post_init__(self):
         self.n_slices = len(self.slices)
         self.timepoints = list(range(self.start_timepoint, self.stop_timepoint + 1))
+        self.calculate_n_classes_dict()
+
+    def add_readout(self,
+                    readout_name,
+                    readout_n_classes):
+        self.readouts.append(readout_name)
+        self.readouts_n_classes.append(readout_n_classes)
+        self.calculate_n_classes_dict()
+
+    def calculate_n_classes_dict(self):
         self.n_classes_dict = {
             readout: n_class
             for readout, n_class
