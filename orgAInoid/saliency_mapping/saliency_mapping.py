@@ -2,6 +2,8 @@ import pandas as pd
 import torch
 
 from typing import Literal, Optional, Callable
+
+from skimage.segmentation import slic
 from ._graph_utils import (get_images_and_masks)
 from ._saliency_utils import (get_dataloader,
                               masks_to_tensor,
@@ -94,7 +96,7 @@ def compute_saliencies(dataset: OrganoidDataset,
 
         well_results = {}
 
-        _, masks = get_images_and_masks(dataset, well, img_handler)
+        images, masks = get_images_and_masks(dataset, well, img_handler)
         masks = masks_to_tensor(masks)
         cnn_loader = get_dataloader(dataset, well, readout)
 
@@ -106,28 +108,45 @@ def compute_saliencies(dataset: OrganoidDataset,
 
             for i, ((img, cls), mask, loop) in enumerate(zip(cnn_loader, masks, loops)):
 
-                mask = mask.unsqueeze(0)
-                cls = torch.argmax(cls, dim = 1)
-                baseline = create_baseline_image(img, mask, method = "mean")
+                image = images[i][0]
+                slic_mask = mask.detach().cpu().numpy().copy()[0]
+                slic_labels = slic(
+                    image,
+                    slic_mask,
+                    n_segments = 50,
+                    compactness = 0.1,
+                    start_label = 1,
+                    channel_axis = None
+                )
+                mask2d = torch.from_numpy(slic_labels).long()
+                mask3 = mask2d.unsqueeze(0).repeat(3,1,1)
+                mask3 = mask3.unsqueeze(0).to(DEVICE)
 
-                img = img.to(DEVICE)
-                cls = cls.to(DEVICE)
-                baseline = cls.to(DEVICE)
+                _image = img
+                _class = torch.argmax(cls, dim = 1)
+                _mask = mask.unsqueeze(0)
+                _baseline = create_baseline_image(_image, _mask, method = "mean")
+                _image = _image.to("cuda")
+                _class = _class.to("cuda")
+                _baseline = _baseline.to("cuda")
 
                 image_results = {}
                 image_baseline_results = {}
 
                 for name, fn in SALIENCY_FUNCTIONS.items():
                     kwargs = {
-                        "model": trained_model,
-                        "image": img,
-                        "baseline": baseline,
-                        "target": cls,
+                        "image": _image,
+                        "baseline": _baseline,
+                        "target": _class,
+                        "feature_mask": mask3,
                         "nt_samples": 20,
                         "stdevs": 0.1,
-                        "target_layer": _define_target_layers(trained_model)
                     }
+
+                    kwargs["model"] = trained_model 
+                    kwargs["target_layer"] = _define_target_layers(trained_model)
                     attributions = fn(**kwargs)
+
                     kwargs["model"] = baseline_model
                     kwargs["target_layer"] = _define_target_layers(baseline_model)
                     baseline_attributions = fn(**kwargs)
