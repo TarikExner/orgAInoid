@@ -94,7 +94,6 @@ def compute_saliencies(dataset: OrganoidDataset,
                                model_directory,
                                baseline_directory)
 
-
     all_results = {}
 
     for well in organoid_wells:
@@ -110,7 +109,7 @@ def compute_saliencies(dataset: OrganoidDataset,
 
         cnn_loader = get_dataloader(dataset, well, readout)
 
-        well_results = {model_name: {} for model_name in cnn_models}
+        well_results = {loop: {} for loop in loops}
 
         for i, ((img, cls), mask, loop) in enumerate(
             tqdm(zip(cnn_loader, masks, loops), desc=f"Well {well}", unit="image")
@@ -136,6 +135,7 @@ def compute_saliencies(dataset: OrganoidDataset,
                 trained = models[model_name]
                 baseline = models[f"{model_name}_baseline"]
                 sample_results = {}
+                print(f"...Backtracking {model_name}")
 
                 for fn_name, fn in SALIENCY_FUNCTIONS.items():
                     common_kwargs = {
@@ -147,12 +147,15 @@ def compute_saliencies(dataset: OrganoidDataset,
                         "stdevs": 0.1,
                     }
 
+                    print("... ... trained version")
+
                     out_trained = fn(
                         **{**common_kwargs,
                            "model": trained,
                            "target_layer": _define_target_layers(trained)}
                     )
 
+                    print("... ... baseline version")
                     out_base = fn(
                         **{**common_kwargs,
                            "model": baseline,
@@ -164,7 +167,7 @@ def compute_saliencies(dataset: OrganoidDataset,
                         "baseline": out_base
                     }
 
-                well_results[model_name][loop] = sample_results
+                well_results[loop][model_name] = sample_results
 
         all_results[well] = well_results
 
