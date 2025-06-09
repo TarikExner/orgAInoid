@@ -183,10 +183,14 @@ def compute_saliencies(dataset: OrganoidDataset,
             _class = torch.argmax(cls, dim=1).to(DEVICE)
             _baseline = create_baseline_image(img, mask.unsqueeze(0), method="mean").to(DEVICE)
 
+            orig_img = img.detach().cpu().numpy().astype(np.float32)
+
             for model_name in cnn_models:
                 trained = models[model_name]
                 baseline = models[f"{model_name}_baseline"]
-                sample_results = {}
+                sample_results = {
+                    "image": orig_img
+                }
 
                 for fn_name, fn in SALIENCY_FUNCTIONS.items():
                     common_kwargs = {
