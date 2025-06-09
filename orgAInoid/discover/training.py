@@ -152,12 +152,12 @@ def train(*,
 
     # ── Build all loss modules, moved to device ───────────────────────────────
     losses = build_loss_dict(classifier, disent, device=device)
-    vgg_loss_fn = losses["vgg"]  # L_ImageNet-CLF
-    gan_loss_fn = losses["gan"]  # GanLoss instance
-    cls_loss_fn = losses["cls"]  # ClassificationPerceptualLoss
-    cov_loss_fn = losses["cov"]  # WhiteningLoss
-    dis_loss_fn = losses["dis"]  # DisentangleLoss
-    csl_loss_fn = losses["csl"]  # ClassificationSubsetLoss
+    vgg_loss_fn = losses["vgg"] # L_ImageNet-CLF
+    gan_loss_fn = losses["gan"] # GanLoss instance
+    cls_loss_fn = losses["cls"] # ClassificationPerceptualLoss
+    cov_loss_fn = losses["cov"] # WhiteningLoss
+    dis_loss_fn = losses["dis"] # DisentangleLoss
+    csl_loss_fn = losses["csl"] # ClassificationSubsetLoss
 
     # ── Set up optimizers ─────────────────────────────────────────────────────
     opt_g   = optim.Adam(
@@ -170,7 +170,11 @@ def train(*,
     )
     # We will use opt_dis to update BOTH disentangler AND encoder+decoder for disent loss
     opt_dis = optim.Adam(
-        itertools.chain(disent.parameters(), encoder.parameters(), decoder.parameters()),
+        itertools.chain(
+            disent.parameters(),
+            encoder.parameters(),
+            decoder.parameters()
+        ),
         lr=lr, betas=(0.5, 0.999)
     )
 
@@ -209,10 +213,8 @@ def train(*,
             # ── 3) Train GENERATOR (Encoder + Decoder) ───────────────────────
             # a) Forward through encoder+decoder under mixed precision
             with autocast():
-                z = encoder(x)                             # (B, latent_dim)
-                recons = decoder(z)                        # (B,3,224,224)
-
-                loss_pix = F.l1_loss(recons, x)
+                z = encoder(x)
+                recons = decoder(z)
 
                 # 3a) L_ImageNet-CLF (#1): VGG perceptual between recons & x
                 loss_vgg = vgg_loss_fn(recons, x)
@@ -271,7 +273,6 @@ def train(*,
                 loss_disent = dis_loss_fn(diff_images, true_indices)
 
                 # 3g) Total generator‐side loss = weighted sum of #1, #2(gen), #3, #4, #5, #6
-                pixelwise_weight = 2 if epoch > 5 else 0.5
                 total_gen_loss = (
                       loss_vgg
                     + loss_gan
@@ -279,7 +280,6 @@ def train(*,
                     + loss_cov
                     + loss_disent
                     + loss_csl
-                    + loss_pix * pixelwise_weight
                 )
 
             # b) Backpropagate generator loss
@@ -327,7 +327,6 @@ def train(*,
             writer.add_scalar("loss/disent_loss", loss_disent.item(), global_step)
             writer.add_scalar("loss/csl_loss", loss_csl.item(), global_step)
             writer.add_scalar("loss/disent_only", loss_disent_only.item(), global_step)
-            writer.add_scalar("loss/pixelwise", loss_pix.item() * pixelwise_weight, global_step)
 
             global_step += 1
 
