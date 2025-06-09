@@ -200,13 +200,13 @@ def compute_saliencies(dataset: OrganoidDataset,
                     out_trained = fn(
                         **{**common_kwargs,
                            "model": trained,
-                           "target_layer": target_layers[trained]}
+                           "target_layer": target_layers[model_name]}
                     )
 
                     out_base = fn(
                         **{**common_kwargs,
                            "model": baseline,
-                           "target_layer": target_layers[baseline]}
+                           "target_layer": target_layers[f"{model_name}_baseline"]}
                     )
                     out_trained = out_trained.float()
                     out_base = out_base.float()
