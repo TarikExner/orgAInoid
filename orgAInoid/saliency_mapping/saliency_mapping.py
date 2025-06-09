@@ -1,6 +1,10 @@
+import os
+import numpy as np
 import pandas as pd
 import torch
 import gc
+import pickle
+import h5py
 
 from typing import Literal, Optional, Callable
 
@@ -61,6 +65,44 @@ def _define_target_layers(model) -> Optional[torch.nn.Module]:
         return _find_layer(model, "resnet50.layer2.0.conv3")
     raise ValueError(f"Unknown model {model.__class__.__name__}")
 
+def save_saliency_h5(all_results: dict,
+                     experiment: str,
+                     well: str,
+                     output_dir: str
+                     ):
+    # { well: { loop: { model: { algorithm: { status: array }}}}}
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, f"{experiment}_{well}.h5")
+
+    with h5py.File(file_path, "w") as h5f:
+        for well, loops in all_results.items():
+            grp_well = h5f.require_group(str(well))
+
+            for loop_idx, models in loops.items():
+                grp_loop = grp_well.require_group(str(loop_idx))
+
+                for model_name, algs in models.items():
+                    grp_model = grp_loop.require_group(model_name)
+
+                    for alg_name, statuses in algs.items():
+                        grp_alg = grp_model.require_group(alg_name)
+
+                        for status, array in statuses.items():  # “trained” or “baseline”
+                            # cast to float32
+                            arr32 = array.astype(np.float32)
+
+                            # write under: /…/alg_name/status
+                            if status in grp_alg:
+                                del grp_alg[status]
+                            grp_alg.create_dataset(
+                                status,
+                                data=arr32,
+                                compression="gzip",
+                                chunks=arr32.shape
+                            )
+
+    print(f"Saved saliency maps to {file_path}")
+
 def compute_saliencies(dataset: OrganoidDataset,
                        readout: Readouts,
                        model_directory: str,
@@ -68,6 +110,7 @@ def compute_saliencies(dataset: OrganoidDataset,
                        well: Optional[str] = None,
                        cnn_models: list[str] = ["DenseNet121", "ResNet50", "MobileNetV3_Large"],
                        segmentator_input_dir: str = "../segmentation/segmentators",
+                       output_dir: str = "./saliencies",
                        suppress_warnings: bool = True) -> dict:
     if suppress_warnings:
         warnings.filterwarnings("ignore")
@@ -94,6 +137,11 @@ def compute_saliencies(dataset: OrganoidDataset,
                                readout,
                                model_directory,
                                baseline_directory)
+
+    target_layers = {
+        model: _define_target_layers(model)
+        for model in models
+    }
 
     all_results = {}
 
@@ -152,14 +200,17 @@ def compute_saliencies(dataset: OrganoidDataset,
                     out_trained = fn(
                         **{**common_kwargs,
                            "model": trained,
-                           "target_layer": _define_target_layers(trained)}
+                           "target_layer": target_layers[trained]}
                     )
 
                     out_base = fn(
                         **{**common_kwargs,
                            "model": baseline,
-                           "target_layer": _define_target_layers(baseline)}
+                           "target_layer": target_layers[baseline]}
                     )
+                    out_trained = out_trained.float()
+                    out_base = out_base.float()
+
                     attr_trained = out_trained.detach().cpu().numpy()
                     attr_baseline = out_base.detach().cpu().numpy()
 
@@ -184,6 +235,14 @@ def compute_saliencies(dataset: OrganoidDataset,
                 torch.cuda.empty_cache()
 
         all_results[well] = well_results
+
+    save_saliency_h5(
+        all_results,
+        experiment,
+        organoid_wells[0],
+        output_dir
+    )
+
 
     return all_results
 
