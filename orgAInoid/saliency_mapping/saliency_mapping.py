@@ -55,11 +55,11 @@ def _find_layer(model, layer_name):
 
 def _define_target_layers(model) -> Optional[torch.nn.Module]:
     if model.__class__.__name__ == "DenseNet121":
-        return _find_layer(model, "densenet121.features.denseblock1.denselayer1.conv2")
+        return _find_layer(model, "densenet121.features.denseblock1.denselayer3.conv2")
     if model.__class__.__name__ == "MobileNetV3_Large":
-        return _find_layer(model, "mobilenet_v3_large.features.1.block.0.0")
+        return _find_layer(model, "mobilenet_v3_large.features.2.block.2.0")
     if model.__class__.__name__ == "ResNet50":
-        return _find_layer(model, "resnet50.layer1.0.conv3")
+        return _find_layer(model, "resnet50.layer2.0.conv3")
     raise ValueError(f"Unknown model {model.__class__.__name__}")
 
 def compute_saliencies(dataset: OrganoidDataset,
