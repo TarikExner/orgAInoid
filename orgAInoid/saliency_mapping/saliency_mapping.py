@@ -139,7 +139,7 @@ def compute_saliencies(dataset: OrganoidDataset,
                                baseline_directory)
 
     target_layers = {
-        model: _define_target_layers(model)
+        model: _define_target_layers(models[model])
         for model in models
     }
 
