@@ -40,7 +40,7 @@ SALIENCY_FUNCTIONS: dict[str, Callable] = {
     "GC": compute_grad_cam,
     "GGC": compute_guided_grad_cam,
     # occlusion based methods
-    "OCC": compute_smooth_occlusion,
+    # "OCC": compute_smooth_occlusion,
     "FAB": compute_feature_ablation,
     "KSH": compute_kernel_shap
 }
