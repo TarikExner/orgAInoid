@@ -71,13 +71,16 @@ def save_saliency_h5(all_results: dict,
                      readout: str,
                      output_dir: str
                      ):
-    # { well: { loop: { model: { algorithm: { status: array }}}}}
+    # all_results: { well: { loop: { model: { 
+    #       "image": np.ndarray,
+    #       alg_name: { "trained": arr, "baseline": arr }, ...
+    # }}}}
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, f"{experiment}_{well}_{readout}.h5")
 
     with h5py.File(file_path, "w") as h5f:
-        for well, loops in all_results.items():
-            grp_well = h5f.require_group(str(well))
+        for well_key, loops in all_results.items():
+            grp_well = h5f.require_group(str(well_key))
 
             for loop_idx, models in loops.items():
                 grp_loop = grp_well.require_group(str(loop_idx))
@@ -86,13 +89,24 @@ def save_saliency_h5(all_results: dict,
                     grp_model = grp_loop.require_group(model_name)
 
                     for alg_name, statuses in algs.items():
+                        # special–case for the original input image
+                        if isinstance(statuses, np.ndarray):
+                            arr32 = statuses.astype(np.float32)
+                            ds_name = "input_image"
+                            if ds_name in grp_model:
+                                del grp_model[ds_name]
+                            grp_model.create_dataset(
+                                ds_name,
+                                data=arr32,
+                                compression="gzip",
+                                chunks=arr32.shape
+                            )
+                            continue
+
+                        # otherwise it's the usual alg: {trained,baseline}
                         grp_alg = grp_model.require_group(alg_name)
-
-                        for status, array in statuses.items():  # “trained” or “baseline”
-                            # cast to float32
+                        for status, array in statuses.items():  # "trained" or "baseline"
                             arr32 = array.astype(np.float32)
-
-                            # write under: /…/alg_name/status
                             if status in grp_alg:
                                 del grp_alg[status]
                             grp_alg.create_dataset(
