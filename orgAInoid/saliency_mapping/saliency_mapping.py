@@ -112,7 +112,7 @@ def compute_saliencies(dataset: OrganoidDataset,
                 slic_mask = mask.detach().cpu().numpy().copy()[0]
                 slic_labels = slic(
                     image,
-                    slic_mask,
+                    mask = slic_mask,
                     n_segments = 50,
                     compactness = 0.1,
                     start_label = 1,
