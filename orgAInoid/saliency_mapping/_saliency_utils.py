@@ -6,6 +6,7 @@ from scipy.stats import entropy, kurtosis
 
 from skimage.metrics import structural_similarity as ssim
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 
 from typing import Optional, Literal, Union, Any
 
