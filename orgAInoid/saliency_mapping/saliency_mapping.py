@@ -5,6 +5,8 @@ from typing import Literal, Optional, Callable
 
 from tqdm import tqdm
 
+import torch.nn as nn
+
 import warnings
 
 from skimage.segmentation import slic
@@ -93,6 +95,15 @@ def compute_saliencies(dataset: OrganoidDataset,
                                readout,
                                model_directory,
                                baseline_directory)
+    
+    print("ResNet modules")
+    for n, m in models["ResNet50"].named_modules():
+        if isinstance(m, nn.ReLU):
+            print(f"{n}: inplace={m.inplace}")
+    print("ResNet baseline modules")
+    for n, m in models["ResNet50_baseline"].named_modules():
+        if isinstance(m, nn.ReLU):
+            print(f"{n}: inplace={m.inplace}")
 
     all_results = {}
 
