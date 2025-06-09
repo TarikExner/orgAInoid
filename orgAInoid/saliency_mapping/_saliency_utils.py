@@ -8,6 +8,8 @@ from skimage.metrics import structural_similarity as ssim
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
+import torch.nn as nn
+
 from typing import Optional, Literal, Union, Any
 
 from captum.attr import (IntegratedGradients,
@@ -45,6 +47,11 @@ def instantiate_model(model_name: str) -> torch.nn.Module:
     else:
         raise ValueError(f"Model name not known: {model_name}")
 
+def disable_inplace_relu(model: nn.Module):
+    for m in model.modules():
+        if isinstance(m, nn.ReLU) and m.inplace:
+            m.inplace = False
+
 def initialize_models(models: list[str],
                       experiment: str,
                       readout: str,
@@ -61,7 +68,13 @@ def initialize_models(models: list[str],
             f"{model_name}_val_f1_{experiment}_{readout}_base_model.pth"
         )
         raw_model = instantiate_model(model_name)
+        if model_name == "ResNet50":
+            disable_inplace_relu(raw_model)
         model_dict[model_name] = initialize_model(raw_model, state_dict_path)
+
+        raw_model = instantiate_model(model_name)
+        if model_name == "ResNet50":
+            disable_inplace_relu(raw_model)
         model_dict[f"{model_name}_baseline"] = initialize_model(raw_model, baseline_state_dict_path)
 
     return model_dict
