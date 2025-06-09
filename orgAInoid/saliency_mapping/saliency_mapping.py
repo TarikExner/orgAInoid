@@ -5,6 +5,8 @@ from typing import Literal, Optional, Callable
 
 from tqdm import tqdm
 
+import warnings
+
 from skimage.segmentation import slic
 from ._graph_utils import (get_images_and_masks)
 from ._saliency_utils import (get_dataloader,
@@ -64,7 +66,10 @@ def compute_saliencies(dataset: OrganoidDataset,
                        baseline_directory: str,
                        well: Optional[str] = None,
                        cnn_models: list[str] = ["DenseNet121", "ResNet50", "MobileNetV3_Large"],
-                       segmentator_input_dir: str = "../segmentation/segmentators") -> None:
+                       segmentator_input_dir: str = "../segmentation/segmentators",
+                       suppress_warnings: bool = True) -> dict:
+    if suppress_warnings:
+        warnings.filterwarnings("ignore")
 
     img_handler = ImageHandler(
         segmentator_input_dir = segmentator_input_dir,
@@ -90,82 +95,80 @@ def compute_saliencies(dataset: OrganoidDataset,
                                baseline_directory)
 
 
-    for well in organoid_wells:
-        loops = dataset.metadata.loc[
-            dataset.metadata["well"] == well,
-            "loop"
-        ].sort_values(ascending = True).tolist()
+    all_results = {}
 
-        well_results = {}
+    for well in organoid_wells:
+        loops = (
+            dataset.metadata
+            .loc[dataset.metadata["well"] == well, "loop"]
+            .sort_values()
+            .tolist()
+        )
 
         images, masks = get_images_and_masks(dataset, well, img_handler)
         masks = masks_to_tensor(masks)
+
         cnn_loader = get_dataloader(dataset, well, readout)
 
-        for model_name in cnn_models:
-            well_results[model_name] = {}
+        well_results = {model_name: {} for model_name in cnn_models}
 
-            trained_model = models[model_name]
-            baseline_model = models[f"{model_name}_baseline"]
+        for i, ((img, cls), mask, loop) in enumerate(
+            tqdm(zip(cnn_loader, masks, loops), desc=f"Well {well}", unit="image")
+        ):
+            image = images[i][0]
+            slic_mask = mask.detach().cpu().numpy()[0]
+            slic_labels = slic(
+                image,
+                mask=slic_mask,
+                n_segments=50,
+                compactness=0.1,
+                start_label=1,
+                channel_axis=None
+            )
+            mask2d = torch.from_numpy(slic_labels).long()
+            mask3 = mask2d.unsqueeze(0).repeat(3,1,1).unsqueeze(0).to(DEVICE)
 
-            for i, ((img, cls), mask, loop) in enumerate(zip(cnn_loader, masks, loops)):
-                well_results[model_name][loop] = {}
+            _image = img.to(DEVICE)
+            _class = torch.argmax(cls, dim=1).to(DEVICE)
+            _baseline = create_baseline_image(img, mask.unsqueeze(0), method="mean").to(DEVICE)
 
-                image = images[i][0]
-                slic_mask = mask.detach().cpu().numpy().copy()[0]
-                slic_labels = slic(
-                    image,
-                    mask = slic_mask,
-                    n_segments = 50,
-                    compactness = 0.1,
-                    start_label = 1,
-                    channel_axis = None
-                )
-                mask2d = torch.from_numpy(slic_labels).long()
-                mask3 = mask2d.unsqueeze(0).repeat(3,1,1)
-                mask3 = mask3.unsqueeze(0).to(DEVICE)
+            for model_name in cnn_models:
+                trained = models[model_name]
+                baseline = models[f"{model_name}_baseline"]
+                sample_results = {}
 
-                _image = img
-                _class = torch.argmax(cls, dim = 1)
-                _mask = mask.unsqueeze(0)
-                _baseline = create_baseline_image(_image, _mask, method = "mean")
-                _image = _image.to("cuda")
-                _class = _class.to("cuda")
-                _baseline = _baseline.to("cuda")
+                for fn_name, fn in SALIENCY_FUNCTIONS.items():
+                    common_kwargs = {
+                        "image": _image,
+                        "baseline": _baseline,
+                        "target": _class,
+                        "feature_mask": mask3,
+                        "nt_samples": 20,
+                        "stdevs": 0.1,
+                    }
 
-                image_results = {}
-                image_baseline_results = {}
+                    out_trained = fn(
+                        **{**common_kwargs,
+                           "model": trained,
+                           "target_layer": _define_target_layers(trained)}
+                    )
 
-                items = list(SALIENCY_FUNCTIONS.items())
+                    out_base = fn(
+                        **{**common_kwargs,
+                           "model": baseline,
+                           "target_layer": _define_target_layers(baseline)}
+                    )
 
-                with tqdm(items, unit="fn") as pbar:
-                    for name, fn in pbar:
-                        pbar.set_description(f"Computing: {name}")
+                    sample_results[fn_name] = {
+                        "trained": out_trained,
+                        "baseline": out_base
+                    }
 
-                        common_kwargs = {
-                            "image": _image,
-                            "baseline": _baseline,
-                            "target": _class,
-                            "feature_mask": mask3,
-                            "nt_samples": 20,
-                            "stdevs": 0.1,
-                        }
+                well_results[model_name][loop] = sample_results
 
-                        kwargs = common_kwargs.copy()
-                        kwargs["model"] = trained_model
-                        kwargs["target_layer"] = _define_target_layers(trained_model)
-                        attributions = fn(**kwargs)
+        all_results[well] = well_results
 
-                        kwargs = common_kwargs.copy()
-                        kwargs["model"] = baseline_model
-                        kwargs["target_layer"] = _define_target_layers(baseline_model)
-                        baseline_attributions = fn(**kwargs)
-
-                        image_results[name] = attributions
-                        image_baseline_results[name] = baseline_attributions
-
-
-    return well_results
+    return all_results
 
                     
 
