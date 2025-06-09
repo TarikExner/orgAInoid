@@ -48,13 +48,10 @@ def instantiate_model(model_name: str) -> torch.nn.Module:
     else:
         raise ValueError(f"Model name not known: {model_name}")
 
-def disable_inplace_relu(model: nn.Module):
-    def fn(m):
-        if isinstance(m, nn.ReLU):
-            m.inplace = False
-    model.apply(fn)
-
 def remove_relu_modules(model: nn.Module) -> nn.Module:
+    """\
+    Needed for ResNet50 due to multiply used ReLU modules
+    """
     gm: fx.GraphModule = fx.symbolic_trace(model)
 
     for node in list(gm.graph.nodes):

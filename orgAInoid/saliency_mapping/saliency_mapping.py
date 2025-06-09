@@ -1,11 +1,10 @@
 import pandas as pd
 import torch
+import gc
 
 from typing import Literal, Optional, Callable
 
 from tqdm import tqdm
-
-import torch.nn as nn
 
 import warnings
 
@@ -95,15 +94,6 @@ def compute_saliencies(dataset: OrganoidDataset,
                                readout,
                                model_directory,
                                baseline_directory)
-    
-    print("ResNet modules")
-    for n, m in models["ResNet50"].named_modules():
-        if isinstance(m, nn.ReLU):
-            print(f"{n}: inplace={m.inplace}")
-    print("ResNet baseline modules")
-    for n, m in models["ResNet50_baseline"].named_modules():
-        if isinstance(m, nn.ReLU):
-            print(f"{n}: inplace={m.inplace}")
 
     all_results = {}
 
@@ -123,7 +113,7 @@ def compute_saliencies(dataset: OrganoidDataset,
         well_results = {loop: {} for loop in loops}
 
         for i, ((img, cls), mask, loop) in enumerate(
-            tqdm(zip(cnn_loader, masks, loops), desc=f"Well {well}", unit="image")
+            tqdm(zip(cnn_loader, masks, loops), desc=f"Well {well}")
         ):
             image = images[i][0]
             slic_mask = mask.detach().cpu().numpy()[0]
@@ -169,13 +159,29 @@ def compute_saliencies(dataset: OrganoidDataset,
                            "model": baseline,
                            "target_layer": _define_target_layers(baseline)}
                     )
+                    attr_trained = out_trained.detach().cpu().numpy()
+                    attr_baseline = out_base.detach().cpu().numpy()
 
                     sample_results[fn_name] = {
-                        "trained": out_trained,
-                        "baseline": out_base
+                        "trained": attr_trained,
+                        "baseline": attr_baseline 
                     }
 
+
+                    del out_trained
+                    del out_base
+                    del attr_trained
+                    del attr_baseline
+
+                    # clean up Python-side
+                    gc.collect()
+                    # free up any cached GPU memory
+                    torch.cuda.empty_cache()
+
                 well_results[loop][model_name] = sample_results
+                del sample_results
+                gc.collect()
+                torch.cuda.empty_cache()
 
         all_results[well] = well_results
 
