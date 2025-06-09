@@ -117,7 +117,7 @@ def compute_saliencies(dataset: OrganoidDataset,
                 image_results = {}
                 image_baseline_results = {}
 
-                for name, fn in SALIENCY_FUNCTIONS:
+                for name, fn in SALIENCY_FUNCTIONS.items():
                     kwargs = {
                         "model": trained_model,
                         "image": img,
