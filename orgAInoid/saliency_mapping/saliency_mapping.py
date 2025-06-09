@@ -13,7 +13,7 @@ from ._saliency_utils import (get_dataloader,
                               compute_deeplift_shap,
                               compute_grad_cam,
                               compute_guided_grad_cam,
-                              compute_occlusion,
+                              compute_smooth_occlusion,
                               compute_feature_ablation,
                               compute_kernel_shap)
 
@@ -32,7 +32,7 @@ SALIENCY_FUNCTIONS: dict[str, Callable] = {
     "GC": compute_grad_cam,
     "GGC": compute_guided_grad_cam,
     # occlusion based methods
-    "OCC": compute_occlusion,
+    "OCC": compute_smooth_occlusion,
     "FAB": compute_feature_ablation,
     "KSH": compute_kernel_shap
 }
