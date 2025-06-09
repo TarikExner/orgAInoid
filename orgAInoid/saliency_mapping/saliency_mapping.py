@@ -3,6 +3,8 @@ import torch
 
 from typing import Literal, Optional, Callable
 
+from tqdm import tqdm
+
 from skimage.segmentation import slic
 from ._graph_utils import (get_images_and_masks)
 from ._saliency_utils import (get_dataloader,
@@ -107,6 +109,7 @@ def compute_saliencies(dataset: OrganoidDataset,
             baseline_model = models[f"{model_name}_baseline"]
 
             for i, ((img, cls), mask, loop) in enumerate(zip(cnn_loader, masks, loops)):
+                well_results[model_name][loop] = {}
 
                 image = images[i][0]
                 slic_mask = mask.detach().cpu().numpy().copy()[0]
@@ -133,30 +136,33 @@ def compute_saliencies(dataset: OrganoidDataset,
                 image_results = {}
                 image_baseline_results = {}
 
-                for name, fn in SALIENCY_FUNCTIONS.items():
-                    kwargs = {
-                        "image": _image,
-                        "baseline": _baseline,
-                        "target": _class,
-                        "feature_mask": mask3,
-                        "nt_samples": 20,
-                        "stdevs": 0.1,
-                    }
+                items = list(SALIENCY_FUNCTIONS.items())
 
-                    kwargs["model"] = trained_model 
-                    kwargs["target_layer"] = _define_target_layers(trained_model)
-                    attributions = fn(**kwargs)
+                with tqdm(items, unit="fn") as pbar:
+                    for name, fn in pbar:
+                        pbar.set_description(f"Computing: {name}")
 
-                    kwargs["model"] = baseline_model
-                    kwargs["target_layer"] = _define_target_layers(baseline_model)
-                    baseline_attributions = fn(**kwargs)
+                        common_kwargs = {
+                            "image": _image,
+                            "baseline": _baseline,
+                            "target": _class,
+                            "feature_mask": mask3,
+                            "nt_samples": 20,
+                            "stdevs": 0.1,
+                        }
 
-                    image_results[name] = attributions
-                    image_baseline_results[name] = baseline_attributions
+                        kwargs = common_kwargs.copy()
+                        kwargs["model"] = trained_model
+                        kwargs["target_layer"] = _define_target_layers(trained_model)
+                        attributions = fn(**kwargs)
 
+                        kwargs = common_kwargs.copy()
+                        kwargs["model"] = baseline_model
+                        kwargs["target_layer"] = _define_target_layers(baseline_model)
+                        baseline_attributions = fn(**kwargs)
 
-                well_results[model_name][loop]["trained"] = image_results
-                well_results[model_name][loop]["baseline"] = image_baseline_results
+                        image_results[name] = attributions
+                        image_baseline_results[name] = baseline_attributions
 
 
     return well_results
