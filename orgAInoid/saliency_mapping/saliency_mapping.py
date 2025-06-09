@@ -54,13 +54,13 @@ def _define_target_layers(model) -> Optional[torch.nn.Module]:
         return _find_layer(model, "resnet50.layer1.0.conv3")
     raise ValueError(f"Unknown model {model.__class__.__name__}")
 
-def compute_saliences(dataset: OrganoidDataset,
-                      readout: Readouts,
-                      model_directory: str,
-                      baseline_directory: str,
-                      well: Optional[str] = None,
-                      cnn_models: list[str] = ["DenseNet121", "ResNet50", "MobileNetV3_Large"],
-                      segmentator_input_dir: str = "../segmentation/segmentators") -> None:
+def compute_saliencies(dataset: OrganoidDataset,
+                       readout: Readouts,
+                       model_directory: str,
+                       baseline_directory: str,
+                       well: Optional[str] = None,
+                       cnn_models: list[str] = ["DenseNet121", "ResNet50", "MobileNetV3_Large"],
+                       segmentator_input_dir: str = "../segmentation/segmentators") -> None:
 
     img_handler = ImageHandler(
         segmentator_input_dir = segmentator_input_dir,
@@ -72,7 +72,7 @@ def compute_saliences(dataset: OrganoidDataset,
     if well is None:
         organoid_wells = metadata["well"].unique()
     else:
-        organoid_wells = well
+        organoid_wells = [well]
 
     experiments = metadata["experiment"].unique()
     if len(experiments) > 1:
