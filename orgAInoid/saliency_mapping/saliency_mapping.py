@@ -176,8 +176,6 @@ def compute_saliencies(dataset: OrganoidDataset,
                 start_label=1,
                 channel_axis=None
             )
-            avg_size = np.unique(slic_labels, return_counts=True)[1].mean()
-            print("Average segment size: ", avg_size)
             mask2d = torch.from_numpy(slic_labels).long()
             mask3 = mask2d.unsqueeze(0).repeat(3,1,1).unsqueeze(0).to(DEVICE)
 

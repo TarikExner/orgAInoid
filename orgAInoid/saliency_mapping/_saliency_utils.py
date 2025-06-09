@@ -500,8 +500,8 @@ def compute_smooth_occlusion(**kwargs: Any) -> torch.Tensor:
             target = torch.argmax(model(image), dim=1).item()
 
     nt_samples = kwargs.get("nt_samples", 20)
-    patch = kwargs.get("patch_size", 20)
-    stride_val = kwargs.get("stride", 10)
+    patch = kwargs.get("patch_size", 30)
+    stride_val = kwargs.get("stride", 15)
 
     # patch covers all 3 channels; stride likewise
     patch_shape  = (3, patch, patch)
