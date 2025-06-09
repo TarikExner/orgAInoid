@@ -37,13 +37,13 @@ SALIENCY_FUNCTIONS: dict[str, Callable] = {
     # gradient based methods
     "IG_NT": compute_integrated_gradients,
     "SAL_NT": compute_saliency,
-    "GRS": compute_gradient_shap,
+    # "GRS": compute_gradient_shap,
     "DLS": compute_deeplift_shap,
     # gradcam methods
     "GC": compute_grad_cam,
     "GGC": compute_guided_grad_cam,
     # occlusion based methods
-    # "OCC": compute_smooth_occlusion,
+    "OCC": compute_smooth_occlusion,
     "FAB": compute_feature_ablation,
     "KSH": compute_kernel_shap
 }
@@ -68,11 +68,12 @@ def _define_target_layers(model) -> Optional[torch.nn.Module]:
 def save_saliency_h5(all_results: dict,
                      experiment: str,
                      well: str,
+                     readout: str,
                      output_dir: str
                      ):
     # { well: { loop: { model: { algorithm: { status: array }}}}}
     os.makedirs(output_dir, exist_ok=True)
-    file_path = os.path.join(output_dir, f"{experiment}_{well}.h5")
+    file_path = os.path.join(output_dir, f"{experiment}_{well}_{readout}.h5")
 
     with h5py.File(file_path, "w") as h5f:
         for well, loops in all_results.items():
@@ -175,6 +176,8 @@ def compute_saliencies(dataset: OrganoidDataset,
                 start_label=1,
                 channel_axis=None
             )
+            avg_size = np.unique(slic_labels, return_counts=True)[1].mean()
+            print("Average segment size: ", avg_size)
             mask2d = torch.from_numpy(slic_labels).long()
             mask3 = mask2d.unsqueeze(0).repeat(3,1,1).unsqueeze(0).to(DEVICE)
 
@@ -237,10 +240,11 @@ def compute_saliencies(dataset: OrganoidDataset,
         all_results[well] = well_results
 
     save_saliency_h5(
-        all_results,
-        experiment,
-        organoid_wells[0],
-        output_dir
+        all_results = all_results,
+        experiment = experiment,
+        well = organoid_wells[0],
+        readout = readout,
+        output_dir = output_dir
     )
 
 
