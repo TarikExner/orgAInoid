@@ -7,6 +7,7 @@ from scipy.stats import entropy, kurtosis
 from skimage.metrics import structural_similarity as ssim
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+import torch.fx as fx
 
 import torch.nn as nn
 
@@ -53,6 +54,25 @@ def disable_inplace_relu(model: nn.Module):
             m.inplace = False
     model.apply(fn)
 
+def remove_relu_modules(model: nn.Module) -> nn.Module:
+    gm: fx.GraphModule = fx.symbolic_trace(model)
+
+    for node in list(gm.graph.nodes):
+        if node.op == "call_module":
+            submod = dict(gm.named_modules())[node.target]
+            if isinstance(submod, nn.ReLU):
+                # insert a functional F.relu node in its place
+                with gm.graph.inserting_after(node):
+                    new_node = gm.graph.call_function(
+                        F.relu, args=node.args, kwargs={"inplace": False}
+                    )
+                node.replace_all_uses_with(new_node)
+                gm.graph.erase_node(node)
+
+    gm.graph.lint()
+    gm.recompile()
+    return gm
+
 def initialize_models(models: list[str],
                       experiment: str,
                       readout: str,
@@ -70,12 +90,14 @@ def initialize_models(models: list[str],
         )
         raw_model = instantiate_model(model_name)
         if model_name == "ResNet50":
-            disable_inplace_relu(raw_model)
+            raw_model = remove_relu_modules(raw_model)
+            # disable_inplace_relu(raw_model)
         model_dict[model_name] = initialize_model(raw_model, state_dict_path)
 
         raw_model = instantiate_model(model_name)
         if model_name == "ResNet50":
-            disable_inplace_relu(raw_model)
+            raw_model = remove_relu_modules(raw_model)
+            # disable_inplace_relu(raw_model)
         model_dict[f"{model_name}_baseline"] = initialize_model(raw_model, baseline_state_dict_path)
 
     return model_dict
