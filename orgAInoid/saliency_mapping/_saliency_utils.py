@@ -69,11 +69,13 @@ def initialize_models(models: list[str],
         )
         raw_model = instantiate_model(model_name)
         if model_name == "ResNet50":
+            print(f"Disabling ReLu for {model_name}")
             disable_inplace_relu(raw_model)
         model_dict[model_name] = initialize_model(raw_model, state_dict_path)
 
         raw_model = instantiate_model(model_name)
         if model_name == "ResNet50":
+            print(f"Disabling ReLu for {model_name}")
             disable_inplace_relu(raw_model)
         model_dict[f"{model_name}_baseline"] = initialize_model(raw_model, baseline_state_dict_path)
 

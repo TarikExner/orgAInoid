@@ -135,7 +135,7 @@ def compute_saliencies(dataset: OrganoidDataset,
                 trained = models[model_name]
                 baseline = models[f"{model_name}_baseline"]
                 sample_results = {}
-                print(f"...Backtracking {model_name}")
+                print(f"... Backtracking {model_name}")
 
                 for fn_name, fn in SALIENCY_FUNCTIONS.items():
                     common_kwargs = {
@@ -147,15 +147,12 @@ def compute_saliencies(dataset: OrganoidDataset,
                         "stdevs": 0.1,
                     }
 
-                    print("... ... trained version")
-
                     out_trained = fn(
                         **{**common_kwargs,
                            "model": trained,
                            "target_layer": _define_target_layers(trained)}
                     )
 
-                    print("... ... baseline version")
                     out_base = fn(
                         **{**common_kwargs,
                            "model": baseline,
