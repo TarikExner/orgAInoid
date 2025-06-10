@@ -122,12 +122,13 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
     pc_columns = [f"PC{i}" for i in range(1, n_pcs+1)]
 
     for experiment in cfg.EXPERIMENTS:
-        print(f"Calculating distances for experiment {experiment} using {save_suffix.strip('_')} data")
+        print(f">>> Calculating dimreds for experiment {experiment} using {save_suffix.strip('_')} data")
         exp_data = df.loc[df["experiment"] == experiment, data_columns].to_numpy()
         exp_data = StandardScaler().fit_transform(exp_data)
         if use_pca:
             _pca = PCA(
-                n_components = n_pcs
+                n_components = n_pcs,
+                random_state = 187
             ).fit_transform(exp_data)
             df.loc[df["experiment"] == experiment, pc_columns] = _pca
             dimred_input_data = _pca
@@ -137,11 +138,11 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
         for dim_red in dimreds:
             if dim_red == "UMAP":
                 print("... calculating UMAP")
-                coords = UMAP().fit_transform(dimred_input_data)
+                coords = UMAP(init = "pca", random_state = 187).fit_transform(dimred_input_data)
                 df.loc[df["experiment"] == experiment, ["UMAP1", "UMAP2"]] = coords
             elif dim_red == "TSNE":
                 print("... calculating TSNE")
-                coords = TSNE().fit_transform(dimred_input_data)
+                coords = TSNE(random_state = 187).fit_transform(dimred_input_data)
                 df.loc[df["experiment"] == experiment, ["TSNE1", "TSNE2"]] = coords
             else:
                 raise ValueError(f"Unknown DimRed {dim_red}")
@@ -180,14 +181,15 @@ def calculate_organoid_distances(df: pd.DataFrame,
     for experiment in cfg.EXPERIMENTS:
         data_columns = original_data_columns
 
-        print(f"Calculating distances for experiment {experiment} using {save_suffix.strip('_')} data")
+        print(f">>> Calculating distances for experiment {experiment} using {save_suffix.strip('_')} data")
         exp_data = df[df["experiment"] == experiment].copy()
         time_points = sorted(exp_data["loop"].unique())
 
         exp_data[data_columns] = StandardScaler().fit_transform(exp_data[data_columns])
         if use_pca:
             _pca = PCA(
-                n_components = n_pcs
+                n_components = n_pcs,
+                random_state = 187
             ).fit(exp_data[data_columns])
             scores = _pca.transform(exp_data[data_columns])
 
@@ -432,7 +434,7 @@ def neighbors_per_well_by_experiment(df: pd.DataFrame,
                                      well_col: str = "well",
                                      loop_col: str = "loop",
                                      experiment_col: str = "experiment",
-                                     n_neighbors: int = 10,
+                                     n_neighbors: int = 50,
                                      metric: str = "euclidean",
                                      output_dir: str = "./figure_data",
                                      output_filename: str = "well_enrichment") -> pd.DataFrame:
@@ -733,4 +735,3 @@ def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
                                                       pred_col = "human_eval_RPE_Final_Contains")
     np.save(output_filename, conf_matrix)
     return conf_matrix
-

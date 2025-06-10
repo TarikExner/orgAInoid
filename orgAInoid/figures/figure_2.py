@@ -19,7 +19,8 @@ from .figure_data_generation import (get_morphometrics_frame,
                                      calculate_organoid_dimensionality_reduction,
                                      calculate_organoid_distances,
                                      compare_neighbors_by_experiment,
-                                     neighbors_per_well_by_experiment)
+                                     neighbors_per_well_by_experiment,
+                                     PC_COLUMNS)
 
 def _generate_main_figure(dimred_data: pd.DataFrame,
                           distance_data: pd.DataFrame,
@@ -204,7 +205,7 @@ def figure_2_generation(morphometrics_dir: str,
     data_columns = get_data_columns_morphometrics(morphometrics)
 
     # we use n_pcs 20 for everything
-    pc_columns = [f"PC{i}" for i in range(1,21)]
+    pc_columns = PC_COLUMNS
 
     organoid_distances_pca = calculate_organoid_distances(morphometrics,
                                                           data_columns,
