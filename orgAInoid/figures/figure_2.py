@@ -26,8 +26,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
                           distance_data: pd.DataFrame,
                           figure_output_dir: str = "",
                           sketch_dir: str = "",
-                          figure_name: str = "",
-):
+                          figure_name: str = ""):
 
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
@@ -53,7 +52,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.45)
 
-        data = dimred_data
+        data = dimred_data.copy()
         data = data[data["experiment"] == "E001"]
         data["timeframe"] = data["timeframe"].astype(str)
         data = data.sort_values("timeframe", ascending = True)
@@ -120,7 +119,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.45)
         
-        data = distance_data
+        data = distance_data.copy()
         data["hours"] = data["loop"] / 2
         data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
         data = data.sort_values("experiment", ascending = True)
@@ -148,7 +147,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.45)
         
-        data = pd.read_csv("./figure_data/organoid_distances/organoid_distances.csv")
+        data = distance_data.copy()
         data["hours"] = data["loop"] / 2
         data["experiment"] = data["experiment"].astype("category")
         data = data[~data["experiment"].isin(["E002", "E007", "E012"])]
@@ -188,10 +187,10 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
     generate_subfigure_c(fig, fig_c, c_coords, "C")
     generate_subfigure_d(fig, fig_d, d_coords, "D")
 
-    output_dir = os.path.join(figure_output_dir, "Figure2.pdf")
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.pdf")
     plt.savefig(output_dir, dpi = 300, bbox_inches = "tight")
 
-    output_dir = os.path.join(figure_output_dir, "Figure2.png")
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi = 300, bbox_inches = "tight")
 
     return

@@ -66,7 +66,7 @@ def _extract_scalars(log_dir: str | Path, tag: str):
 def plot_loss_curves(log_dir: str | Path, tags: list[str] | None = None):
     """Plot specified scalar tags from TensorBoard logs."""
     if tags is None:
-        tags = ["loss/g_total", "loss/d_total"]
+        tags = ["loss/g_total", "loss/d_total", "loss/loss_dis"]
     plt.figure(figsize=(6, 4))
     for tag in tags:
         steps, vals = _extract_scalars(log_dir, tag)

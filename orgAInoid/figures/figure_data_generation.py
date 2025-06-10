@@ -6,7 +6,7 @@ from sklearn.manifold import TSNE
 from umap import UMAP
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
-
+from sklearn.metrics import f1_score, confusion_matrix
 from typing import Optional, Literal
 
 from . import figure_config as cfg
@@ -23,8 +23,62 @@ METADATA_COLUMNS = [
     'Lens_classes', 'label'
 ]
 
+EVALUATORS = ["HEAT21", "HEAT22", "HEAT23", "HEAT24", "HEAT25", "HEAT27"]
+
+PC_COLUMNS = [
+    f"PC{i}" for i in range(1,21)
+]
+
+_CONTAINS_MAP = {
+    "RPE_Final_Contains": "RPE_Final",
+    "Lens_Final_Contains": "Lens_Final"
+}
+_STRING_LABEL_COLS = {"RPE_Final", "Lens_Final"}
+
+_BINARY_MAP = {"yes": 1, "no": 0}
+
+_DEFAULT_HUMAN_COLS = [
+    "human_eval_RPE_Final_Contains",
+    "human_eval_Lens_Final_Contains",
+    "human_eval_RPE_Final",
+    "human_eval_Lens_Final",
+    "human_eval_RPE_classes",
+    "human_eval_Lens_classes"
+]
+
+N_CLASSES_DICT: dict[str, int] = {
+    "RPE_Final": 2,
+    "Lens_Final": 2,
+    "RPE_classes": 4,
+    "Lens_classes": 4,
+    "RPE_Final_Contains": 2,
+    "Lens_Final_Contains": 2
+}
+
+Readouts = Literal["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
+HumanReadouts = Literal[
+    "RPE_Final_Contains",
+    "Lens_Final_Contains",
+    "RPE_Final",
+    "Lens_Final",
+    "RPE_classes",
+    "Lens_classes"
+]
+
+def _build_timeframe_dict(n_timeframes: int, total: int = 144) -> dict[str, int]:
+    chunk = total // n_timeframes
+    return {
+        f"LO{i:03d}": min((i - 1) // chunk + 1, n_timeframes)
+        for i in range(1, total + 1)
+    }
+
+def check_for_file(output_file: str) -> Optional[pd.DataFrame]:
+    if os.path.isfile(output_file):
+        return pd.read_csv(output_file, index_col = False)
+    return
+
 def get_morphometrics_frame(results_dir: str,
-                            suffix: Optional[Literal["max", "sum", "all_slices"]] = None) -> pd.DataFrame:
+                            suffix: Optional[Literal["max", "sum", "all_slices", ""]] = None) -> pd.DataFrame:
     if not suffix:
         suffix = ""
 
@@ -47,10 +101,8 @@ def get_morphometrics_frame(results_dir: str,
     assert isinstance(df, pd.DataFrame)
     return df
 
-
 def get_data_columns_morphometrics(df: pd.DataFrame):
     return [col for col in df.columns if col not in METADATA_COLUMNS]
-
 
 def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
                                                 data_columns: list[str],
@@ -63,8 +115,9 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
     save_suffix = "_pca" if use_pca else "_raw"
 
     output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
-    if os.path.isfile(output_file):
-        return pd.read_csv(output_file, index_col = False)
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
 
     pc_columns = [f"PC{i}" for i in range(1, n_pcs+1)]
 
@@ -92,6 +145,7 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
                 df.loc[df["experiment"] == experiment, ["TSNE1", "TSNE2"]] = coords
             else:
                 raise ValueError(f"Unknown DimRed {dim_red}")
+
     timepoints = [f"LO{i:03d}" for i in range(1, 145)]
     timeframe_dict = {
         tp: str((i // timeframe_length) + 1)
@@ -102,7 +156,6 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
     df["timeframe"] = df["timeframe"].astype(str)
     df.to_csv(output_file, index = False)
     return df
-
 
 def calculate_organoid_distances(df: pd.DataFrame,
                                  data_columns: list[str],
@@ -118,8 +171,9 @@ def calculate_organoid_distances(df: pd.DataFrame,
     save_suffix = "_pca" if use_pca else "_raw"
 
     output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
-    if os.path.isfile(output_file):
-        return pd.read_csv(output_file, index_col = False)
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
 
     dist_dfs = []
     original_data_columns = data_columns
@@ -208,7 +262,6 @@ def calculate_organoid_distances(df: pd.DataFrame,
     dist_df.to_csv(output_file, index = False)
     return dist_df
 
-
 def compare_neighbors_by_loop(df,
                               dimred,
                               data_cols,
@@ -274,7 +327,6 @@ def compare_neighbors_by_loop(df,
 
     return loop_jaccard, sample_jaccard
 
-
 def compare_neighbors_by_experiment(df: pd.DataFrame,
                                     dimred: str,
                                     user_suffix: str,
@@ -295,8 +347,9 @@ def compare_neighbors_by_experiment(df: pd.DataFrame,
     save_suffix = f"_{dimred}_{user_suffix}"
 
     output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
-    if os.path.isfile(output_file):
-        return pd.read_csv(output_file, index_col = False)
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
 
     records = []
     exps = df[experiment_col].unique()
@@ -320,7 +373,6 @@ def compare_neighbors_by_experiment(df: pd.DataFrame,
     result_df["loop"] = [int(lo.split("LO")[1]) for lo in result_df["loop"]]
     result_df.to_csv(output_file, index = False)
     return result_df
-
 
 def well_same_well_fraction_by_loop(df: pd.DataFrame,
                                     data_cols: list[str],
@@ -373,7 +425,6 @@ def well_same_well_fraction_by_loop(df: pd.DataFrame,
              .groupby(loops) \
              .mean()
 
-
 def neighbors_per_well_by_experiment(df: pd.DataFrame,
                                      dimred: str,
                                      user_suffix: str,
@@ -396,8 +447,10 @@ def neighbors_per_well_by_experiment(df: pd.DataFrame,
     save_suffix = f"_{dimred}_{user_suffix}"
 
     output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
-    if os.path.isfile(output_file):
-        return pd.read_csv(output_file, index_col = False)
+
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
 
     records = []
     for exp in df[experiment_col].unique():
@@ -419,4 +472,263 @@ def neighbors_per_well_by_experiment(df: pd.DataFrame,
     df["loop"] = [int(lo.split("LO")[1]) for lo in df["loop"]]
     df.to_csv(output_file, index = False)
     return df
+
+def _loop_to_timepoint(loops: list[str]) -> list[int]:
+    return [int(lo.split("LO")[1]) for lo in loops]
+
+
+def get_ground_truth_annotations(morphometrics_dir: str = "",
+                                 n_timeframes: int = 12,
+                                 output_dir: str = "./figure_data",
+                                 output_filename: str = "human_ground_truth_annotations") -> pd.DataFrame:
+    
+    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+
+    morphometrics = get_morphometrics_frame(morphometrics_dir)
+
+    morphometrics = morphometrics[morphometrics["slice"] == "SL003"]
+    morphometrics["timepoint"] = _loop_to_timepoint(morphometrics["loop"].tolist())
+    timeframe_dict = _build_timeframe_dict(n_timeframes)
+    morphometrics["timeframe"] = morphometrics["loop"].map(timeframe_dict)
+    morphometrics.to_csv(output_file, index = False)
+
+    return morphometrics
+    
+def _rename_annotation_columns(df: pd.DataFrame) -> pd.DataFrame:
+    eval_id = df["Evaluator_ID"].unique()[0]
+    eval_id = "human_eval"
+    df = df.rename(
+        columns = {
+            "FileName": "file_name",
+            "ContainsRPE": f"{eval_id}_RPE_Final_Contains",
+            "WillDevelopRPE": f"{eval_id}_RPE_Final",
+            "RPESize": f"{eval_id}_RPE_classes",
+            "ContainsLens": f"{eval_id}_Lens_Final_Contains",
+            "WillDevelopLens": f"{eval_id}_Lens_Final",
+            "LensSize": f"{eval_id}_Lens_classes"
+        }
+    )
+    return df
+
+def concat_human_evaluations(results_dir: str = "",
+                             output_dir: str = "./figure_data",
+                             output_filename: str = "human_evaluations_concat") -> pd.DataFrame:
+    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+    
+    eval_dfs = []
+    for evaluator in EVALUATORS:
+        df = pd.read_csv(os.path.join(results_dir, f"{evaluator}_organoid_classification.csv"))
+        df = _rename_annotation_columns(df)
+        eval_dfs.append(df)
+
+    human_evaluations = pd.concat(eval_dfs, axis = 0)
+    human_evaluations = human_evaluations.reset_index(drop = True)
+    human_evaluations.to_csv(output_file, index = False)
+    return human_evaluations
+
+def create_human_ground_truth_comparison(evaluator_results_dir: str,
+                                         morphometrics_dir: str,
+                                         output_dir: str = "./figure_data",
+                                         output_filename: str = "human_ground_truth_comparison") -> pd.DataFrame:
+    
+    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+
+    human_evaluations = concat_human_evaluations(evaluator_results_dir, output_dir)
+    ground_truth = get_ground_truth_annotations(morphometrics_dir,
+                                                output_dir = output_dir)
+    comparison = ground_truth.merge(human_evaluations, on = "file_name", how = "inner")
+
+    comparison.to_csv(output_file, index = False)
+    return comparison
+
+
+def f1_scores(df: pd.DataFrame,
+              group_keys: list[str],
+              average: str = "weighted") -> pd.DataFrame:
+    """
+    Compute weighted F1 scores for each human prediction column against its ground truth counterpart,
+    grouped by specified keys. Ensures each class appears at least once for stable scoring.
+
+    Returns one F1 column per prediction.
+    """
+    n_classes_dict = N_CLASSES_DICT
+    pred_cols = _DEFAULT_HUMAN_COLS
+
+    records = []
+    for keys, grp in df.groupby(group_keys):
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        row = dict(zip(group_keys, keys))
+        for pred in pred_cols:
+            # resolve target gt col
+            short = pred.replace('human_eval_', '')
+            gt_col = _CONTAINS_MAP.get(short, short)
+            # extract true/pred labels
+            if gt_col in _STRING_LABEL_COLS:
+                y_true = grp[gt_col].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
+                y_pred = grp[pred].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
+            else:
+                y_true = grp[gt_col].astype(int).to_numpy()
+                y_pred = grp[pred].astype(int).to_numpy()
+            # pad missing classes
+            n = n_classes_dict[gt_col]
+            present = set(np.unique(y_true)) | set(np.unique(y_pred))
+            missing = set(range(n)) - present
+            if missing:
+                pad = np.array(list(missing), dtype=int)
+                y_true = np.concatenate([y_true, pad])
+                y_pred = np.concatenate([y_pred, pad])
+            # compute f1
+            row[f"F1_{short}"] = f1_score(y_true, y_pred, average=average)
+        records.append(row)
+    return pd.DataFrame.from_records(records)
+
+def human_f1_per_evaluator(evaluator_results_dir: str,
+                           morphometrics_dir: str,
+                           average: str = "weighted",
+                           output_dir: str = "./figure_data",
+                           output_filename: str = "human_f1_per_evaluator") -> pd.DataFrame:
+    """
+    Weighted F1 scores per timeframe and evaluator for all human_eval_ columns.
+    """
+    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+
+    df = create_human_ground_truth_comparison(evaluator_results_dir,
+                                              morphometrics_dir,
+                                              output_dir = output_dir)
+    f1_frame = f1_scores(df,
+                         group_keys=["timeframe", "Evaluator_ID"],
+                         average=average)
+
+    f1_frame.to_csv(output_file, index = False)
+    return f1_frame
+
+def human_f1_per_experiment(evaluator_results_dir: str,
+                            morphometrics_dir: str,
+                            average: str = "weighted",
+                            output_dir: str = "./figure_data",
+                            output_filename: str = "human_f1_per_experiment") -> pd.DataFrame:
+    """
+    Weighted F1 scores per timeframe and experiment for all human_eval_ columns.
+    """
+    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+    df = create_human_ground_truth_comparison(evaluator_results_dir,
+                                              morphometrics_dir,
+                                              output_dir = output_dir)
+    f1_frame = f1_scores(df,
+                         group_keys=["timeframe", "experiment"],
+                         average=average)
+
+    f1_frame.to_csv(output_file, index = False)
+    return f1_frame
+
+def get_dataset_annotations(annotations_dir: str,
+                            output_dir: str = "./figure_data",
+                            output_filename: str = "dataset_annotations") -> pd.DataFrame:
+    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+
+    frames = []
+    for experiment in cfg.EXPERIMENTS:
+        frames.append(pd.read_csv(os.path.join(annotations_dir, f"{experiment}_annotations.csv")))
+    annotations = pd.concat(frames, axis = 0)
+    annotations = annotations.dropna()
+    annotations[["experiment", "well"]] = pd.DataFrame(
+        data = [
+            [ID[:4], ID[4:]] for ID in annotations["ID"].tolist()
+        ]
+    ).to_numpy()
+    annotations.to_csv(output_file, index = False)
+    return annotations
+
+def add_loop_from_timeframe(df: pd.DataFrame,
+                            n_timeframes: int = 12,
+                            total_loops: int = 144,
+                            timeframe_col: str = "timeframe",
+                            loop_col: str = "loop") -> pd.DataFrame:
+    """Calculates backwards and adds the maximum loop number for every given timeframe"""
+    chunk = total_loops // n_timeframes
+    max_loops = {
+        tf: min(tf * chunk, total_loops)
+        for tf in range(1, n_timeframes + 1)
+    }
+    df = df.copy()
+    df[loop_col] = df[timeframe_col].map(max_loops)
+    return df
+
+def confusion_matrix_last_timeframe_all(df: pd.DataFrame,
+                                        truth_col: str,
+                                        pred_col: str,
+                                        timeframe_col: str = "timeframe") -> np.ndarray:
+    """
+    Compute a single confusion matrix across all evaluators for the last timeframe.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame containing truth, prediction, and timeframe columns.
+    truth_col : str
+        Name of the ground-truth column (e.g. "RPE_Final").
+    pred_col : str
+        Name of the prediction column (e.g. "RPE_Final_Contains").
+    timeframe_col : str, default="timeframe"
+        Column indicating the timeframe (int or str).
+
+    Returns
+    -------
+    np.ndarray
+        The confusion matrix summed over all evaluators for the last timeframe.
+    """
+    # ensure lowercase labels for strings
+    sub = df.copy()
+    sub[timeframe_col] = sub[timeframe_col].astype(int)
+    last = sub[timeframe_col].max()
+    sub = sub[sub[timeframe_col] == last]
+
+    # normalize string labels
+    if truth_col in _STRING_LABEL_COLS:
+        y_true = sub[truth_col].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
+        y_pred = sub[pred_col].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
+    else:
+        y_true = sub[truth_col].astype(int).to_numpy()
+        y_pred = sub[pred_col].astype(int).to_numpy()
+
+    # compute and return
+    return confusion_matrix(y_true, y_pred)
+
+def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
+                                        morphometrics_dir: str,
+                                        output_dir: str = "./figure_data",
+                                        output_filename: str = "RPE_vis_conf_matrix"):
+    output_filename = os.path.join(output_dir, f"{output_filename}.npy")
+    if os.path.isfile(output_filename):
+        return np.load(output_filename)
+
+
+    df = create_human_ground_truth_comparison(evaluator_results_dir,
+                                              morphometrics_dir,
+                                              output_dir = output_dir)
+
+    conf_matrix = confusion_matrix_last_timeframe_all(df,
+                                                      truth_col = "RPE_Final",
+                                                      pred_col = "RPE_Final_Contains")
+    np.save(output_filename, conf_matrix)
+    return conf_matrix
 

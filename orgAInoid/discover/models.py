@@ -310,4 +310,4 @@ def build_models(*,
     else:
         disc = MLPDiscriminator(latent_dim)
     dis = Disentangler(latent_dim)
-    return enc, dec, disc, dis
+
