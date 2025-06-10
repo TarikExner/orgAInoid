@@ -187,7 +187,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.25)
         data = human_f1_data.copy()
-        data = data[["F1", "Evaluator_ID", "loop"]]
+        data = data[["F1_RPE_Final", "Evaluator_ID", "loop"]]
         data["hours"] = data["loop"] / 2
         data = data[data["Evaluator_ID"] != "mean"]
 
@@ -195,15 +195,15 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
         plot_kwargs = {
             "x": "hours",
-            "y": "F1_score",
-            "hue": "evaluator"
+            "y": "F1_RPE_Final",
+            "hue": "Evaluator_ID"
         }
         
         vis_over_time = fig.add_subplot(fig_sgs[:6])
         sns.lineplot(data = data, ax = vis_over_time, **plot_kwargs)
         vis_over_time.set_ylim(-0.05, 1.05)
         handles, labels = vis_over_time.get_legend_handles_labels()
-        labels = [label.replace("HEAT", "Expert") for label in labels]
+        labels = [label.replace("HEAT2", "Expert") for label in labels]
         vis_over_time.legend(handles, labels, bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE)
         vis_over_time.tick_params(**cfg.TICKPARAMS_PARAMS)
         vis_over_time.set_title("RPE visibility over time", fontsize = cfg.TITLE_SIZE)
@@ -238,8 +238,8 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
         plot_kwargs = {
             "x": "hours",
-            "y": "F1_score",
-            "hue": "evaluator"
+            "y": "F1_Lens_Final",
+            "hue": "Evaluator_ID"
         }
 
         vis_over_time = fig.add_subplot(fig_sgs[0])
