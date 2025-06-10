@@ -647,7 +647,9 @@ def get_dataset_annotations(annotations_dir: str,
 
     frames = []
     for experiment in cfg.EXPERIMENTS:
-        frames.append(pd.read_csv(os.path.join(annotations_dir, f"{experiment}_annotations.csv")))
+        frames.append(
+            pd.read_csv(os.path.join(annotations_dir, f"{experiment}_annotations.csv"), sep = ";")
+        )
     annotations = pd.concat(frames, axis = 0)
     annotations = annotations.dropna()
     annotations[["experiment", "well"]] = pd.DataFrame(
