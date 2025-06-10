@@ -730,7 +730,7 @@ def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
 
     conf_matrix = confusion_matrix_last_timeframe_all(df,
                                                       truth_col = "RPE_Final",
-                                                      pred_col = "RPE_Final_Contains")
+                                                      pred_col = "human_eval_RPE_Final_Contains")
     np.save(output_filename, conf_matrix)
     return conf_matrix
 
