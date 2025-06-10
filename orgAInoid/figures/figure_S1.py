@@ -244,6 +244,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
         vis_over_time = fig.add_subplot(fig_sgs[0])
         sns.lineplot(data = data, ax = vis_over_time, **plot_kwargs)
+        vis_over_time.set_xlim(-1, 73)
         vis_over_time.set_ylim(-0.05, 1.05)
         handles, labels = vis_over_time.get_legend_handles_labels()
         labels = [label.replace("HEAT", "Annotator") for label in labels]
@@ -342,7 +343,8 @@ def figure_S1_generation(annotations_dir: str,
                          evaluator_results_dir: str,
                          morphometrics_dir: str,
                          figure_data_dir: str,
-                         figure_output_dir: str):
+                         figure_output_dir: str,
+                         **kwargs):
 
     dataset_annotations = get_dataset_annotations(annotations_dir,
                                                   output_dir = figure_data_dir)

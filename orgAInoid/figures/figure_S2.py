@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -7,12 +6,6 @@ from matplotlib.gridspec import GridSpec
 
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
-
-
-from matplotlib.patches import Rectangle
-from matplotlib.lines import Line2D
-
-import cv2
 
 from . import figure_config as cfg
 from . import figure_utils as utils
@@ -177,7 +170,8 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
 
 def figure_S2_generation(morphometrics_dir: str,
                          figure_data_dir: str,
-                         figure_output_dir: str):
+                         figure_output_dir: str,
+                         **kwargs):
 
     morphometrics = get_morphometrics_frame(morphometrics_dir)
     data_columns = get_data_columns_morphometrics(morphometrics)
@@ -187,6 +181,7 @@ def figure_S2_generation(morphometrics_dir: str,
                                                           use_pca = True,
                                                           output_dir = figure_data_dir)
     morphometrics = morphometrics[morphometrics["Condition"] == "0nM"]
+    assert isinstance(morphometrics, pd.DataFrame)
     organoid_distances = calculate_organoid_distances(morphometrics,
                                                       data_columns,
                                                       use_pca = True,

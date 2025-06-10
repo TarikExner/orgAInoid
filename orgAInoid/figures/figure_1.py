@@ -8,8 +8,8 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 import matplotlib.patches as mpatches
 from matplotlib.legend_handler import HandlerBase
-import cv2
 
+import cv2
 
 from . import figure_config as cfg
 from . import figure_utils as utils
@@ -19,6 +19,7 @@ from .figure_data_generation import get_dataset_annotations
 
 def _generate_main_figure(annotation_data: pd.DataFrame,
                           figure_output_dir: str = "",
+                          microscopy_dir: str = "",
                           sketch_dir: str = "",
                           figure_name: str = ""):
 
@@ -167,22 +168,38 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
         class2_rpe_image = fig.add_subplot(fig_sgs[2,0])
         class3_rpe_image = fig.add_subplot(fig_sgs[2,1])
 
-        class0_rpe_tif = cv2.imread('./microscopy_images/E001E0001_cropped_adjusted_scaled.tif', cv2.IMREAD_UNCHANGED)
+        class0_rpe_tif = cv2.imread(
+            os.path.join(
+                microscopy_dir,
+                'E001E0001_cropped_adjusted_scaled.tif'
+            ), cv2.IMREAD_UNCHANGED)
         class0_rpe_tif = cv2.cvtColor(class0_rpe_tif, cv2.COLOR_BGR2RGB)
         class0_rpe_image.imshow(class0_rpe_tif)
         class0_rpe_image.set_title("RPE: class 0", fontsize = cfg.TITLE_SIZE)
         utils.remove_ticks_and_labels(class0_rpe_image)
-        class1_rpe_tif = cv2.imread('./microscopy_images/E001C0002_cropped_adjusted_scaled.tif', cv2.IMREAD_UNCHANGED)
+        class1_rpe_tif = cv2.imread(
+            os.path.join(
+                microscopy_dir,
+                'E001C0002_cropped_adjusted_scaled.tif'
+            ), cv2.IMREAD_UNCHANGED)
         class1_rpe_tif = cv2.cvtColor(class1_rpe_tif, cv2.COLOR_BGR2RGB)
         class1_rpe_image.imshow(class1_rpe_tif)
         class1_rpe_image.set_title("RPE: class 1", fontsize = cfg.TITLE_SIZE)
         utils.remove_ticks_and_labels(class1_rpe_image)
-        class2_rpe_tif = cv2.imread('./microscopy_images/E001A0010_cropped_adjusted_scaled.tif', cv2.IMREAD_UNCHANGED)
+        class2_rpe_tif = cv2.imread(
+            os.path.join(
+                microscopy_dir,
+                'E001A0010_cropped_adjusted_scaled.tif'
+            ), cv2.IMREAD_UNCHANGED)
         class2_rpe_tif = cv2.cvtColor(class2_rpe_tif, cv2.COLOR_BGR2RGB)
         class2_rpe_image.imshow(class2_rpe_tif)
         class2_rpe_image.set_title("RPE: class 2", fontsize = cfg.TITLE_SIZE)
         utils.remove_ticks_and_labels(class2_rpe_image)
-        class3_rpe_tif = cv2.imread('./microscopy_images/E001F0008_cropped_adjusted_scaled.tif', cv2.IMREAD_UNCHANGED)
+        class3_rpe_tif = cv2.imread(
+            os.path.join(
+                microscopy_dir,
+                'E001F0008_cropped_adjusted_scaled.tif'
+            ), cv2.IMREAD_UNCHANGED)
         class3_rpe_tif = cv2.cvtColor(class3_rpe_tif, cv2.COLOR_BGR2RGB)
         class3_rpe_image.imshow(class3_rpe_tif)
         class3_rpe_image.set_title("RPE: class 3", fontsize = cfg.TITLE_SIZE)
@@ -193,22 +210,38 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
         class2_lens_image = fig.add_subplot(fig_sgs[2,2])
         class3_lens_image = fig.add_subplot(fig_sgs[2,3])
 
-        class0_lens_tif = cv2.imread('./microscopy_images/E008_Plate_Montage_loop_144_downsampled1_B010_cropped_adjusted_scaled.tif', cv2.IMREAD_UNCHANGED)
+        class0_lens_tif = cv2.imread(
+            os.path.join(
+                microscopy_dir,
+                'E008_Plate_Montage_loop_144_downsampled1_B010_cropped_adjusted_scaled.tif'
+            ), cv2.IMREAD_UNCHANGED)
         class0_lens_tif = cv2.cvtColor(class0_lens_tif, cv2.COLOR_BGR2RGB)
         class0_lens_image.imshow(class0_lens_tif)
         class0_lens_image.set_title("Lens: class 0", fontsize = cfg.TITLE_SIZE)
         utils.remove_ticks_and_labels(class0_lens_image)
-        class1_lens_tif = cv2.imread('./microscopy_images/E008_Plate_Montage_loop_144_downsampled1_A010_cropped_adjusted_scaled.tif', cv2.IMREAD_UNCHANGED)
+        class1_lens_tif = cv2.imread(
+            os.path.join(
+                microscopy_dir,
+                'E008_Plate_Montage_loop_144_downsampled1_A010_cropped_adjusted_scaled.tif'
+            ), cv2.IMREAD_UNCHANGED)
         class1_lens_tif = cv2.cvtColor(class1_lens_tif, cv2.COLOR_BGR2RGB)
         class1_lens_image.imshow(class1_lens_tif)
         class1_lens_image.set_title("Lens: class 1", fontsize = cfg.TITLE_SIZE)
         utils.remove_ticks_and_labels(class1_lens_image)
-        class2_lens_tif = cv2.imread('./microscopy_images/E008_Plate_Montage_loop_144_downsampled1_D009_cropped_adjusted_scaled.tif', cv2.IMREAD_UNCHANGED)
+        class2_lens_tif = cv2.imread(
+            os.path.join(
+                microscopy_dir,
+                'E008_Plate_Montage_loop_144_downsampled1_D009_cropped_adjusted_scaled.tif'
+            ), cv2.IMREAD_UNCHANGED)
         class2_lens_tif = cv2.cvtColor(class2_lens_tif, cv2.COLOR_BGR2RGB)
         class2_lens_image.imshow(class2_lens_tif)
         class2_lens_image.set_title("Lens: class 2", fontsize = cfg.TITLE_SIZE)
         utils.remove_ticks_and_labels(class2_lens_image)
-        class3_lens_tif = cv2.imread('./microscopy_images/E001_Plate_Montage_loop_144_downsampled1_E001_cropped_adjusted_scaled.tif', cv2.IMREAD_UNCHANGED)
+        class3_lens_tif = cv2.imread(
+            os.path.join(
+                microscopy_dir,
+                'E001_Plate_Montage_loop_144_downsampled1_E001_cropped_adjusted_scaled.tif'
+            ), cv2.IMREAD_UNCHANGED)
         class3_lens_tif = cv2.cvtColor(class3_lens_tif, cv2.COLOR_BGR2RGB)
         class3_lens_image.imshow(class3_lens_tif)
         class3_lens_image.set_title("Lens: class 3", fontsize = cfg.TITLE_SIZE)
@@ -248,13 +281,16 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 def figure_1_generation(annotations_dir: str,
                         figure_data_dir: str,
                         sketch_dir: str,
-                        figure_output_dir: str):
+                        microscopy_dir: str,
+                        figure_output_dir: str,
+                        **kwargs):
 
     dataset_annotations = get_dataset_annotations(annotations_dir,
                                                   output_dir = figure_data_dir)
 
     _generate_main_figure(annotation_data = dataset_annotations,
                           figure_output_dir = figure_output_dir,
+                          microscopy_dir = microscopy_dir,
                           figure_name = "Figure_1",
                           sketch_dir = sketch_dir)
 

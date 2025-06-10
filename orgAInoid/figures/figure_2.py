@@ -7,7 +7,6 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
-
 from matplotlib.patches import Rectangle
 
 import cv2
@@ -198,7 +197,8 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
 def figure_2_generation(morphometrics_dir: str,
                         figure_data_dir: str,
                         sketch_dir: str,
-                        figure_output_dir: str):
+                        figure_output_dir: str,
+                        **kwargs):
 
     morphometrics = get_morphometrics_frame(morphometrics_dir)
     data_columns = get_data_columns_morphometrics(morphometrics)
@@ -221,7 +221,7 @@ def figure_2_generation(morphometrics_dir: str,
                                                               output_dir = figure_data_dir)
     dimreds = calculate_organoid_dimensionality_reduction(morphometrics,
                                                           data_columns,
-                                                          use_pca = True,
+                                                          use_pca = False,
                                                           output_dir = figure_data_dir)
 
     jaccard_pca_umap = compare_neighbors_by_experiment(dimreds_pca,

@@ -122,7 +122,7 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
     pc_columns = [f"PC{i}" for i in range(1, n_pcs+1)]
 
     for experiment in cfg.EXPERIMENTS:
-        print(f"Calculating experiment {experiment}")
+        print(f"Calculating distances for experiment {experiment} using {save_suffix.strip("_")} data")
         exp_data = df.loc[df["experiment"] == experiment, data_columns].to_numpy()
         exp_data = StandardScaler().fit_transform(exp_data)
         if use_pca:
@@ -180,7 +180,7 @@ def calculate_organoid_distances(df: pd.DataFrame,
     for experiment in cfg.EXPERIMENTS:
         data_columns = original_data_columns
 
-        print(f"Calculating distances for experiment {experiment}")
+        print(f"Calculating distances for experiment {experiment} using {save_suffix.strip("_")} data")
         exp_data = df[df["experiment"] == experiment].copy()
         time_points = sorted(exp_data["loop"].unique())
 
