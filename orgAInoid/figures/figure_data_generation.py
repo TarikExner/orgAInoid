@@ -13,6 +13,7 @@ from sklearn.decomposition import PCA
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.tree import DecisionTreeClassifier
 
 from sklearn.manifold import TSNE
 from umap import UMAP
@@ -21,7 +22,7 @@ import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
-from typing import Optional, Literal, NoReturn, Union
+from typing import Optional, Literal, NoReturn, Union, Sequence
 
 from ..classification._dataset import OrganoidDataset, OrganoidTrainingDataset
 from ..classification.models import DenseNet121, ResNet50, MobileNetV3_Large
@@ -100,14 +101,32 @@ HumanReadouts = Literal[
 ]
 
 Projections = Literal["max", "sum", "all_slices", ""]
-ProjectionIDs = Literal["SL3", "ZMAX", "ZSUM"]
+ProjectionIDs = Literal["ZMAX", "ZSUM", "ALL_SLICES", "SL3"]
+
+PROJECTION_SAVE_MAP = {
+    "SL3": "SL3",
+    "ZMAX": "max",
+    "ZSUM": "sum",
+    "ALL_SLICES": "all_slices",
+    "": "SL3",
+    "max": "max",
+    "sum": "sum",
+    "all_slices": "all_slices"
+}
+
+PROJECTION_TO_PROJECTION_ID_MAP: dict[Projections, ProjectionIDs] = {
+    "max": "ZMAX",
+    "sum": "ZSUM",
+    "all_slices": "ALL_SLICES",
+    "": "SL3"
+}
 
 BEST_CLASSIFIERS = {
-    "RPE_Final": None,
-    "RPE_classes": None,
-    "Lens_Final": None,
-    "Lens_classes": None,
-    "morph_classes": None
+    "RPE_Final": DecisionTreeClassifier,
+    "RPE_classes": DecisionTreeClassifier,
+    "Lens_Final": DecisionTreeClassifier,
+    "Lens_classes": DecisionTreeClassifier,
+    "morph_classes": DecisionTreeClassifier
 }
 
 def _loop_to_timepoint(loops: list[str]) -> list[int]:
@@ -126,7 +145,7 @@ def check_for_file(output_file: str) -> Optional[pd.DataFrame]:
     return
 
 def get_morphometrics_frame(results_dir: str,
-                            suffix: Optional[Projections] = None) -> pd.DataFrame:
+                            suffix: Optional[str] = None) -> pd.DataFrame:
     if not suffix:
         suffix = ""
 
@@ -973,7 +992,7 @@ def _save_neural_net_results(output_dir: str,
                              proj: ProjectionIDs,
                              f1_scores: pd.DataFrame,
                              confusion_matrices: np.ndarray) -> None:
-
+    proj = PROJECTION_SAVE_MAP[proj]
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     os.makedirs(save_dir, exist_ok=True)
     file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
@@ -998,6 +1017,7 @@ def _read_neural_net_results(output_dir: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
                              proj: ProjectionIDs) -> tuple:
+    proj = PROJECTION_SAVE_MAP[proj]
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
                                      val_dataset_id = val_dataset_id,
@@ -1150,22 +1170,24 @@ def _get_best_params(hyperparameter_dir: str,
 def _instantiate_classifier(clf,
                             readout: Readouts,
                             best_params: dict):
-    if readout == "RPE_Final":
-        if "n_jobs" not in best_params:
-            best_params["n_jobs"] = 16
-        return clf(**best_params)
-    else:
-        return MultiOutputClassifier(clf(**best_params), n_jobs = 16)
+    # if readout == "RPE_Final":
+    #     if "n_jobs" not in best_params:
+    #         best_params["n_jobs"] = 16
+    #     return clf(**best_params)
+    # else:
+    #     return MultiOutputClassifier(clf(**best_params), n_jobs = 16)
+    best_params["n_jobs"] = 16
+    return clf(**best_params)
 
 def _save_classifier_results(output_dir: str,
                              readout: Readouts,
                              val_experiment_id: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
-                             proj: ProjectionIDs,
+                             proj: Projections,
                              f1_scores: pd.DataFrame,
                              confusion_matrices: np.ndarray) -> None:
-
+    proj = PROJECTION_SAVE_MAP[proj]
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     os.makedirs(save_dir, exist_ok=True)
     file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
@@ -1190,6 +1212,7 @@ def _read_classifier_results(output_dir: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
                              proj: ProjectionIDs) -> tuple:
+    proj = PROJECTION_SAVE_MAP[proj]
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
                                      val_dataset_id = val_dataset_id,
@@ -1214,7 +1237,7 @@ def classifier_evaluation(val_experiment_id: str,
                           eval_set: EvaluationSets,
                           morphometrics_dir: str,
                           hyperparameter_dir: str,
-                          proj: Projections = "SL3",
+                          proj: Projections = "",
                           output_dir: str = "./figure_data") -> tuple[pd.DataFrame, np.ndarray]:
     val_dataset_id = val_experiment_id
 
@@ -1231,7 +1254,7 @@ def classifier_evaluation(val_experiment_id: str,
 
     labels = _get_labels(readout)
 
-    suffix = f"_{proj}"
+    suffix = f"_{proj}" if proj else ""
     morphometrics_frame = get_morphometrics_frame(results_dir = morphometrics_dir,
                                                   suffix = suffix)
     data_columns = get_data_columns_morphometrics(morphometrics_frame)
@@ -1253,15 +1276,16 @@ def classifier_evaluation(val_experiment_id: str,
 
     clf_ = BEST_CLASSIFIERS[readout]
     clf_name = clf_().__class__.__name__
-    best_params = _get_best_params(hyperparameter_dir,
-                                   readout = readout,
-                                   projection = proj,
-                                   classifier_name = clf_name)
+    best_params = {}
+    # best_params = _get_best_params(hyperparameter_dir,
+    #                                readout = readout,
+    #                                projection = proj,
+    #                                classifier_name = clf_name)
     clf = _instantiate_classifier(clf_, readout = readout, best_params = best_params)
     clf.fit(X_train, y_train)
 
     result_df = val_df if eval_set == "val" else test_df
-    result_df["truth"] = y_val if eval_set == "val" else y_test
+    result_df["truth"] = np.argmax(y_val, axis = 1) if eval_set == "val" else np.argmax(y_test, axis = 1)
     predictions = clf.predict(X_val if eval_set == "val" else X_test)
     result_df["pred"] = np.argmax(predictions, axis = 1)
 
@@ -1285,7 +1309,7 @@ def classifier_evaluation(val_experiment_id: str,
 
 def generate_classification_results(readout: Readouts,
                                     output_dir: str,
-                                    proj: ProjectionIDs,
+                                    proj: Projections,
                                     hyperparameter_dir: str,
                                     experiment_dir: str,
                                     morphometrics_dir: str,
@@ -1296,11 +1320,12 @@ def generate_classification_results(readout: Readouts,
     clf_f1s = []
     cnn_f1s = []
 
+    eval_sets: Sequence[EvaluationSets] = ["test", "val"]
+
     for experiment in experiments:
         # TODO: weights are the F1 scores!
         weights = None
-        for eval_set in ["test", "val"]:
-            eval_set: Literal["test", "val"]
+        for eval_set in eval_sets:
             cnn_f1, cnn_cm = neural_net_evaluation(
                 val_dataset_id = experiment,
                 val_experiment_id = experiment,
@@ -1308,7 +1333,7 @@ def generate_classification_results(readout: Readouts,
                 readout = readout,
                 experiment_dir = experiment_dir,
                 output_dir = output_dir,
-                proj = proj,
+                proj = PROJECTION_TO_PROJECTION_ID_MAP[proj],
                 weights = weights,
                 raw_data_dir = raw_data_dir
             )
