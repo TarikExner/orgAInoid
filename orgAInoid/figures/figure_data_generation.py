@@ -1,19 +1,31 @@
 import os
 import numpy as np
 import pandas as pd
+import pickle
+from tqdm import tqdm
 
-from sklearn.manifold import TSNE
-from umap import UMAP
+from scipy.spatial.distance import pdist, squareform, cdist
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import f1_score, confusion_matrix
-from typing import Optional, Literal
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from umap import UMAP
+
+import torch
+from torch.nn import functional as F
+from torch.data.utils import DataLoader
+
+from typing import Optional, Literal, NoReturn, Union
+
+from ..classification._dataset import OrganoidDataset, OrganoidTrainingDataset
+from ..classification.models import DenseNet121, ResNet50, MobileNetV3_Large
+
+from ..classification._utils import create_dataloader
+from ..classification._evaluation import ModelWithTemperature
 
 from . import figure_config as cfg
 
-
-from scipy.spatial.distance import pdist, squareform, cdist
-from sklearn.decomposition import PCA
 
 METADATA_COLUMNS = [
     'experiment', 'well', 'file_name', 'position', 'slice', 'loop',
@@ -22,6 +34,13 @@ METADATA_COLUMNS = [
     'Lens_Norin', 'Lens_Cassian', 'Confidence_score_lens', 'Lens_area',
     'Lens_classes', 'label'
 ]
+
+CLASS_ENTRIES = {
+    "RPE_Final": ["No", "Yes"],
+    "Lens_Final": ["No", "Yes"],
+    "RPE_classes": [0,1,2,3],
+    "Lens_classes": [0,1,2,3]
+}
 
 EVALUATORS = ["HEAT21", "HEAT22", "HEAT23", "HEAT24", "HEAT25", "HEAT27"]
 
@@ -55,7 +74,14 @@ N_CLASSES_DICT: dict[str, int] = {
     "Lens_Final_Contains": 2
 }
 
+MODEL_NAMES = ["DenseNet121", "ResNet50", "MobileNetV3_Large"]
+
+ModelNames = Literal["DenseNet121", "ResNet50", "MobileNetV3_Large"]
+
+EvaluationSets = Literal["test", "val"]
+
 Readouts = Literal["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
+
 HumanReadouts = Literal[
     "RPE_Final_Contains",
     "Lens_Final_Contains",
@@ -64,6 +90,11 @@ HumanReadouts = Literal[
     "RPE_classes",
     "Lens_classes"
 ]
+
+Projections = Literal["max", "sum", "all_slices", ""]
+
+def _loop_to_timepoint(loops: list[str]) -> list[int]:
+    return [int(lo.split("LO")[1]) for lo in loops]
 
 def _build_timeframe_dict(n_timeframes: int, total: int = 144) -> dict[str, int]:
     chunk = total // n_timeframes
@@ -78,7 +109,7 @@ def check_for_file(output_file: str) -> Optional[pd.DataFrame]:
     return
 
 def get_morphometrics_frame(results_dir: str,
-                            suffix: Optional[Literal["max", "sum", "all_slices", ""]] = None) -> pd.DataFrame:
+                            suffix: Optional[Projections] = None) -> pd.DataFrame:
     if not suffix:
         suffix = ""
 
@@ -356,7 +387,7 @@ def compare_neighbors_by_experiment(df: pd.DataFrame,
     records = []
     exps = df[experiment_col].unique()
     for exp in exps:
-        print(f">>> Computing neighbors for experiment {exp}")
+        print(f">>> Computing neighbors vs. dimred for experiment {exp}")
         sub = df[df[experiment_col] == exp]
         # this returns a Series indexed by loop
         loop_jacc, _ = compare_neighbors_by_loop(
@@ -456,7 +487,7 @@ def neighbors_per_well_by_experiment(df: pd.DataFrame,
 
     records = []
     for exp in df[experiment_col].unique():
-        print(f">>> Computing neighbors for experiment {exp}")
+        print(f">>> Computing neighbors per well for experiment {exp}")
         sub = df[df[experiment_col] == exp]
         frac_by_loop = well_same_well_fraction_by_loop(
             sub, data_cols=data_cols, well_col=well_col,
@@ -471,12 +502,10 @@ def neighbors_per_well_by_experiment(df: pd.DataFrame,
             })
 
     df = pd.DataFrame.from_records(records)
-    df["loop"] = [int(lo.split("LO")[1]) for lo in df["loop"]]
+    df["loop"] = _loop_to_timepoint(df["loop"].tolist())
     df.to_csv(output_file, index = False)
     return df
 
-def _loop_to_timepoint(loops: list[str]) -> list[int]:
-    return [int(lo.split("LO")[1]) for lo in loops]
 
 
 def get_ground_truth_annotations(morphometrics_dir: str = "",
@@ -700,13 +729,11 @@ def confusion_matrix_last_timeframe_all(df: pd.DataFrame,
     np.ndarray
         The confusion matrix summed over all evaluators for the last timeframe.
     """
-    # ensure lowercase labels for strings
     sub = df.copy()
     sub[timeframe_col] = sub[timeframe_col].astype(int)
     last = sub[timeframe_col].max()
     sub = sub[sub[timeframe_col] == last]
 
-    # normalize string labels
     if truth_col in _STRING_LABEL_COLS:
         y_true = sub[truth_col].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
         y_pred = sub[pred_col].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
@@ -714,7 +741,6 @@ def confusion_matrix_last_timeframe_all(df: pd.DataFrame,
         y_true = sub[truth_col].astype(int).to_numpy()
         y_pred = sub[pred_col].astype(int).to_numpy()
 
-    # compute and return
     return confusion_matrix(y_true, y_pred)
 
 def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
@@ -735,3 +761,263 @@ def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
                                                       pred_col = "human_eval_RPE_Final_Contains")
     np.save(output_filename, conf_matrix)
     return conf_matrix
+
+## neural net evaluation
+def _preprocess_results_file(df: pd.DataFrame) -> pd.DataFrame:
+    df = df[df["ExperimentID"] != "ExperimentID"].copy()
+    assert isinstance(df, pd.DataFrame)
+    df["ValF1"] = df["ValF1"].astype(float)
+    df["TestF1"] = df["TestF1"].astype(float)
+    return df
+
+def _create_f1_weights(results: pd.DataFrame) -> pd.DataFrame:
+    """calculates the max f1 score by model"""
+    return results.groupby(["ValExpID", "Model"]).max(["TestF1", "ValF1"]).reset_index()
+
+def read_classification_results(results_dir,
+                                readout: Readouts) -> pd.DataFrame:
+    scores = pd.read_csv(os.path.join(results_dir, f"{readout}.txt"))
+    scores = _preprocess_results_file(scores)
+    return scores
+
+def _get_model(model_name: str,
+               num_classes: int) -> torch.nn.Module:
+    if model_name == "DenseNet121":
+        return DenseNet121(num_classes = num_classes, dropout = 0.2)
+    elif model_name == "ResNet50":
+        return ResNet50(num_classes = num_classes, dropout = 0.2)
+    elif model_name == "MobileNetV3_Large":
+        return MobileNetV3_Large(num_classes = num_classes, dropout = 0.5)
+    else:
+        raise ValueError(f"Unknown Model {model_name}")
+
+def _instantiate_model(model_name: str,
+                       eval_set: Literal["test", "val"],
+                       val_experiment_id: str,
+                       readout: Readouts,
+                       classifier_dir: str):
+    num_classes = N_CLASSES_DICT[readout]
+    model = _get_model(model_name, num_classes)
+    model_name = model.__class__.__name__
+
+    model_file_name = f"{model_name}_{eval_set}_f1_{val_experiment_id}_{readout}"
+    print(f"...loading model {model_file_name}")
+
+    state_dict_path = os.path.join(
+        classifier_dir, f"{model_file_name}_base_model.pth"
+    )
+    model.load_state_dict(torch.load(state_dict_path))
+    model.eval()
+    model.cuda()
+    return model
+
+def model_setup_with_temperature(model_name,
+                                 eval_set: EvaluationSets,
+                                 val_experiment_id: str,
+                                 readout: Readouts,
+                                 val_loader: DataLoader,
+                                 classifier_dir: str):
+    model = _instantiate_model(model_name = model_name,
+                               eval_set = eval_set,
+                               val_experiment_id = val_experiment_id,
+                               readout = readout,
+                               classifier_dir = classifier_dir)
+    model = ModelWithTemperature(model, eval_set, val_experiment_id)
+    model.set_temperature(val_loader)
+    return model
+
+def generate_neural_net_ensemble(val_experiment_id: str,
+                                 readout: Readouts,
+                                 val_loader: DataLoader,
+                                 eval_set: EvaluationSets,
+                                 experiment_dir: str,
+                                 output_dir: str = "./figure_data",
+                                 output_file_name: str = "model_ensemble") -> list[torch.nn.Module, ...]:
+    output_file = os.path.join(output_dir, output_file_name)
+    if os.path.isfile(output_file):
+        with open(output_file, "rb") as file:
+            models = pickle.load(file)
+        return models
+
+    classifier_dir = os.path.join(experiment_dir, "classifiers")
+
+    models = []
+    for model_name in MODEL_NAMES:
+        _model = model_setup_with_temperature(
+            model_name = model_name,
+            eval_set = eval_set,
+            val_experiment_id = val_experiment_id,
+            readout = readout,
+            val_loader = val_loader,
+            classifier_dir = classifier_dir
+        )
+        models.append(_model)
+
+    with open(output_file, "wb") as file:
+        pickle.dump(models, file)
+
+    return models
+
+def ensemble_probability_averaging(models, dataloader, weights=None) -> tuple[np.ndarray, np.ndarray, dict]:
+    """\
+    Weights is a dictionary where the keys are the model names
+    and the values is the val_f1_score.
+    """
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    all_labels = []
+    all_preds = []
+    single_predictions = {model.original_name: [] for model in models}
+    
+    with torch.no_grad():
+        for inputs, labels in tqdm(dataloader):
+            inputs = inputs.to(device)
+            prob_sum = 0
+            total_weight = 0
+            
+            for model in models:
+                logits = model(inputs)
+                preds_single = torch.argmax(logits, dim=1).detach().cpu().numpy()
+                single_predictions[model.original_name].append(preds_single)
+                probs = F.softmax(logits, dim=1)
+                
+                if weights is not None:
+                    weight = weights[model.original_name]
+                else:
+                    # If no weights provided, use equal weighting
+                    weight = 1.0
+                
+                # Accumulate the weighted probabilities
+                prob_sum += weight * probs
+                total_weight += weight
+            
+            # Normalize the accumulated probabilities
+            probs_avg = prob_sum / total_weight
+            # Determine the ensemble predictions
+            preds = torch.argmax(probs_avg, dim=1)
+            # Collect labels and predictions
+            all_labels.extend(labels.cpu().numpy())
+            all_preds.extend(preds.cpu().numpy())
+    
+    return np.array(all_labels), np.array(all_preds), single_predictions
+
+def _read_val_dataset_full(raw_data_dir: str,
+                           file_name: str) -> OrganoidDataset:
+    validation_dataset_file = os.path.join(raw_data_dir, file_name)
+    return OrganoidDataset.read_classification_dataset(validation_dataset_file)
+
+def _create_val_loader_full_dataset(val_dataset: OrganoidDataset,
+                                    readout: Readouts) -> DataLoader:
+    X, y = val_dataset.X, val_dataset.y[readout]
+    return create_dataloader(X, y, batch_size = 128, shuffle = False, train = False)
+
+def _create_val_loader_split(val_dataset: OrganoidDataset,
+                             readout: Readouts) -> DataLoader:
+    val_dataset = OrganoidTrainingDataset(val_dataset, readout = readout)
+    X, y = val_dataset.X_test, val_dataset.y_test
+    return create_dataloader(X, y, batch_size = 128, shuffle = False, train = False)
+
+def create_val_loader(val_dataset: OrganoidDataset,
+                      readout: Readouts,
+                      eval_set: EvaluationSets) -> Union[DataLoader, NoReturn]:
+    if eval_set == "test":
+        return _create_val_loader_split(val_dataset,
+                                        readout = readout)
+    elif eval_set == "val":
+        return _create_val_loader_full_dataset(val_dataset,
+                                               readout = readout)
+    else:
+        raise ValueError(f"eval_set has to be one of 'test' and 'val'. Received {eval_set}")
+
+def calculate_f1_scores(df) -> pd.DataFrame:
+    loops = df.sort_values(["loop"], ascending = True)["loop"].unique().tolist()
+    f1_scores = pd.DataFrame(
+        df.groupby('loop').apply(
+            lambda x: f1_score(x['truth'], x['pred'], average = "weighted")
+        ),
+        columns = ["F1"]
+    ).reset_index()
+    f1_scores["loop"] = _loop_to_timepoint(loops)
+    return f1_scores
+
+def neural_net_evaluation(val_experiment_id: str,
+                          eval_set: EvaluationSets,
+                          readout: Readouts,
+                          proj: str,
+                          raw_data_dir: str,
+                          experiment_dir: str,
+                          output_dir: str,
+                          weights: Optional[dict] = None) -> tuple:
+    val_dataset_filename = (
+        f"M{val_experiment_id}_full_{proj}_fixed.cds"
+        if eval_set == "test"
+        else f"{val_experiment_id}_full_{proj}_fixed.cds"
+    )
+    val_dataset = _read_val_dataset_full(raw_data_dir = raw_data_dir,
+                                         file_name = val_dataset_filename)
+
+    val_loader = create_val_loader(val_dataset = val_dataset,
+                                   readout = readout,
+                                   eval_set = eval_set)
+    assert -1 not in val_dataset.metadata["IMAGE_ARRAY_INDEX"]
+    df = val_dataset.metadata
+    if eval_set == "test":
+        df = df[df["set"] == "test"]
+    assert pd.Series(df["IMAGE_ARRAY_INDEX"]).is_monotonic_increasing
+
+    models = generate_neural_net_ensemble(
+        val_experiment_id = val_experiment_id,
+        readout = readout,
+        val_loader = val_loader,
+        eval_set = eval_set,
+        experiment_dir = experiment_dir,
+        output_dir = output_dir,
+        output_file_name = f"model_ensemble_{val_experiment_id}"
+    )
+    truth_arr, ensemble_pred, single_predictions = ensemble_probability_averaging(
+        models, val_loader, weights = weights
+    )
+    single_predictions = {
+        model: np.hstack(single_predictions[model]) for model in single_predictions
+    }
+    truth_values = pd.DataFrame(
+        data = np.array([np.argmax(el) for el in truth_arr]),
+        columns = ["truth"],
+        index = df.index
+    )
+
+    pred_values = pd.DataFrame(
+        data = ensemble_pred,
+        columns = ["pred"],
+        index = df.index
+    )
+
+    df = pd.concat([df, truth_values, pred_values], axis = 1)
+
+    f1_dfs = []
+
+    labels = [0, 1] if readout in ["RPE_Final", "Lens_Final"] else [0, 1, 2, 3]
+    conf_matrix_df = df.copy()
+    confusion_matrices = conf_matrix_df.groupby("loop").apply(
+        lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
+    )
+    confusion_matrices = np.array(confusion_matrices.tolist())
+
+    ensemble_f1 = calculate_f1_scores(df)
+    ensemble_f1 = ensemble_f1.rename(columns = {"F1": "Ensemble"}).set_index("loop")
+    f1_dfs.append(ensemble_f1)
+
+    for model in single_predictions:
+        df.loc[:, "pred"] = single_predictions[model]
+        f1 = calculate_f1_scores(df)
+        f1 = f1.rename(columns = {"F1": model}).set_index("loop")
+        f1_dfs.append(f1)
+
+    neural_net_f1 = pd.concat(f1_dfs, axis=1)
+    neural_net_f1 = neural_net_f1.reset_index().melt(id_vars = "loop",
+                                                     value_name = "F1",
+                                                     var_name = "Neural Net")
+
+    return neural_net_f1, confusion_matrices
+
+
+

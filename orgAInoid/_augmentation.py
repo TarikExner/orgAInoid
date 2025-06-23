@@ -3,6 +3,7 @@ from albumentations.pytorch import ToTensorV2
 from albumentations.core.transforms_interface import DualTransform
 import numpy as np
 
+
 class CustomIntensityAdjustment(A.ImageOnlyTransform):
     def __init__(self, always_apply=False, p=0.5):
         super(CustomIntensityAdjustment, self).__init__(always_apply = always_apply, p = p)
@@ -30,19 +31,19 @@ class CustomIntensityAdjustment(A.ImageOnlyTransform):
     def apply(self, img, **params):
         non_zero_mask = img > 0
         img_augmented = self.adjustment(image=img)["image"]
-        
         img = np.where(non_zero_mask, img_augmented, img)
-        
+
         img_min = img.min()
         img_max = img.max()
-        
+
         if img_max > img_min:
             img = (img - img_min) / (img_max - img_min)
-        
+
         return img
 
     def get_transform_init_args_names(self):
         return []
+
 
 class NormalizeSegmented(DualTransform):
     def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), always_apply=False, p=1.0):
@@ -72,9 +73,10 @@ class NormalizeSegmented(DualTransform):
     @property
     def targets_as_params(self):
         return ['mask']
-    
+
     def get_params_dependent_on_targets(self, params):
         return {'mask': params['mask']}
+
 
 def val_transformations() -> A.Compose:
     return A.Compose([
@@ -83,9 +85,9 @@ def val_transformations() -> A.Compose:
         ToTensorV2()
     ], additional_targets={'mask': 'mask'})
 
+
 def to_normalized_tensor() -> A.Compose:
     return A.Compose([
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
         ToTensorV2()
     ], additional_targets={'mask': 'mask'})
-

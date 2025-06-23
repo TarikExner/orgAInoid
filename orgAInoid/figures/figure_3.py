@@ -153,3 +153,7 @@ if __name__ == "__main__":
     plt.savefig("./prefinal_figures/Figure3.pdf", dpi = 300, bbox_inches = "tight")
     plt.savefig("./prefinal_figures/Figure3.png", dpi = 300, bbox_inches = "tight")
     plt.show()
+
+
+def figure_3_generation():
+    pass
