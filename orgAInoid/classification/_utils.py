@@ -1503,8 +1503,8 @@ def create_data_dfs(df: pd.DataFrame,
     val_df[data_columns] = second_scaler.transform(val_df[data_columns])
 
     train_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
-    test_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
-    val_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
+    test_df = test_df.sort_values(["experiment", "well", "loop", "slice"])
+    val_df = val_df.sort_values(["experiment", "well", "loop", "slice"])
 
     return train_df, test_df, val_df
 
