@@ -89,7 +89,25 @@ ModelNames = Literal["DenseNet121", "ResNet50", "MobileNetV3_Large"]
 
 EvaluationSets = Literal["test", "val"]
 
-Readouts = Literal["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
+Readouts = Literal[
+    "RPE_Final",
+    "Lens_Final",
+    "RPE_classes",
+    "Lens_classes"
+]
+BaselineReadouts = Literal[
+    "Baseline_RPE_Final",
+    "Baseline_Lens_Final",
+    "Baseline_RPE_classes",
+    "Baseline_Lens_classes"
+]
+
+READOUT_BASELINE_READOUT_MAP: dict[Readouts, BaselineReadouts] = {
+    "RPE_Final": "Baseline_RPE_Final",
+    "Lens_Final": "Baseline_Lens_Final",
+    "RPE_classes": "Baseline_RPE_classes",
+    "Lens_classes": "Baseline_Lens_classes"
+}
 
 HumanReadouts = Literal[
     "RPE_Final_Contains",
@@ -869,7 +887,10 @@ def generate_neural_net_ensemble(val_experiment_id: str,
                                  experiment_dir: str,
                                  output_dir: str = "./figure_data",
                                  output_file_name: str = "model_ensemble") -> list[torch.nn.Module, ...]:
-    output_file = os.path.join(output_dir, f"{output_file_name}.models")
+    save_dir = os.path.join(output_dir, f"classification_{readout}")
+    os.makedirs(save_dir, exist_ok=True)
+    output_file = os.path.join(save_dir, f"{output_file_name}.models")
+
     if os.path.isfile(output_file):
         with open(output_file, "rb") as file:
             models = pickle.load(file)
@@ -1043,7 +1064,7 @@ def _get_labels(readout: Readouts) -> list[int]:
 def neural_net_evaluation(val_dataset_id: str,
                           val_experiment_id: str,
                           eval_set: EvaluationSets,
-                          readout: Readouts,
+                          readout: Union[Readouts, BaselineReadouts],
                           raw_data_dir: str,
                           experiment_dir: str,
                           output_dir: str,
@@ -1310,6 +1331,96 @@ def classifier_evaluation(val_experiment_id: str,
 
     return f1_scores, confusion_matrices
 
+def classifier_evaluation_baseline(val_experiment_id: str,
+                                   readout: BaselineReadouts,
+                                   eval_set: EvaluationSets,
+                                   morphometrics_dir: str,
+                                   hyperparameter_dir: str,
+                                   proj: Projections = "",
+                                   output_dir: str = "./figure_data") -> tuple[pd.DataFrame, np.ndarray]:
+    val_dataset_id = val_experiment_id
+
+    f1_scores, confusion_matrices = _read_classifier_results(
+        output_dir = output_dir,
+        readout = readout,
+        val_experiment_id = val_experiment_id,
+        val_dataset_id = val_dataset_id,
+        eval_set = eval_set,
+        proj = proj
+    )
+    if f1_scores is not None and confusion_matrices is not None:
+        return f1_scores, confusion_matrices
+
+    labels = _get_labels(readout)
+
+    suffix = f"_{proj}" if proj else ""
+    morphometrics_frame = get_morphometrics_frame(results_dir = morphometrics_dir,
+                                                  suffix = suffix)
+    data_columns = get_data_columns_morphometrics(morphometrics_frame)
+
+    train_df, test_df, val_df = create_data_dfs(
+        df = morphometrics_frame,
+        experiment = val_experiment_id,
+        readout = readout,
+        data_columns = data_columns
+    )
+    X_train = _get_data_array(train_df, data_columns)
+    y_train = _get_labels_array(train_df, readout)
+
+    # baseline: we shuffle:
+    np.random.seed(187)
+    np.random.shuffle(y_train)
+
+    X_test = _get_data_array(test_df, data_columns)
+    y_test = _get_labels_array(test_df, readout)
+
+    X_val = _get_data_array(val_df, data_columns)
+    y_val = _get_labels_array(val_df, readout)
+
+    clf_ = BEST_CLASSIFIERS[readout]
+    clf_name = clf_().__class__.__name__
+    best_params = {}
+    # best_params = _get_best_params(hyperparameter_dir,
+    #                                readout = readout,
+    #                                projection = proj,
+    #                                classifier_name = clf_name)
+    clf = _instantiate_classifier(clf_, readout = readout, best_params = best_params)
+    clf.fit(X_train, y_train)
+
+    result_df = val_df if eval_set == "val" else test_df
+    result_df["truth"] = np.argmax(y_val, axis = 1) if eval_set == "val" else np.argmax(y_test, axis = 1)
+    predictions = clf.predict(X_val if eval_set == "val" else X_test)
+    result_df["pred"] = np.argmax(predictions, axis = 1)
+
+    f1_scores = calculate_f1_scores(result_df)
+    f1_scores["experiment"] = val_dataset_id
+    f1_scores["classifier"] = "Morphometrics"
+
+    confusion_matrices = result_df.groupby("loop").apply(
+        lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
+    )
+    confusion_matrices = np.array(confusion_matrices.tolist())
+
+    _save_classifier_results(output_dir = output_dir,
+                             readout = readout,
+                             val_dataset_id = val_dataset_id,
+                             val_experiment_id = val_experiment_id,
+                             proj = proj,
+                             eval_set = eval_set,
+                             f1_scores = f1_scores,
+                             confusion_matrices = confusion_matrices)
+
+    return f1_scores, confusion_matrices
+
+def _postprocess_cnn_frame(df: pd.DataFrame,
+                           eval_set: EvaluationSets,
+                           baseline: bool = False) -> pd.DataFrame:
+    _df = df[df["classifier"] == "Ensemble"]
+    classifier_name = f"Ensemble_{eval_set}" if not baseline else f"Baseline_Ensemble_{eval_set}"
+    _df["classifier"] = classifier_name
+    assert isinstance(_df, pd.DataFrame)
+    return _df
+
 def generate_classification_results(readout: Readouts,
                                     output_dir: str,
                                     proj: Projections,
@@ -1322,7 +1433,8 @@ def generate_classification_results(readout: Readouts,
 
     clf_f1s = []
     cnn_f1s = []
-
+    clf_cms = []
+    cnn_cms = []
     eval_sets: Sequence[EvaluationSets] = ["test", "val"]
 
     for experiment in experiments:
@@ -1338,8 +1450,11 @@ def generate_classification_results(readout: Readouts,
                 output_dir = output_dir,
                 proj = PROJECTION_TO_PROJECTION_ID_MAP[proj],
                 weights = weights,
-                raw_data_dir = raw_data_dir
+                raw_data_dir = raw_data_dir,
             )
+            cnn_f1s.append(cnn_f1)
+            cnn_cms.append(cnn_cm)
+
             clf_f1, clf_cm = classifier_evaluation(
                 val_experiment_id = experiment,
                 readout = readout,
@@ -1349,7 +1464,105 @@ def generate_classification_results(readout: Readouts,
                 proj = proj,
                 output_dir = output_dir
             )
-            cnn_f1s.append(cnn_f1)
             clf_f1s.append(clf_f1)
+            clf_cms.append(clf_cm)
 
-    return pd.concat(clf_f1s, axis = 0), pd.concat(cnn_f1s, axis = 0)
+    f1_scores = pd.concat([*clf_f1s, *cnn_f1s], axis = 0)
+
+    return f1_scores, clf_cms, cnn_cms
+
+def generate_baseline_results(readout: BaselineReadouts,
+                              output_dir: str,
+                              proj: Projections,
+                              hyperparameter_dir: str,
+                              experiment_dir: str,
+                              morphometrics_dir: str,
+                              raw_data_dir: str):
+
+    experiments = cfg.EXPERIMENTS
+
+    clf_f1s = []
+    cnn_f1s = []
+    clf_cms = []
+    cnn_cms = []
+    eval_sets: Sequence[EvaluationSets] = ["test", "val"]
+
+    for experiment in experiments:
+        # TODO: weights are the F1 scores!
+        weights = None
+        for eval_set in eval_sets:
+            cnn_f1, cnn_cm = neural_net_evaluation(
+                val_dataset_id = experiment,
+                val_experiment_id = experiment,
+                eval_set = eval_set,
+                readout = readout,
+                experiment_dir = experiment_dir,
+                output_dir = output_dir,
+                proj = PROJECTION_TO_PROJECTION_ID_MAP[proj],
+                weights = weights,
+                raw_data_dir = raw_data_dir,
+            )
+            cnn_f1 = _postprocess_cnn_frame(cnn_f1, eval_set, baseline = True)
+            cnn_f1s.append(cnn_f1)
+            cnn_cms.append(cnn_cm)
+
+            clf_f1, clf_cm = classifier_evaluation_baseline(
+                val_experiment_id = experiment,
+                readout = readout,
+                eval_set = eval_set,
+                morphometrics_dir = morphometrics_dir,
+                hyperparameter_dir = hyperparameter_dir,
+                proj = proj,
+                output_dir = output_dir
+            )
+            clf_f1s.append(clf_f1)
+            clf_cms.append(clf_cm)
+
+    f1_scores = pd.concat([*clf_f1s, *cnn_f1s], axis = 0)
+
+    return f1_scores, clf_cms, cnn_cms
+
+def get_classification_f1_data(readout: Readouts,
+                               output_dir: str,
+                               proj: Projections,
+                               hyperparameter_dir: str,
+                               classification_dir: str,
+                               baseline_dir: Optional[str],
+                               morphometrics_dir: str,
+                               raw_data_dir: str,
+                               evaluator_results_dir: str) -> pd.DataFrame:
+    classifier_f1s, _, _ = generate_classification_results(
+        readout = readout,
+        output_dir = output_dir,
+        proj = proj,
+        hyperparameter_dir = hyperparameter_dir,
+        experiment_dir = classification_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir
+    )
+    if baseline_dir is not None:
+        baseline_f1s, _, _ = generate_baseline_results(
+            readout = READOUT_BASELINE_READOUT_MAP[readout],
+            output_dir = output_dir,
+            proj = proj,
+            hyperparameter_dir = hyperparameter_dir,
+            experiment_dir = baseline_dir,
+            morphometrics_dir = morphometrics_dir,
+            raw_data_dir = raw_data_dir
+        )
+    else:
+        baseline_f1s = pd.DataFrame()
+
+    human_data = human_f1_per_experiment(evaluator_results_dir = evaluator_results_dir,
+                                         morphometrics_dir = morphometrics_dir,
+                                         output_dir = output_dir)
+    human_data["loop"] = add_loop_from_timeframe(human_data,
+                                                 n_timeframes = 12)
+    human_data["classifier"] = "human"
+    cols_to_choose = ["experiment", "loop", "F1", "classifier"]
+    human_data = human_data.rename({f"F1_{readout}": "F1"})
+    human_data = human_data[cols_to_choose]
+
+    return pd.concat([classifier_f1s, baseline_f1s, human_data], axis = 0)
+
+
