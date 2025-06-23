@@ -905,14 +905,18 @@ def _read_val_dataset_full(raw_data_dir: str,
     validation_dataset_file = os.path.join(raw_data_dir, file_name)
     return OrganoidDataset.read_classification_dataset(validation_dataset_file)
 
+def _read_val_dataset_split(raw_data_dir: str,
+                            file_name: str,
+                            readout: Readouts) -> OrganoidTrainingDataset:
+    ds = _read_val_dataset_full(raw_data_dir, file_name)
+    return OrganoidTrainingDataset(ds, readout = readout)
+
 def _create_val_loader_full_dataset(val_dataset: OrganoidDataset,
                                     readout: Readouts) -> DataLoader:
     X, y = val_dataset.X, val_dataset.y[readout]
     return create_dataloader(X, y, batch_size = 128, shuffle = False, train = False)
 
-def _create_val_loader_split(val_dataset: OrganoidDataset,
-                             readout: Readouts) -> DataLoader:
-    val_dataset = OrganoidTrainingDataset(val_dataset, readout = readout)
+def _create_val_loader_split(val_dataset: OrganoidTrainingDataset) -> DataLoader:
     X, y = val_dataset.X_test, val_dataset.y_test
     return create_dataloader(X, y, batch_size = 128, shuffle = False, train = False)
 
@@ -920,8 +924,7 @@ def create_val_loader(val_dataset: OrganoidDataset,
                       readout: Readouts,
                       eval_set: EvaluationSets) -> Union[DataLoader, NoReturn]:
     if eval_set == "test":
-        return _create_val_loader_split(val_dataset,
-                                        readout = readout)
+        return _create_val_loader_split(val_dataset)
     elif eval_set == "val":
         return _create_val_loader_full_dataset(val_dataset,
                                                readout = readout)
@@ -942,18 +945,23 @@ def calculate_f1_scores(df) -> pd.DataFrame:
 def neural_net_evaluation(val_experiment_id: str,
                           eval_set: EvaluationSets,
                           readout: Readouts,
-                          proj: str,
                           raw_data_dir: str,
                           experiment_dir: str,
                           output_dir: str,
+                          proj: Literal["SL3", "MAX", "SUM"] = "SL3",
                           weights: Optional[dict] = None) -> tuple:
     val_dataset_filename = (
         f"M{val_experiment_id}_full_{proj}_fixed.cds"
         if eval_set == "test"
         else f"{val_experiment_id}_full_{proj}_fixed.cds"
     )
-    val_dataset = _read_val_dataset_full(raw_data_dir = raw_data_dir,
-                                         file_name = val_dataset_filename)
+    if eval_set == "test":
+        val_dataset = _read_val_dataset_split(raw_data_dir = raw_data_dir,
+                                              file_name = val_dataset_filename,
+                                              readout = readout)
+    else:
+        val_dataset = _read_val_dataset_full(raw_data_dir = raw_data_dir,
+                                             file_name = val_dataset_filename)
 
     val_loader = create_val_loader(val_dataset = val_dataset,
                                    readout = readout,
