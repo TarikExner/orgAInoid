@@ -833,7 +833,7 @@ def generate_neural_net_ensemble(val_experiment_id: str,
                                  experiment_dir: str,
                                  output_dir: str = "./figure_data",
                                  output_file_name: str = "model_ensemble") -> list[torch.nn.Module, ...]:
-    output_file = os.path.join(output_dir, output_file_name)
+    output_file = os.path.join(output_dir, f"{output_file_name}.models")
     if os.path.isfile(output_file):
         with open(output_file, "rb") as file:
             models = pickle.load(file)
@@ -942,7 +942,8 @@ def calculate_f1_scores(df) -> pd.DataFrame:
     f1_scores["loop"] = _loop_to_timepoint(loops)
     return f1_scores
 
-def neural_net_evaluation(val_experiment_id: str,
+def neural_net_evaluation(val_dataset_id: str,
+                          val_experiment_id: str,
                           eval_set: EvaluationSets,
                           readout: Readouts,
                           raw_data_dir: str,
@@ -951,9 +952,9 @@ def neural_net_evaluation(val_experiment_id: str,
                           proj: Literal["SL3", "ZMAX", "ZSUM"] = "SL3",
                           weights: Optional[dict] = None) -> tuple:
     val_dataset_filename = (
-        f"M{val_experiment_id}_full_{proj}_fixed.cds"
+        f"M{val_dataset_id}_full_{proj}_fixed.cds"
         if eval_set == "test"
-        else f"{val_experiment_id}_full_{proj}_fixed.cds"
+        else f"{val_dataset_id}_full_{proj}_fixed.cds"
     )
     if eval_set == "test":
         val_dataset = _read_val_dataset_split(raw_data_dir = raw_data_dir,
@@ -973,6 +974,9 @@ def neural_net_evaluation(val_experiment_id: str,
     if eval_set == "test":
         df = df[df["set"] == "test"]
     assert pd.Series(df["IMAGE_ARRAY_INDEX"]).is_monotonic_increasing
+    assert isinstance(df, pd.DataFrame)
+
+    print("Current validation dataset: ", val_dataset.dataset_metadata.dataset_id)
 
     models = generate_neural_net_ensemble(
         val_experiment_id = val_experiment_id,
@@ -989,6 +993,7 @@ def neural_net_evaluation(val_experiment_id: str,
     single_predictions = {
         model: np.hstack(single_predictions[model]) for model in single_predictions
     }
+
     truth_values = pd.DataFrame(
         data = np.array([np.argmax(el) for el in truth_arr]),
         columns = ["truth"],
