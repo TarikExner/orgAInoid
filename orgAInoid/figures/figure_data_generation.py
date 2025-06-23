@@ -1085,8 +1085,9 @@ def neural_net_evaluation(val_dataset_id: str,
         df = df[df["set"] == "test"]
     assert pd.Series(df["IMAGE_ARRAY_INDEX"]).is_monotonic_increasing
     assert isinstance(df, pd.DataFrame)
-
-    print("Current validation dataset: ", val_dataset.dataset_metadata.dataset_id)
+    
+    if hasattr(val_dataset, "dataset_metadata"):
+        print("Current validation dataset: ", val_dataset.dataset_metadata.dataset_id)
 
     models = generate_neural_net_ensemble(
         val_experiment_id = val_experiment_id,
@@ -1211,7 +1212,7 @@ def _read_classifier_results(output_dir: str,
                              val_experiment_id: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
-                             proj: ProjectionIDs) -> tuple:
+                             proj: Projections) -> tuple:
     proj = PROJECTION_SAVE_MAP[proj]
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
