@@ -103,7 +103,7 @@ HumanReadouts = Literal[
 Projections = Literal["max", "sum", "all_slices", ""]
 ProjectionIDs = Literal["ZMAX", "ZSUM", "ALL_SLICES", "SL3"]
 
-PROJECTION_SAVE_MAP = {
+PROJECTION_SAVE_MAP: dict[Union[Projections, ProjectionIDs], Union[Projections, ProjectionIDs]] = {
     "SL3": "SL3",
     "ZMAX": "max",
     "ZSUM": "sum",
@@ -1176,7 +1176,6 @@ def _instantiate_classifier(clf,
     #     return clf(**best_params)
     # else:
     #     return MultiOutputClassifier(clf(**best_params), n_jobs = 16)
-    best_params["n_jobs"] = 16
     return clf(**best_params)
 
 def _save_classifier_results(output_dir: str,
