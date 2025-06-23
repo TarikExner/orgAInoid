@@ -14,7 +14,7 @@ from umap import UMAP
 
 import torch
 from torch.nn import functional as F
-from torch.data.utils import DataLoader
+from torch.utils.data import DataLoader
 
 from typing import Optional, Literal, NoReturn, Union
 
