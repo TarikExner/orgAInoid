@@ -2,7 +2,6 @@ import torch
 import numpy as np
 import os
 from abc import abstractmethod
-
 from typing import Union
 
 from ..segmentation import UNet, DEEPLABV3, HRNET

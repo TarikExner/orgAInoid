@@ -1471,15 +1471,10 @@ def _get_labels_array(df: pd.DataFrame,
 
     return _one_hot_encode_labels(labels, readout=readout)
 
-def _run_classifier_fit_and_val(df: pd.DataFrame,
-                                experiment: str,
-                                data_columns: list[str],
-                                readout: str,
-                                clf,
-                                classifier_name: str,
-                                output_dir: str,
-                                score_key: str) -> None:
-    """Master function to run a classifier fit and validation"""
+def create_data_dfs(df: pd.DataFrame,
+                    experiment: str,
+                    data_columns: list[str],
+                    readout: str) -> tuple[pd.DataFrame, ...]:
     scaler = StandardScaler()
 
     non_val_df = df[df["experiment"] != experiment].copy()
@@ -1511,6 +1506,16 @@ def _run_classifier_fit_and_val(df: pd.DataFrame,
     test_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
     val_df = train_df.sort_values(["experiment", "well", "loop", "slice"])
 
+    return train_df, test_df, val_df
+
+def create_data_arrays(df: pd.DataFrame,
+                       experiment: str,
+                       data_columns: list[str],
+                       readout: str) -> tuple[np.ndarray, ...]:
+    train_df, test_df, val_df = create_data_dfs(df = df,
+                                                experiment = experiment,
+                                                data_columns = data_columns,
+                                                readout = readout)
     X_train = _get_data_array(train_df, data_columns)
     y_train = _get_labels_array(train_df, readout)
 
@@ -1519,7 +1524,24 @@ def _run_classifier_fit_and_val(df: pd.DataFrame,
 
     X_val = _get_data_array(val_df, data_columns)
     y_val = _get_labels_array(val_df, readout)
-    
+
+    return X_train, y_train, X_test, y_test, X_val, y_val
+
+def _run_classifier_fit_and_val(df: pd.DataFrame,
+                                experiment: str,
+                                data_columns: list[str],
+                                readout: str,
+                                clf,
+                                classifier_name: str,
+                                output_dir: str,
+                                score_key: str) -> None:
+    """Master function to run a classifier fit and validation"""
+    X_train, y_train, X_test, y_test, X_val, y_val = create_data_arrays(
+        df = df,
+        experiment = experiment,
+        data_columns = data_columns,
+        readout = readout
+    )
     start = time.time()
     clf.fit(X_train, y_train)
     train_time = time.time() - start

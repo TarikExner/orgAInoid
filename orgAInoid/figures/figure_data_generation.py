@@ -9,6 +9,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import f1_score, confusion_matrix
 from sklearn.decomposition import PCA
+
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+
 from sklearn.manifold import TSNE
 from umap import UMAP
 
@@ -23,6 +28,9 @@ from ..classification.models import DenseNet121, ResNet50, MobileNetV3_Large
 
 from ..classification._utils import create_dataloader
 from ..classification._evaluation import ModelWithTemperature
+from ..classification._utils import (create_data_dfs,
+                                     _get_data_array,
+                                     _get_labels_array)
 
 from . import figure_config as cfg
 
@@ -93,6 +101,14 @@ HumanReadouts = Literal[
 
 Projections = Literal["max", "sum", "all_slices", ""]
 ProjectionIDs = Literal["SL3", "ZMAX", "ZSUM"]
+
+BEST_CLASSIFIERS = {
+    "RPE_Final": None,
+    "RPE_classes": None,
+    "Lens_Final": None,
+    "Lens_classes": None,
+    "morph_classes": None
+}
 
 def _loop_to_timepoint(loops: list[str]) -> list[int]:
     return [int(lo.split("LO")[1]) for lo in loops]
@@ -981,7 +997,7 @@ def _read_neural_net_results(output_dir: str,
                              val_experiment_id: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
-                             proj: ProjectionIDs) -> Optional[tuple]:
+                             proj: ProjectionIDs) -> tuple:
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
                                      val_dataset_id = val_dataset_id,
@@ -1000,6 +1016,9 @@ def _read_neural_net_results(output_dir: str,
         return None, None
 
     return f1_scores, confusion_matrices
+
+def _get_labels(readout: Readouts) -> list[int, ...]:
+    return [0, 1] if readout in ["RPE_Final", "Lens_Final"] else [0, 1, 2, 3]
 
 def neural_net_evaluation(val_dataset_id: str,
                           val_experiment_id: str,
@@ -1081,7 +1100,7 @@ def neural_net_evaluation(val_dataset_id: str,
 
     f1_dfs = []
 
-    labels = [0, 1] if readout in ["RPE_Final", "Lens_Final"] else [0, 1, 2, 3]
+    labels = _get_labels(readout)
     conf_matrix_df = df.copy()
     confusion_matrices = conf_matrix_df.groupby("loop").apply(
         lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
@@ -1114,4 +1133,192 @@ def neural_net_evaluation(val_dataset_id: str,
 
     return neural_net_f1, confusion_matrices
 
+def _get_best_params(hyperparameter_dir: str,
+                     projection: str,
+                     classifier_name: str,
+                     readout: str) -> dict:
+    file_name = os.path.join(
+            hyperparameter_dir,
+            projection,
+            f"best_params_{classifier_name}_{readout}.dict"
+    )
+    with open(file_name, "rb") as file:
+        best_params_ = pickle.load(file)
 
+    return best_params_
+
+def _instantiate_classifier(clf,
+                            readout: Readouts,
+                            best_params: dict):
+    if readout == "RPE_Final":
+        if "n_jobs" not in best_params:
+            best_params["n_jobs"] = 16
+        return clf(**best_params)
+    else:
+        return MultiOutputClassifier(clf(**best_params), n_jobs = 16)
+
+def _save_classifier_results(output_dir: str,
+                             readout: Readouts,
+                             val_experiment_id: str,
+                             val_dataset_id: str,
+                             eval_set: EvaluationSets,
+                             proj: ProjectionIDs,
+                             f1_scores: pd.DataFrame,
+                             confusion_matrices: np.ndarray) -> None:
+
+    save_dir = os.path.join(output_dir, f"classification_{readout}")
+    os.makedirs(save_dir, exist_ok=True)
+    file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
+                                     val_dataset_id = val_dataset_id,
+                                     eval_set = eval_set,
+                                     proj = proj)
+
+    f1_scores.to_csv(
+        os.path.join(save_dir, f"{file_name}_CLFF1.csv"),
+        index = False
+    )
+
+    np.save(
+        os.path.join(save_dir, f"{file_name}_CLFCM.npy"),
+        confusion_matrices
+    )
+    return
+
+def _read_classifier_results(output_dir: str,
+                             readout: Readouts,
+                             val_experiment_id: str,
+                             val_dataset_id: str,
+                             eval_set: EvaluationSets,
+                             proj: ProjectionIDs) -> tuple:
+    save_dir = os.path.join(output_dir, f"classification_{readout}")
+    file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
+                                     val_dataset_id = val_dataset_id,
+                                     eval_set = eval_set,
+                                     proj = proj)
+    csv_file = os.path.join(save_dir, f"{file_name}_CLFF1.csv")
+    if os.path.isfile(csv_file):
+        f1_scores = pd.read_csv(csv_file, index_col = False)
+    else:
+        return None, None
+
+    numpy_file = os.path.join(save_dir, f"{file_name}_CLFCM.npy")
+    if os.path.isfile(numpy_file):
+        confusion_matrices = np.load(numpy_file)
+    else:
+        return None, None
+
+    return f1_scores, confusion_matrices
+    
+def classifier_evaluation(val_experiment_id: str,
+                          readout: Readouts,
+                          eval_set: EvaluationSets,
+                          morphometrics_dir: str,
+                          hyperparameter_dir: str,
+                          proj: Projections = "SL3",
+                          output_dir: str = "./figure_data") -> tuple[pd.DataFrame, np.ndarray]:
+    val_dataset_id = val_experiment_id
+
+    f1_scores, confusion_matrices = _read_classifier_results(
+        output_dir = output_dir,
+        readout = readout,
+        val_experiment_id = val_experiment_id,
+        val_dataset_id = val_dataset_id,
+        eval_set = eval_set,
+        proj = proj
+    )
+    if f1_scores is not None and confusion_matrices is not None:
+        return f1_scores, confusion_matrices
+
+    labels = _get_labels(readout)
+
+    suffix = f"_{proj}"
+    morphometrics_frame = get_morphometrics_frame(results_dir = morphometrics_dir,
+                                                  suffix = suffix)
+    data_columns = get_data_columns_morphometrics(morphometrics_frame)
+
+    train_df, test_df, val_df = create_data_dfs(
+        df = morphometrics_frame,
+        experiment = val_experiment_id,
+        readout = readout,
+        data_columns = data_columns
+    )
+    X_train = _get_data_array(train_df, data_columns)
+    y_train = _get_labels_array(train_df, readout)
+
+    X_test = _get_data_array(test_df, data_columns)
+    y_test = _get_labels_array(test_df, readout)
+
+    X_val = _get_data_array(val_df, data_columns)
+    y_val = _get_labels_array(val_df, readout)
+
+    clf_ = BEST_CLASSIFIERS[readout]
+    clf_name = clf_().__class__.__name__
+    best_params = _get_best_params(hyperparameter_dir,
+                                   readout = readout,
+                                   projection = proj,
+                                   classifier_name = clf_name)
+    clf = _instantiate_classifier(clf_, readout = readout, best_params = best_params)
+    clf.fit(X_train, y_train)
+
+    result_df = val_df if eval_set == "val" else test_df
+    result_df["truth"] = y_val if eval_set == "val" else y_test
+    predictions = clf.predict(X_val if eval_set == "val" else X_test)
+    result_df["pred"] = np.argmax(predictions, axis = 1)
+
+    f1_scores = calculate_f1_scores(result_df)
+
+    confusion_matrices = result_df.groupby("loop").apply(
+        lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
+    )
+    confusion_matrices = np.array(confusion_matrices.tolist())
+
+    _save_classifier_results(output_dir = output_dir,
+                             readout = readout,
+                             val_dataset_id = val_dataset_id,
+                             val_experiment_id = val_experiment_id,
+                             proj = proj,
+                             eval_set = eval_set,
+                             f1_scores = f1_scores,
+                             confusion_matrices = confusion_matrices)
+
+    return f1_scores, confusion_matrices
+
+def generate_classification_results(readout: Readouts,
+                                    output_dir: str,
+                                    proj: str,
+                                    hyperparameter_dir: str,
+                                    experiment_dir: str,
+                                    morphometrics_dir: str):
+
+    experiments = cfg.EXPERIMENTS
+
+    clf_f1s = []
+    cnn_f1s = []
+
+    for experiment in experiments:
+        # TODO: weights are the F1 scores!
+        weights = None
+        for eval_set in ["test", "val"]:
+            cnn_f1, cnn_cm = neural_net_evaluation(
+                val_dataset_id = experiment,
+                val_experiment_id = experiment,
+                eval_set = eval_set,
+                readout = readout,
+                experiment_dir = experiment_dir,
+                output_dir = output_dir,
+                proj = proj,
+                weights = weights
+            )
+            clf_f1, clf_cm = classifier_evaluation(
+                val_experiment_id = experiment,
+                readout = readout,
+                eval_set = eval_set,
+                morphometrics_dir = morphometrics_dir,
+                hyperparameter_dir = hyperparameter_dir,
+                proj = proj,
+                output_dir = output_dir
+            )
+            cnn_f1s.append(cnn_f1)
+            clf_f1s.append(clf_f1)
+
+    return pd.concat(clf_f1s, axis = 0), pd.concat(cnn_f1s, axis = 0)
