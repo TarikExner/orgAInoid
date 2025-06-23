@@ -1140,7 +1140,8 @@ def neural_net_evaluation(val_dataset_id: str,
     neural_net_f1 = pd.concat(f1_dfs, axis=1)
     neural_net_f1 = neural_net_f1.reset_index().melt(id_vars = "loop",
                                                      value_name = "F1",
-                                                     var_name = "Neural Net")
+                                                     var_name = "classifier")
+    neural_net_f1["experiment"] = val_dataset_id
 
     _save_neural_net_results(output_dir = output_dir,
                              readout = readout,
@@ -1289,6 +1290,8 @@ def classifier_evaluation(val_experiment_id: str,
     result_df["pred"] = np.argmax(predictions, axis = 1)
 
     f1_scores = calculate_f1_scores(result_df)
+    f1_scores["experiment"] = val_dataset_id
+    f1_scores["classifier"] = "Morphometrics"
 
     confusion_matrices = result_df.groupby("loop").apply(
         lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
