@@ -948,7 +948,7 @@ def neural_net_evaluation(val_experiment_id: str,
                           raw_data_dir: str,
                           experiment_dir: str,
                           output_dir: str,
-                          proj: Literal["SL3", "MAX", "SUM"] = "SL3",
+                          proj: Literal["SL3", "ZMAX", "ZSUM"] = "SL3",
                           weights: Optional[dict] = None) -> tuple:
     val_dataset_filename = (
         f"M{val_experiment_id}_full_{proj}_fixed.cds"
@@ -968,6 +968,8 @@ def neural_net_evaluation(val_experiment_id: str,
                                    eval_set = eval_set)
     assert -1 not in val_dataset.metadata["IMAGE_ARRAY_INDEX"]
     df = val_dataset.metadata
+    # in order to keep the X shape, we set for SL003
+    df = df[df["slice"] == "SL003"]
     if eval_set == "test":
         df = df[df["set"] == "test"]
     assert pd.Series(df["IMAGE_ARRAY_INDEX"]).is_monotonic_increasing
@@ -979,7 +981,7 @@ def neural_net_evaluation(val_experiment_id: str,
         eval_set = eval_set,
         experiment_dir = experiment_dir,
         output_dir = output_dir,
-        output_file_name = f"model_ensemble_{val_experiment_id}"
+        output_file_name = f"model_ensemble_{readout}_{val_experiment_id}_{proj}"
     )
     truth_arr, ensemble_pred, single_predictions = ensemble_probability_averaging(
         models, val_loader, weights = weights
