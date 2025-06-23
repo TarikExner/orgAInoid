@@ -92,6 +92,7 @@ HumanReadouts = Literal[
 ]
 
 Projections = Literal["max", "sum", "all_slices", ""]
+ProjectionIDs = Literal["SL3", "ZMAX", "ZSUM"]
 
 def _loop_to_timepoint(loops: list[str]) -> list[int]:
     return [int(lo.split("LO")[1]) for lo in loops]
@@ -942,6 +943,64 @@ def calculate_f1_scores(df) -> pd.DataFrame:
     f1_scores["loop"] = _loop_to_timepoint(loops)
     return f1_scores
 
+def _create_cnn_filename(val_experiment_id: str,
+                         val_dataset_id: str,
+                         eval_set: EvaluationSets,
+                         proj: ProjectionIDs) -> str:
+    return f"{val_dataset_id}_{val_experiment_id}_{eval_set}_{proj}"
+
+def _save_neural_net_results(output_dir: str,
+                             readout: Readouts,
+                             val_experiment_id: str,
+                             val_dataset_id: str,
+                             eval_set: EvaluationSets,
+                             proj: ProjectionIDs,
+                             f1_scores: pd.DataFrame,
+                             confusion_matrices: np.ndarray) -> None:
+
+    save_dir = os.path.join(output_dir, f"classification_{readout}")
+    os.makedirs(save_dir, exist_ok=True)
+    file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
+                                     val_dataset_id = val_dataset_id,
+                                     eval_set = eval_set,
+                                     proj = proj)
+
+    f1_scores.to_csv(
+        os.path.join(save_dir, f"{file_name}_CNNF1.csv"),
+        index = False
+    )
+
+    np.save(
+        os.path.join(save_dir, f"{file_name}_CNNCM.npy"),
+        confusion_matrices
+    )
+    return
+
+def _read_neural_net_results(output_dir: str,
+                             readout: Readouts,
+                             val_experiment_id: str,
+                             val_dataset_id: str,
+                             eval_set: EvaluationSets,
+                             proj: ProjectionIDs) -> Optional[tuple]:
+    save_dir = os.path.join(output_dir, f"classification_{readout}")
+    file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
+                                     val_dataset_id = val_dataset_id,
+                                     eval_set = eval_set,
+                                     proj = proj)
+    csv_file = os.path.join(save_dir, f"{file_name}_CNNF1.csv")
+    if os.path.isfile(csv_file):
+        f1_scores = pd.read_csv(csv_file, index_col = False)
+    else:
+        return None, None
+
+    numpy_file = os.path.join(save_dir, f"{file_name}_CNNCM.npy")
+    if os.path.isfile(numpy_file):
+        confusion_matrices = np.load(numpy_file)
+    else:
+        return None, None
+
+    return f1_scores, confusion_matrices
+
 def neural_net_evaluation(val_dataset_id: str,
                           val_experiment_id: str,
                           eval_set: EvaluationSets,
@@ -949,8 +1008,20 @@ def neural_net_evaluation(val_dataset_id: str,
                           raw_data_dir: str,
                           experiment_dir: str,
                           output_dir: str,
-                          proj: Literal["SL3", "ZMAX", "ZSUM"] = "SL3",
+                          proj: ProjectionIDs = "SL3",
                           weights: Optional[dict] = None) -> tuple:
+
+    f1_scores, confusion_matrices = _read_neural_net_results(
+        output_dir = output_dir,
+        readout = readout,
+        val_experiment_id = val_experiment_id,
+        val_dataset_id = val_dataset_id,
+        eval_set = eval_set,
+        proj = proj
+    )
+    if f1_scores is not None and confusion_matrices is not None:
+        return f1_scores, confusion_matrices
+
     val_dataset_filename = (
         f"M{val_dataset_id}_full_{proj}_fixed.cds"
         if eval_set == "test"
@@ -1032,7 +1103,15 @@ def neural_net_evaluation(val_dataset_id: str,
                                                      value_name = "F1",
                                                      var_name = "Neural Net")
 
-    return neural_net_f1, confusion_matrices
+    _save_neural_net_results(output_dir = output_dir,
+                             readout = readout,
+                             val_dataset_id = val_dataset_id,
+                             val_experiment_id = val_experiment_id,
+                             proj = proj,
+                             eval_set = eval_set,
+                             f1_scores = neural_net_f1,
+                             confusion_matrices = confusion_matrices)
 
+    return neural_net_f1, confusion_matrices
 
 
