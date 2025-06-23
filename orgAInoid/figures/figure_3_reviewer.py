@@ -269,12 +269,12 @@ def figure_3_reviewer_generation(sketch_dir: str,
                                  lens_classification_dir_max: str,
                                  rpe_classes_classification_dir_max: str,
                                  lens_classes_classification_dir_max: str,
-                                 output_dir: str,
+                                 figure_data_dir: str,
                                  evaluator_results_dir: str,
                                  **kwargs) -> None:
     rpe_final_f1s = get_classification_f1_data(
         readout = "RPE_Final",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "sum",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = rpe_classification_dir_sum,
@@ -285,7 +285,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
     )
     lens_final_f1s = get_classification_f1_data(
         readout = "Lens_Final",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "sum",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = lens_classification_dir_sum,
@@ -296,7 +296,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
     )
     rpe_classes_f1 = get_classification_f1_data(
         readout = "RPE_classes",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "sum",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = rpe_classes_classification_dir_sum,
@@ -307,7 +307,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
     )
     lens_classes_f1 = get_classification_f1_data(
         readout = "Lens_classes",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "sum",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = lens_classes_classification_dir_sum,
@@ -326,7 +326,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
 
     rpe_final_f1s = get_classification_f1_data(
         readout = "RPE_Final",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "max",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = rpe_classification_dir_max,
@@ -337,7 +337,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
     )
     lens_final_f1s = get_classification_f1_data(
         readout = "Lens_Final",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "max",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = lens_classification_dir_max,
@@ -348,7 +348,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
     )
     rpe_classes_f1 = get_classification_f1_data(
         readout = "RPE_classes",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "max",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = rpe_classes_classification_dir_max,
@@ -359,7 +359,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
     )
     lens_classes_f1 = get_classification_f1_data(
         readout = "Lens_classes",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "max",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = lens_classes_classification_dir_max,

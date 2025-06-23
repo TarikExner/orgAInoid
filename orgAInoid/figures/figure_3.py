@@ -178,12 +178,12 @@ def figure_3_generation(sketch_dir: str,
                         lens_classification_dir: str,
                         rpe_baseline_dir: str,
                         lens_baseline_dir: str,
-                        output_dir: str,
+                        figure_data_dir: str,
                         evaluator_results_dir: str,
                         **kwargs) -> None:
     rpe_final_f1s = get_classification_f1_data(
         readout = "RPE_Final",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = rpe_classification_dir,
@@ -194,7 +194,7 @@ def figure_3_generation(sketch_dir: str,
     )
     lens_final_f1s = get_classification_f1_data(
         readout = "Lens_Final",
-        output_dir = output_dir,
+        output_dir = figure_data_dir,
         proj = "",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = lens_classification_dir,

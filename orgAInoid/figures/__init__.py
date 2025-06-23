@@ -34,7 +34,12 @@ DIRECTORIES = {
     "rpe_classification_dir": "../classification/experiment_32",
     "lens_classification_dir": "../classification/experiment_33",
     "rpe_classes_classification_dir": "../classification/experiment_34",
-    "rpe_classes_classification_dir": "../classification/experiment_35"
+    "lens_classes_classification_dir": "../classification/experiment_35",
+
+    "rpe_baseline_dir": "../classification/experiment_36_RPE_baseline",
+    "lens_baseline_dir": "../classification/experiment_37_Lens_baseline",
+    "rpe_classes_baseline_dir": "../classification/experiment_38_RPEC_baseline",
+    "lens_classes_baseline_dir": "../classification/experiment_39_LensC_baseline",
 
     # "rpe_baseline_dir": "../classification/experiment_32",
     # "lens_classification_dir": "../classification/experiment_33",
