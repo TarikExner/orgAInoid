@@ -1017,7 +1017,7 @@ def _read_neural_net_results(output_dir: str,
 
     return f1_scores, confusion_matrices
 
-def _get_labels(readout: Readouts) -> list[int, ...]:
+def _get_labels(readout: Readouts) -> list[int]:
     return [0, 1] if readout in ["RPE_Final", "Lens_Final"] else [0, 1, 2, 3]
 
 def neural_net_evaluation(val_dataset_id: str,
@@ -1285,10 +1285,11 @@ def classifier_evaluation(val_experiment_id: str,
 
 def generate_classification_results(readout: Readouts,
                                     output_dir: str,
-                                    proj: str,
+                                    proj: ProjectionIDs,
                                     hyperparameter_dir: str,
                                     experiment_dir: str,
-                                    morphometrics_dir: str):
+                                    morphometrics_dir: str,
+                                    raw_data_dir: str):
 
     experiments = cfg.EXPERIMENTS
 
@@ -1299,6 +1300,7 @@ def generate_classification_results(readout: Readouts,
         # TODO: weights are the F1 scores!
         weights = None
         for eval_set in ["test", "val"]:
+            eval_set: Literal["test", "val"]
             cnn_f1, cnn_cm = neural_net_evaluation(
                 val_dataset_id = experiment,
                 val_experiment_id = experiment,
@@ -1307,7 +1309,8 @@ def generate_classification_results(readout: Readouts,
                 experiment_dir = experiment_dir,
                 output_dir = output_dir,
                 proj = proj,
-                weights = weights
+                weights = weights,
+                raw_data_dir = raw_data_dir
             )
             clf_f1, clf_cm = classifier_evaluation(
                 val_experiment_id = experiment,

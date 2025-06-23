@@ -1460,6 +1460,26 @@ def _get_data_array(df: pd.DataFrame,
 
     return wide.to_numpy(copy=False)
 
+def _get_groups(df: pd.DataFrame,
+                data_columns: list[str],
+                slice_col: str = "slice") -> list[str]:
+
+    slice_order = np.sort(df[slice_col].unique())
+
+    wide = (
+        df
+        .set_index(["experiment", "well", "loop", slice_col])[data_columns]
+        .unstack(slice_col)
+        .reindex(columns=pd.MultiIndex.from_product([data_columns, slice_order]))
+        .fillna(0)
+    )
+
+    return [
+        f"{experiment}_{well}"
+        for experiment, well, loop
+        in wide.index
+    ]
+
 def _get_labels_array(df: pd.DataFrame,
                       readout: str,
                       idx_cols: tuple = ("experiment", "well", "loop")) -> np.ndarray:

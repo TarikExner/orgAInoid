@@ -19,6 +19,7 @@ from .models import (CLASSIFIERS_TO_TEST_FULL,
 from ._utils import (conduct_hyperparameter_search,
                      _get_data_array,
                      _get_labels_array,
+                     _get_groups,
                      _run_classifier_fit_and_val)
 
 def run_hyperparameter_tuning(df: pd.DataFrame,
@@ -144,16 +145,17 @@ def _run_hyperparameter_tuning(df: pd.DataFrame,
             ])
             X = _get_data_array(hyper_df, data_columns)
             y = _get_labels_array(hyper_df, readout)
+            groups = _get_groups(hyper_df, data_columns)
             group_kfold = GroupKFold(n_splits = 5)
-            hyper_df["group"] = [
-                f"{experiment}_{well}"
-                for experiment, well in
-                zip(
-                    hyper_df["experiment"].tolist(),
-                    hyper_df["well"].tolist()
-                )
-            ]
-            groups = hyper_df["group"].tolist()
+            # hyper_df["group"] = [
+            #     f"{experiment}_{well}"
+            #     for experiment, well in
+            #     zip(
+            #         hyper_df["experiment"].tolist(),
+            #         hyper_df["well"].tolist()
+            #     )
+            # ]
+            # groups = hyper_df["group"].tolist()
             grid = CLASSIFIERS_TO_TEST_FULL[classifier]["grid"]
             new_grid = {}
             for key in grid:
