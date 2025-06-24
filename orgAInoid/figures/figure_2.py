@@ -16,13 +16,15 @@ import cv2
 from . import figure_config as cfg
 from . import figure_utils as utils
 
-from . import (get_morphometrics_frame,
-               get_data_columns_morphometrics,
-               calculate_organoid_dimensionality_reduction,
-               calculate_organoid_distances,
-               compare_neighbors_by_experiment,
-               neighbors_per_well_by_experiment,
-               PC_COLUMNS)
+from .figure_data_generation import (
+    get_morphometrics_frame,
+    calculate_organoid_dimensionality_reduction,
+    calculate_organoid_distances,
+    compare_neighbors_by_experiment,
+    neighbors_per_well_by_experiment,
+    PC_COLUMNS
+)
+from .figure_data_utils import get_data_columns_morphometrics
 
 def _generate_main_figure(dimred_data: pd.DataFrame,
                           distance_data: pd.DataFrame,

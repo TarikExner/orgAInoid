@@ -10,10 +10,10 @@ from matplotlib.axes import Axes
 from . import figure_config as cfg
 from . import figure_utils as utils
 
-from . import (get_morphometrics_frame,
-                                     get_data_columns_morphometrics,
+from .figure_data_generation import (get_morphometrics_frame,
                                      calculate_organoid_dimensionality_reduction,
                                      calculate_organoid_distances)
+from .figure_data_utils import get_data_columns_morphometrics
 
 def _generate_main_figure(dimred_data: pd.DataFrame,
                           distance_data: pd.DataFrame,

@@ -13,7 +13,7 @@ from scipy.stats import f_oneway
 from . import figure_config as cfg
 from . import figure_utils as utils
 
-from . import (get_dataset_annotations,
+from .figure_data_generation import (get_dataset_annotations,
                                      human_f1_RPE_visibility_conf_matrix,
                                      human_f1_per_evaluator,
                                      add_loop_from_timeframe)
