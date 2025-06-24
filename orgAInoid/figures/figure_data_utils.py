@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 
 from tqdm import tqdm
 
-from typing import Optional, Literal, Union, NoReturn, Sequence
+from typing import Optional, Literal, Union, NoReturn, Sequence, cast
 
 from . import figure_config as cfg
 
@@ -174,7 +174,7 @@ def check_for_file(output_file: str) -> Optional[pd.DataFrame]:
 def get_data_columns_morphometrics(df: pd.DataFrame):
     return [col for col in df.columns if col not in METADATA_COLUMNS]
 
-def _rename_annotation_columns(df: pd.DataFrame) -> pd.DataFrame:
+def rename_annotation_columns(df: pd.DataFrame) -> pd.DataFrame:
     eval_id = df["Evaluator_ID"].unique()[0]
     eval_id = "human_eval"
     df = df.rename(
@@ -248,7 +248,7 @@ def add_loop_from_timeframe(df: pd.DataFrame,
 
 ## neural net evaluation
 def _preprocess_results_file(df: pd.DataFrame) -> pd.DataFrame:
-    df = df[df["ExperimentID"] != "ExperimentID"].copy()
+    df = cast(pd.DataFrame, df[df["ExperimentID"] != "ExperimentID"].copy())
     assert isinstance(df, pd.DataFrame)
     df["ValF1"] = df["ValF1"].astype(float)
     df["TestF1"] = df["TestF1"].astype(float)
@@ -256,7 +256,10 @@ def _preprocess_results_file(df: pd.DataFrame) -> pd.DataFrame:
 
 def _create_f1_weights(results: pd.DataFrame) -> pd.DataFrame:
     """calculates the max f1 score by model"""
-    return results.groupby(["ValExpID", "Model"]).max(["TestF1", "ValF1"]).reset_index()
+    return cast(
+        pd.DataFrame,
+        results.groupby(["ValExpID", "Model"]).max(["TestF1", "ValF1"]).reset_index()
+    )
 
 def read_classification_results(results_dir,
                                 readout: Readouts) -> pd.DataFrame:
@@ -585,7 +588,7 @@ def _postprocess_cnn_frame(df: pd.DataFrame,
     return _df
 
 def convert_cnn_output_to_float(data: pd.DataFrame) -> pd.DataFrame:
-    data = data[data["ExperimentID"] != "ExperimentID"]
+    data = cast(pd.DataFrame, data[data["ExperimentID"] != "ExperimentID"])
     data["TrainF1"] = data["TrainF1"].astype(float)
     data["TestF1"] = data["TestF1"].astype(float)
     data["ValF1"] = data["ValF1"].astype(float)
@@ -848,7 +851,7 @@ def neural_net_evaluation(val_dataset_id: str,
     return _neural_net_evaluation(**locals())
 
 
-def classifier_evaluation(val_experiment_id: str, # type: ignore[reportUnusedParameter]
+def classifier_evaluation(val_experiment_id: str,
                           readout: Readouts,
                           eval_set: EvaluationSets,
                           morphometrics_dir: str,
@@ -856,7 +859,6 @@ def classifier_evaluation(val_experiment_id: str, # type: ignore[reportUnusedPar
                           proj: Projections = "",
                           output_dir: str = "./figure_data",
                           baseline: bool = False) -> tuple[pd.DataFrame, np.ndarray]:
-
     return _classifier_evaluation(**locals())
 
 def classifier_evaluation_baseline(val_experiment_id: str,

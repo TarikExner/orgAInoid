@@ -13,7 +13,7 @@ from sklearn.manifold import TSNE
 from umap import UMAP
 
 
-from typing import Optional
+from typing import Literal, Optional, cast
 
 from . import figure_config as cfg
 
@@ -21,7 +21,7 @@ from .figure_data_utils import (
     _loop_to_timepoint,
     _build_timeframe_dict,
     check_for_file,
-    _rename_annotation_columns,
+    rename_annotation_columns,
     add_loop_from_timeframe,
     f1_scores,
     convert_cnn_output_to_float,
@@ -130,7 +130,7 @@ def calculate_organoid_distances(df: pd.DataFrame,
         data_columns = original_data_columns
 
         print(f">>> Calculating distances for experiment {experiment} using {save_suffix.strip('_')} data")
-        exp_data = df[df["experiment"] == experiment].copy()
+        exp_data = cast(pd.DataFrame, df[df["experiment"] == experiment].copy())
         exp_data: pd.DataFrame
         time_points = sorted(np.unique(exp_data["loop"].to_numpy()))
 
@@ -153,9 +153,9 @@ def calculate_organoid_distances(df: pd.DataFrame,
 
         # Compute the interorganoid distances at each time point
         for time_point in time_points:
-            df_time = exp_data[exp_data["loop"] == time_point].sort_values("well")
-            data = df_time[data_columns].values
-            subjects = df_time["well"].values
+            df_time = cast(pd.DataFrame, exp_data[exp_data["loop"] == time_point].sort_values("well"))
+            data: np.ndarray = df_time[data_columns].values
+            subjects: np.ndarray = df_time["well"].values
             distances = pdist(data, metric = "euclidean")
             dist_matrix = squareform(distances)
             idx_upper = np.triu_indices(len(subjects), k = 1)
@@ -442,7 +442,7 @@ def get_ground_truth_annotations(morphometrics_dir: str = "",
     morphometrics["timeframe"] = morphometrics["loop"].map(timeframe_dict)
     morphometrics.to_csv(output_file, index = False)
 
-    return morphometrics
+    return cast(pd.DataFrame, morphometrics)
     
 def concat_human_evaluations(results_dir: str = "",
                              output_dir: str = "./figure_data",
@@ -455,7 +455,7 @@ def concat_human_evaluations(results_dir: str = "",
     eval_dfs = []
     for evaluator in EVALUATORS:
         df = pd.read_csv(os.path.join(results_dir, f"{evaluator}_organoid_classification.csv"))
-        df = _rename_annotation_columns(df)
+        df = rename_annotation_columns(df)
         eval_dfs.append(df)
 
     human_evaluations = pd.concat(eval_dfs, axis = 0)
@@ -730,3 +730,119 @@ def get_cnn_output(classification_dir: str,
     data.to_csv(output_file)
     return data
 
+def load_and_aggregate_matrices(readout: Readouts,
+                                classifier: Literal["neural_net", "classifier"],
+                                eval_set: Literal["test", "val"],
+                                proj: Projections,
+                                figure_data_dir: str,
+                                morphometrics_dir: str) -> pd.DataFrame:
+    """
+    Load confusion matrices for each experiment and each loop, compute the average
+    confusion matrix per loop across experiments, and return a DataFrame indexed
+    by loop (string "LO###") whose column 'mean_matrix' holds the raw mean arrays.
+    """
+    experiments = cfg.EXPERIMENTS
+
+    suffix = f"_{proj}" if proj else ""
+    morpho = get_morphometrics_frame(morphometrics_dir, suffix=suffix)
+    morpho = morpho[["experiment","well","loop"]].drop_duplicates()
+    morpho = morpho.sort_values(["experiment","well","loop"], ascending=[True,True,True])
+
+    conf_dir = os.path.join(figure_data_dir, f"classification_{readout}")
+    data: dict[str, list[np.ndarray]] = {}
+    for exp in cfg.EXPERIMENTS:
+        clf_tag = "CNN" if classifier == "neural_net" else "CLF"
+        fname = f"{exp}_{exp}_{eval_set}_{proj}_{clf_tag}CM.npy"
+        mats = np.load(os.path.join(conf_dir, fname))
+        loops = morpho["loop"].unique().tolist()
+        for i, lo in enumerate(loops):
+            data.setdefault(lo, []).append(mats[i])
+
+    mean_dict = {lo: np.mean(ms, axis=0) for lo, ms in data.items()}
+    df = pd.DataFrame.from_dict(mean_dict, orient='index', columns=['mean_matrix'])
+    df.index.name = 'loop'
+    return df
+
+
+def convert_to_percentages(df: pd.DataFrame,
+                           matrix_col: str = 'mean_matrix') -> pd.DataFrame:
+    """
+    Given a DataFrame with an array column of confusion matrices, compute percentage
+    normalization per matrix and store in 'percentage_matrix'.
+    """
+    df['percentage_matrix'] = df[matrix_col].apply(lambda m: (m / m.sum()) * 100)
+    return df
+
+
+def flatten_for_plotting(df: pd.DataFrame,
+                         classes: int) -> pd.DataFrame:
+    """
+    Flatten percentage_matrix for plotting.
+    - For 2 classes: return DataFrame with columns ['tn','tp','fn','fp'].
+    - For N>2 classes: return dict mapping 'class0'..'class{N-1}' to DataFrames
+      each with ['tn','tp','fn','fp'].
+    Index is loop divided by 2 (float).
+    """
+    # compute numeric loop index
+    loops = df.index.to_series().str.replace('LO','').astype(int) / 2
+
+    if classes == 2:
+        labels = ['tn','fp','fn','tp']
+        records = []
+        for lo, pct in df['percentage_matrix'].items():
+            values = pct.ravel().astype(float)
+            rec = pd.DataFrame({
+                'loop': loops.loc[lo],
+                'component': labels,
+                'value': values
+            })
+            records.append(rec)
+        long = pd.concat(records, ignore_index=True)
+        plot_df = long.pivot(index='loop', columns='component', values='value')
+        # order: tn, tp, fn, fp
+        return plot_df[['tn','tp','fn','fp']]
+    else:
+        # multiclass: build per-class 2x2 frames
+        cmaps = df['percentage_matrix'].apply(classwise_confusion_matrix)
+        out: dict[str, list[pd.DataFrame]] = {f'class{i}': [] for i in range(classes)}
+        for lo, tups in cmaps.items():
+            for i, cm2 in enumerate(tups):
+                values = cm2.ravel().astype(float)
+                labels = ['tn','fp','fn','tp']
+                rec = pd.DataFrame({
+                    'loop': loops.loc[lo],
+                    'component': labels,
+                    'value': values
+                })
+                out[f'class{i}'].append(rec)
+        result: dict[str, pd.DataFrame] = {}
+        for cls, recs in out.items():
+            long = pd.concat(recs, ignore_index=True)
+            df_cls = long.pivot(index='loop', columns='component', values='value')
+            result[cls] = df_cls[['tn','tp','fn','fp']]
+        return result
+
+def create_confusion_matrix_frame(readout: Readouts,
+                                  classifier: Literal["neural_net", "classifier"],
+                                  eval_set: Literal["test", "val"],
+                                  proj: ProjectionIDs, # = ""!
+                                  figure_data_dir: str,
+                                  morphometrics_dir: str) -> pd.DataFrame:
+    """
+    High-level function returning a DataFrame ready for plotting:
+    - Binary readouts (RPE_classification, Lens_classification): 2 classes.
+    - Multi-class readouts (RPE_classes_classification, Lens_classes_classification): 4 classes.
+    Columns reflect confusion matrix components, rows are loop hours.
+    """
+    base_df = load_and_aggregate_matrices(
+        readout = readout,
+        classifier = classifier,
+        eval_set = eval_set,
+        proj = proj,
+        figure_data_dir = figure_data_dir,
+        morphometrics_dir = morphometrics_dir
+    )
+    pct_df = convert_to_percentages(base_df)
+    cls = 2 if 'classification' in readout and 'classes' not in readout else 4
+    plot_df = flatten_for_plotting(pct_df, classes=cls)
+    return plot_df
