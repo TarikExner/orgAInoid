@@ -786,7 +786,7 @@ def _classifier_evaluation(val_experiment_id: str,
     X_val = _get_data_array(val_df, data_columns)
     y_val = _get_labels_array(val_df, readout if not baseline else original_readout)
 
-    clf_ = BEST_CLASSIFIERS[readout]
+    clf_ = BEST_CLASSIFIERS[readout if not baseline else original_readout]
     clf_name = clf_().__class__.__name__
     best_params = {}
     # best_params = _get_best_params(hyperparameter_dir,
