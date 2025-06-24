@@ -748,6 +748,10 @@ def load_and_aggregate_matrices(readout: Readouts,
     morpho = morpho[["experiment","well","loop"]].drop_duplicates()
     morpho = morpho.sort_values(["experiment","well","loop"], ascending=[True,True,True])
 
+    # hacky, but it's late...
+    if not proj:
+        proj = "SL3"
+
     conf_dir = os.path.join(figure_data_dir, f"classification_{readout}")
     data: dict[str, list[np.ndarray]] = {}
     for exp in cfg.EXPERIMENTS:
