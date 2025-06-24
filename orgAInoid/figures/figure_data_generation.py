@@ -109,6 +109,13 @@ READOUT_BASELINE_READOUT_MAP: dict[Readouts, BaselineReadouts] = {
     "Lens_classes": "Baseline_Lens_classes"
 }
 
+BASELINE_READOUT_TO_READOUT_MAP: dict[BaselineReadouts, Readouts] = {
+    "Baseline_RPE_Final": "RPE_Final",
+    "Baseline_Lens_Final": "Lens_Final",
+    "Baseline_RPE_classes": "RPE_classes",
+    "Baseline_Lens_classes": "Lens_classes"
+}
+
 HumanReadouts = Literal[
     "RPE_Final_Contains",
     "Lens_Final_Contains",
@@ -1033,7 +1040,7 @@ def _save_neural_net_results(output_dir: str,
     return
 
 def _read_neural_net_results(output_dir: str,
-                             readout: Readouts,
+                             readout: Union[Readouts, BaselineReadouts],
                              val_experiment_id: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
@@ -1058,13 +1065,132 @@ def _read_neural_net_results(output_dir: str,
 
     return f1_scores, confusion_matrices
 
-def _get_labels(readout: Readouts) -> list[int]:
+def _get_labels(readout: Union[Readouts, BaselineReadouts]) -> list[int]:
+    if "Baseline_" in readout:
+        readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
     return [0, 1] if readout in ["RPE_Final", "Lens_Final"] else [0, 1, 2, 3]
+
+def neural_net_evaluation_baseline(val_dataset_id: str,
+                                   val_experiment_id: str,
+                                   eval_set: EvaluationSets,
+                                   readout: BaselineReadouts,
+                                   raw_data_dir: str,
+                                   experiment_dir: str,
+                                   output_dir: str,
+                                   proj: ProjectionIDs = "SL3",
+                                   weights: Optional[dict] = None) -> tuple:
+
+    f1_scores, confusion_matrices = _read_neural_net_results(
+        output_dir = output_dir,
+        readout = readout,
+        val_experiment_id = val_experiment_id,
+        val_dataset_id = val_dataset_id,
+        eval_set = eval_set,
+        proj = proj
+    )
+    if f1_scores is not None and confusion_matrices is not None:
+        return f1_scores, confusion_matrices
+
+    val_dataset_filename = (
+        f"M{val_dataset_id}_full_{proj}_fixed.cds"
+        if eval_set == "test"
+        else f"{val_dataset_id}_full_{proj}_fixed.cds"
+    )
+    original_readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
+
+    if eval_set == "test":
+        val_dataset = _read_val_dataset_split(raw_data_dir = raw_data_dir,
+                                              file_name = val_dataset_filename,
+                                              readout = original_readout)
+    else:
+        val_dataset = _read_val_dataset_full(raw_data_dir = raw_data_dir,
+                                             file_name = val_dataset_filename)
+
+    val_loader = create_val_loader(val_dataset = val_dataset,
+                                   readout = original_readout,
+                                   eval_set = eval_set)
+    assert -1 not in val_dataset.metadata["IMAGE_ARRAY_INDEX"]
+    df = val_dataset.metadata
+    # in order to keep the X shape, we set for SL003
+    df = df[df["slice"] == "SL003"]
+    if eval_set == "test":
+        df = df[df["set"] == "test"]
+    assert pd.Series(df["IMAGE_ARRAY_INDEX"]).is_monotonic_increasing
+    assert isinstance(df, pd.DataFrame)
+    
+    if hasattr(val_dataset, "dataset_metadata"):
+        print("Current validation dataset: ", val_dataset.dataset_metadata.dataset_id)
+
+    models = generate_neural_net_ensemble(
+        val_experiment_id = val_experiment_id,
+        readout = original_readout,
+        val_loader = val_loader,
+        eval_set = eval_set,
+        experiment_dir = experiment_dir,
+        output_dir = output_dir,
+        output_file_name = f"model_ensemble_{readout}_{val_experiment_id}_{proj}"
+    )
+    truth_arr, ensemble_pred, single_predictions = ensemble_probability_averaging(
+        models, val_loader, weights = weights
+    )
+    single_predictions = {
+        model: np.hstack(single_predictions[model]) for model in single_predictions
+    }
+
+    truth_values = pd.DataFrame(
+        data = np.array([np.argmax(el) for el in truth_arr]),
+        columns = ["truth"],
+        index = df.index
+    )
+
+    pred_values = pd.DataFrame(
+        data = ensemble_pred,
+        columns = ["pred"],
+        index = df.index
+    )
+
+    df = pd.concat([df, truth_values, pred_values], axis = 1)
+
+    f1_dfs = []
+
+    labels = _get_labels(readout)
+    conf_matrix_df = df.copy()
+    confusion_matrices = conf_matrix_df.groupby("loop").apply(
+        lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
+    )
+    confusion_matrices = np.array(confusion_matrices.tolist())
+
+    ensemble_f1 = calculate_f1_scores(df)
+    ensemble_f1 = ensemble_f1.rename(columns = {"F1": "Ensemble"}).set_index("loop")
+    f1_dfs.append(ensemble_f1)
+
+    for model in single_predictions:
+        df.loc[:, "pred"] = single_predictions[model]
+        f1 = calculate_f1_scores(df)
+        f1 = f1.rename(columns = {"F1": model}).set_index("loop")
+        f1_dfs.append(f1)
+
+    neural_net_f1 = pd.concat(f1_dfs, axis=1)
+    neural_net_f1 = neural_net_f1.reset_index().melt(id_vars = "loop",
+                                                     value_name = "F1",
+                                                     var_name = "classifier")
+    neural_net_f1["experiment"] = val_dataset_id
+
+    _save_neural_net_results(output_dir = output_dir,
+                             readout = readout,
+                             val_dataset_id = val_dataset_id,
+                             val_experiment_id = val_experiment_id,
+                             proj = proj,
+                             eval_set = eval_set,
+                             f1_scores = neural_net_f1,
+                             confusion_matrices = confusion_matrices)
+
+    return neural_net_f1, confusion_matrices
 
 def neural_net_evaluation(val_dataset_id: str,
                           val_experiment_id: str,
                           eval_set: EvaluationSets,
-                          readout: Union[Readouts, BaselineReadouts],
+                          readout: Readouts,
                           raw_data_dir: str,
                           experiment_dir: str,
                           output_dir: str,
@@ -1202,7 +1328,7 @@ def _instantiate_classifier(clf,
     return clf(**best_params)
 
 def _save_classifier_results(output_dir: str,
-                             readout: Readouts,
+                             readout: Union[Readouts, BaselineReadouts],
                              val_experiment_id: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
@@ -1229,7 +1355,7 @@ def _save_classifier_results(output_dir: str,
     return
 
 def _read_classifier_results(output_dir: str,
-                             readout: Readouts,
+                             readout: Union[Readouts, BaselineReadouts],
                              val_experiment_id: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
@@ -1340,6 +1466,8 @@ def classifier_evaluation_baseline(val_experiment_id: str,
                                    output_dir: str = "./figure_data") -> tuple[pd.DataFrame, np.ndarray]:
     val_dataset_id = val_experiment_id
 
+    original_readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
+
     f1_scores, confusion_matrices = _read_classifier_results(
         output_dir = output_dir,
         readout = readout,
@@ -1361,7 +1489,7 @@ def classifier_evaluation_baseline(val_experiment_id: str,
     train_df, test_df, val_df = create_data_dfs(
         df = morphometrics_frame,
         experiment = val_experiment_id,
-        readout = readout,
+        readout = original_readout,
         data_columns = data_columns
     )
     X_train = _get_data_array(train_df, data_columns)
@@ -1377,14 +1505,14 @@ def classifier_evaluation_baseline(val_experiment_id: str,
     X_val = _get_data_array(val_df, data_columns)
     y_val = _get_labels_array(val_df, readout)
 
-    clf_ = BEST_CLASSIFIERS[readout]
+    clf_ = BEST_CLASSIFIERS[original_readout]
     clf_name = clf_().__class__.__name__
     best_params = {}
     # best_params = _get_best_params(hyperparameter_dir,
     #                                readout = readout,
     #                                projection = proj,
     #                                classifier_name = clf_name)
-    clf = _instantiate_classifier(clf_, readout = readout, best_params = best_params)
+    clf = _instantiate_classifier(clf_, readout = original_readout, best_params = best_params)
     clf.fit(X_train, y_train)
 
     result_df = val_df if eval_set == "val" else test_df
@@ -1491,7 +1619,7 @@ def generate_baseline_results(readout: BaselineReadouts,
         # TODO: weights are the F1 scores!
         weights = None
         for eval_set in eval_sets:
-            cnn_f1, cnn_cm = neural_net_evaluation(
+            cnn_f1, cnn_cm = neural_net_evaluation_baseline(
                 val_dataset_id = experiment,
                 val_experiment_id = experiment,
                 eval_set = eval_set,
