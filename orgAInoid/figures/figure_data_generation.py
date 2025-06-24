@@ -1181,10 +1181,10 @@ def get_classification_f1_data(readout: Readouts,
 
     human_data = human_f1_per_experiment(evaluator_results_dir = evaluator_results_dir,
                                          morphometrics_dir = morphometrics_dir,
-                                         n_timeframes = 24,
+                                         n_timeframes = 48,
                                          output_dir = output_dir)
     human_data = add_loop_from_timeframe(human_data,
-                                         n_timeframes = 24)
+                                         n_timeframes = 48)
     human_data["classifier"] = "human"
     cols_to_choose = ["experiment", "loop", "F1", "classifier"]
     human_data = human_data.rename(columns = {f"F1_{readout}": "F1"})
