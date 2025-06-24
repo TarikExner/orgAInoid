@@ -509,6 +509,7 @@ def concat_human_evaluations(results_dir: str = "",
 
 def create_human_ground_truth_comparison(evaluator_results_dir: str,
                                          morphometrics_dir: str,
+                                         n_timeframes: int = 12,
                                          output_dir: str = "./figure_data",
                                          output_filename: str = "human_ground_truth_comparison") -> pd.DataFrame:
     
@@ -519,7 +520,8 @@ def create_human_ground_truth_comparison(evaluator_results_dir: str,
 
     human_evaluations = concat_human_evaluations(evaluator_results_dir, output_dir)
     ground_truth = get_ground_truth_annotations(morphometrics_dir,
-                                                output_dir = output_dir)
+                                                output_dir = output_dir,
+                                                n_timeframes = n_timeframes)
     comparison = ground_truth.merge(human_evaluations, on = "file_name", how = "inner")
 
     comparison.to_csv(output_file, index = False)
@@ -551,6 +553,7 @@ def human_f1_per_evaluator(evaluator_results_dir: str,
 
 def human_f1_per_experiment(evaluator_results_dir: str,
                             morphometrics_dir: str,
+                            n_timeframes: int = 12,
                             average: str = "weighted",
                             output_dir: str = "./figure_data",
                             output_filename: str = "human_f1_per_experiment") -> pd.DataFrame:
@@ -563,6 +566,7 @@ def human_f1_per_experiment(evaluator_results_dir: str,
         return existing_file
     df = create_human_ground_truth_comparison(evaluator_results_dir,
                                               morphometrics_dir,
+                                              n_timeframes = n_timeframes,
                                               output_dir = output_dir)
     f1_frame = f1_scores(df,
                          group_keys=["timeframe", "experiment"],
@@ -1177,9 +1181,10 @@ def get_classification_f1_data(readout: Readouts,
 
     human_data = human_f1_per_experiment(evaluator_results_dir = evaluator_results_dir,
                                          morphometrics_dir = morphometrics_dir,
+                                         n_timeframes = 24,
                                          output_dir = output_dir)
     human_data = add_loop_from_timeframe(human_data,
-                                         n_timeframes = 12)
+                                         n_timeframes = 24)
     human_data["classifier"] = "human"
     cols_to_choose = ["experiment", "loop", "F1", "classifier"]
     human_data = human_data.rename(columns = {f"F1_{readout}": "F1"})
