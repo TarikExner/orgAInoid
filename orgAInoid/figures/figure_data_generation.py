@@ -732,7 +732,10 @@ def _neural_net_evaluation(val_dataset_id: str,
     if truth_array.shape[0] > df.index.shape[0] or ensemble_pred.shape[0] > df.index.shape[0]:
         truth_array = truth_array[:df.index.shape[0]]
         ensemble_pred = ensemble_pred[:df.index.shape[0]]
-        single_predictions = single_predictions[:df.index.shape[0]]
+        single_predictions = {
+            model: array[:df.index.shape[0]]
+            for model, array in single_predictions.items()
+        }
         print("\n\nWARNING!!! ARRAY SHAPES DO NOT MATCH!!!\n\n")
     
     truth_values = pd.DataFrame(
