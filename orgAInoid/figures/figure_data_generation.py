@@ -893,10 +893,13 @@ def generate_neural_net_ensemble(val_experiment_id: str,
                                  eval_set: EvaluationSets,
                                  experiment_dir: str,
                                  output_dir: str = "./figure_data",
-                                 output_file_name: str = "model_ensemble") -> list[torch.nn.Module, ...]:
+                                 output_file_name: str = "model_ensemble") -> list[torch.nn.Module]:
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     os.makedirs(save_dir, exist_ok=True)
     output_file = os.path.join(save_dir, f"{output_file_name}.models")
+
+    if "Baseline_" in readout:
+        readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
 
     if os.path.isfile(output_file):
         with open(output_file, "rb") as file:
@@ -1123,7 +1126,7 @@ def neural_net_evaluation_baseline(val_dataset_id: str,
 
     models = generate_neural_net_ensemble(
         val_experiment_id = val_experiment_id,
-        readout = original_readout,
+        readout = readout,
         val_loader = val_loader,
         eval_set = eval_set,
         experiment_dir = experiment_dir,
