@@ -2,12 +2,14 @@ import os
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
-from matplotlib.gridspec import GridSpec
+from matplotlib.gridspec import GridSpec, SubplotSpec
 
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 import matplotlib.patches as mpatches
 from matplotlib.legend_handler import HandlerBase
+
+from typing import cast
 
 import cv2
 
@@ -25,7 +27,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         """Will contain the experimental overview sketch"""
         ax.axis("off")
@@ -41,7 +43,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
     def generate_subfigure_b(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         """Contains the raw values of RPE/Lens over all organoids"""
         ax.axis("off")
@@ -129,7 +131,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
     def generate_subfigure_c(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.3)
@@ -145,8 +147,8 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
         right_histogram_plot = fig.add_subplot(fig_sgs[0,2:])
         
         histkwargs = {"stat": "proportion", "bins": 20, "kde": True, "fill": False, "thresh": None}
-        sns.histplot(data = data[data["RPE_Final"] == "yes"], x = "Total_RPE_amount", **histkwargs, ax = left_histogram_plot, color = "black")
-        sns.histplot(data = data[data["Lens_Final"] == "yes"], x = "Lens_area", **histkwargs, ax = right_histogram_plot, color = "black")
+        sns.histplot(data = cast(pd.DataFrame, data[data["RPE_Final"] == "yes"]), x = "Total_RPE_amount", **histkwargs, ax = left_histogram_plot, color = "black")
+        sns.histplot(data = cast(data[data["Lens_Final"] == "yes"]), x = "Lens_area", **histkwargs, ax = right_histogram_plot, color = "black")
 
         left_histogram_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         left_histogram_plot.set_title("RPE area distribution", fontsize = cfg.TITLE_SIZE)

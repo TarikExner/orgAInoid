@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
-from matplotlib.gridspec import GridSpec
+from matplotlib.gridspec import GridSpec, SubplotSpec
 
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
@@ -27,7 +27,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.25)
@@ -105,7 +105,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
     def generate_subfigure_b(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.25)
@@ -182,7 +182,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
 
     def generate_subfigure_c(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.25)
@@ -227,7 +227,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
         
     def generate_subfigure_d(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.25)
@@ -264,7 +264,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
         
     def generate_subfigure_e_and_f(fig: Figure,
                                    ax: Axes,
-                                   gs: GridSpec,
+                                   gs: SubplotSpec,
                                    subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.25)
@@ -367,5 +367,3 @@ def figure_S1_generation(annotations_dir: str,
                           figure_name = "Supplementary_Figure_S1")
 
     return
- 
-

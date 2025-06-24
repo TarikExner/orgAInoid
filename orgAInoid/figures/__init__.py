@@ -3,21 +3,37 @@ from .figure_2 import figure_2_generation
 from .figure_2_reviewer import figure_2_reviewer_generation
 from .figure_3 import figure_3_generation
 from .figure_3_reviewer import figure_3_reviewer_generation
+from .figure_4 import figure_4_generation
+from .figure_5 import figure_5_generation
 
 from .figure_S1 import figure_S1_generation
 from .figure_S2 import figure_S2_generation
+from .figure_S3 import figure_S3_generation
 
+from .figure_S5 import figure_S5_generation
 
+from .figure_S7 import figure_S7_generation
+
+from .figure_S9 import figure_S9_generation
 
 __all__ = [
     "figure_1_generation",
     "figure_2_generation",
     "figure_2_reviewer_generation",
-    "figure_3_generation"
-    "figure_3_reviewer_generation"
+    "figure_3_generation",
+    "figure_3_reviewer_generation",
+    "figure_4_generation",
+    "figure_5_generation",
 
     "figure_S1_generation",
-    "figure_S2_generation"
+    "figure_S2_generation",
+    "figure_S3_generation",
+
+    "figure_S5_generation",
+
+    "figure_S7_generation",
+
+    "figure_S9_generation"
 ]
 
 DIRECTORIES = {
@@ -30,6 +46,7 @@ DIRECTORIES = {
     "microscopy_dir": "./microscopy_images",
     "raw_data_dir": "../classification/raw_data",
     "hyperparameter_dir": "../shape_analysis/results/best_params",
+    "classifier_results_dir": "../shape_analysis/results",
 
     "rpe_classification_dir": "../classification/experiment_32",
     "lens_classification_dir": "../classification/experiment_33",
@@ -51,16 +68,28 @@ DIRECTORIES = {
     "rpe_classes_classification_dir_max": "../classification/experiment_46_RPE_classes_ZMAX",
     "lens_classes_classification_dir_max": "../classification/experiment_47_Lens_classes_ZMAX",
 
+
 }
 
 def generate_final_figures():
     figure_1_generation(**DIRECTORIES)
     figure_2_generation(**DIRECTORIES)
-    figure_2_reviewer_generation(**DIRECTORIES)
     figure_3_generation(**DIRECTORIES)
+    figure_4_generation(**DIRECTORIES)
+    figure_5_generation(**DIRECTORIES)
+
+    figure_2_reviewer_generation(**DIRECTORIES)
     figure_3_reviewer_generation(**DIRECTORIES)
 
     figure_S1_generation(**DIRECTORIES)
     figure_S2_generation(**DIRECTORIES)
+    figure_S3_generation(**DIRECTORIES)
+
+    figure_S5_generation(**DIRECTORIES)
+
+    figure_S7_generation(**DIRECTORIES)
+
+    figure_S9_generation(**DIRECTORIES)
+
 
 

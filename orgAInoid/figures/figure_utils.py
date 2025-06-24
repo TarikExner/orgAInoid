@@ -2,7 +2,7 @@ from matplotlib.axes import Axes
 import pandas as pd
 import numpy as np
 
-def _figure_label(ax: Axes, label, x = 0, y = 1):
+def _figure_label(ax: Axes, label, x: float = 0.0, y: float = 1.0):
     """labels individual subfigures. Requires subgrid to not use figure axis coordinates."""
     ax.text(x,y,label, fontsize = 12)
     return

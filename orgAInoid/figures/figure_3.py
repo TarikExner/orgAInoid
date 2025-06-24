@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
-from matplotlib.gridspec import GridSpec
+from matplotlib.gridspec import GridSpec, SubplotSpec
 
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
@@ -14,9 +14,7 @@ from matplotlib.ticker import MultipleLocator
 from . import figure_config as cfg
 from . import figure_utils as utils
 
-from .figure_data_generation import (get_classification_f1_data,
-                                     generate_baseline_results,
-                                     generate_classification_results)
+from .figure_data_generation import get_classification_f1_data
 
 def _generate_main_figure(rpe_f1: pd.DataFrame,
                           lens_f1: pd.DataFrame,
@@ -26,7 +24,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
 
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         """Will contain the experimental overview sketch"""
         ax.axis("off")
@@ -44,7 +42,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
 
     def generate_subfigure_b(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         """Contains the raw values of RPE/Lens over all organoids"""
         ax.axis("off")
@@ -95,7 +93,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
 
     def generate_subfigure_c(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         """Contains the raw values of RPE/Lens over all organoids"""
         ax.axis("off")

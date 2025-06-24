@@ -42,6 +42,7 @@ from .figure_data_utils import (
     _read_val_dataset_split,
     _read_val_dataset_full,
     create_val_loader,
+    convert_cnn_output_to_float,
 
     METADATA_COLUMNS,
     READOUT_BASELINE_READOUT_MAP,
@@ -1186,4 +1187,59 @@ def get_classification_f1_data(readout: Readouts,
 
     return pd.concat([classifier_f1s, baseline_f1s, human_data], axis = 0)
 
+def get_classifier_comparison(classifier_results_dir: str,
+                              readout: Readouts,
+                              proj: ProjectionIDs,
+                              output_dir: str = "./figure_data",
+                              output_filename: str = "classifier_benchmark") -> pd.DataFrame:
+
+    # CLFCOMP_SLICE3
+    # CLFCOMP_MAX
+    # HYPERPARAM_SUM
+    save_suffix = f"_{proj}"
+
+    output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+
+    if proj == "SL3":
+        proj = "SLICE3"
+    benchmark = pd.read_csv(
+        os.path.join(classifier_results_dir, f"CLFCOMP_{proj}.txt"),
+        index_col = False
+    )
+    hyperparam_tuning = pd.read_csv(
+        os.path.join(classifier_results_dir, f"HYPERPARAM_{proj}.txt"),
+        index_col = False
+    )
+    benchmark["tuning"] = "not tuned"
+    hyperparam_tuning["tuning"] = "tuned"
+    data = pd.concat([benchmark, hyperparam_tuning], axis = 0)
+    data = data[data["readout"] == readout].copy()
+    data["ALGORITHM"] = [f"{algorithm}: {tuning}" for algorithm, tuning in zip(data["algorithm"].tolist(), data["tuning"].tolist())]
+
+    data.to_csv(output_file, index = False)
+    return data
+
+def get_cnn_output(classification_dir: str,
+                   readout: Readouts,
+                   proj: ProjectionIDs,
+                   output_dir: str = "./figure_data",
+                   output_filename: str = "cnn_output") -> pd.DataFrame:
+    save_suffix = f"_{readout}_{proj}"
+
+    output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+
+    data = pd.read_csv(
+        os.path.join(classification_dir, f"results/{readout}.txt"),
+        index_col = False
+    )
+    data = convert_cnn_output_to_float(data)
+
+    data.to_csv(output_file)
+    return data
 

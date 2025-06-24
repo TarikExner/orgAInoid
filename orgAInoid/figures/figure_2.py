@@ -2,12 +2,14 @@ import os
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
-from matplotlib.gridspec import GridSpec
+from matplotlib.gridspec import GridSpec, SubplotSpec
 
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
 from matplotlib.patches import Rectangle
+
+from typing import cast
 
 import cv2
 
@@ -30,7 +32,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
 
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         """Will contain the experimental overview sketch"""
         ax.axis("off")
@@ -47,7 +49,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
 
     def generate_subfigure_b(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.45)
@@ -114,7 +116,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
 
     def generate_subfigure_c(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.45)
@@ -128,9 +130,10 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
         distance_plot = fig.add_subplot(fig_sgs[0])
         
         sns.lineplot(
-            data=data[data['distance_type'] == 'interorganoid'],
+            cast(pd.DataFrame, data=data[data['distance_type'] == 'interorganoid']),
             x='hours', y='distance', hue = "experiment", palette = "tab20", errorbar = "se",
-            ax=distance_plot)
+            ax=distance_plot
+        )
         distance_plot.set_xlabel('hours', fontsize = cfg.AXIS_LABEL_SIZE)
         distance_plot.set_ylabel('Interorganoid Distance (euclidean)', fontsize = cfg.AXIS_LABEL_SIZE)
         distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -142,7 +145,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
 
     def generate_subfigure_d(fig: Figure,
                              ax: Axes,
-                             gs: GridSpec,
+                             gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.45)
@@ -155,9 +158,11 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
         distance_plot = fig.add_subplot(fig_sgs[0])
         
-        sns.lineplot(data=data[data['distance_type'] == 'intraorganoid'],
-                     x='hours', y='distance',
-                     errorbar = "se", ax=distance_plot)
+        sns.lineplot(
+            data=cast(pd.DataFrame, data[data['distance_type'] == 'intraorganoid']),
+            x='hours', y='distance',
+            errorbar = "se", ax=distance_plot
+        )
         distance_plot.set_xlabel('hours', fontsize = cfg.AXIS_LABEL_SIZE)
         distance_plot.set_ylabel('Intraorganoid Distance (euclidean)', fontsize = cfg.AXIS_LABEL_SIZE)
         distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -280,9 +285,4 @@ def figure_2_generation(morphometrics_dir: str,
                           sketch_dir = sketch_dir)
 
     return
-
-
-
-
-
 

@@ -49,7 +49,7 @@ HumanReadouts = Literal[
 ]
 
 Projections = Literal["max", "sum", "all_slices", ""]
-ProjectionIDs = Literal["ZMAX", "ZSUM", "ALL_SLICES", "SL3"]
+ProjectionIDs = Literal["ZMAX", "ZSUM", "ALL_SLICES", "SL3", "SLICE3"]
 
 METADATA_COLUMNS = [
     'experiment', 'well', 'file_name', 'position', 'slice', 'loop',
@@ -554,3 +554,15 @@ def _postprocess_cnn_frame(df: pd.DataFrame,
     _df["classifier"] = classifier_name
     assert isinstance(_df, pd.DataFrame)
     return _df
+
+def convert_cnn_output_to_float(data: pd.DataFrame) -> pd.DataFrame:
+    data = data[data["ExperimentID"] != "ExperimentID"]
+    data["TrainF1"] = data["TrainF1"].astype(float)
+    data["TestF1"] = data["TestF1"].astype(float)
+    data["ValF1"] = data["ValF1"].astype(float)
+    data["TrainLoss"] = data["TrainLoss"].astype(float)
+    data["TestLoss"] = data["TestLoss"].astype(float)
+    data["ValLoss"] = data["ValLoss"].astype(float)
+    data["Epoch"] = data["Epoch"].astype(int)
+    return data
+
