@@ -610,9 +610,6 @@ def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
     np.save(output_filename, conf_matrix)
     return conf_matrix
 
-
-
-
 def generate_classification_results(readout: Readouts,
                                     output_dir: str,
                                     proj: Projections,
@@ -630,7 +627,7 @@ def generate_baseline_results(readout: BaselineReadouts,
                               experiment_dir: str,
                               morphometrics_dir: str,
                               raw_data_dir: str,
-                              baseline: bool = False):
+                              baseline: bool = True):
     return _generate_classification_results(**locals())
 
 def get_classification_f1_data(readout: Readouts,
