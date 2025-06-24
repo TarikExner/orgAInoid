@@ -729,10 +729,8 @@ def _neural_net_evaluation(val_dataset_id: str,
     truth_array = np.array([np.argmax(el) for el in truth_arr])
 
     # this happens for some reason in E002 when SUMmed...
-    if truth_array.shape[0] > df.index.shape[0]:
+    if truth_array.shape[0] > df.index.shape[0] or ensemble_pred.shape[0] > df.index.shape[0]:
         truth_array = truth_array[:df.index.shape[0]]
-        print("\n\nWARNING!!! ARRAY SHAPES DO NOT MATCH!!!\n\n")
-    if ensemble_pred.shape[0] > df.index.shape[0]:
         ensemble_pred = ensemble_pred[:df.index.shape[0]]
         print("\n\nWARNING!!! ARRAY SHAPES DO NOT MATCH!!!\n\n")
     
@@ -747,6 +745,8 @@ def _neural_net_evaluation(val_dataset_id: str,
         columns = ["pred"],
         index = df.index
     )
+
+    assert truth_values.shape[0] == pred_values.shape[0]
 
     df = pd.concat([df, truth_values, pred_values], axis = 1)
 
