@@ -1546,7 +1546,7 @@ def classifier_evaluation_baseline(val_experiment_id: str,
 def _postprocess_cnn_frame(df: pd.DataFrame,
                            eval_set: EvaluationSets,
                            baseline: bool = False) -> pd.DataFrame:
-    _df = df[df["classifier"] == "Ensemble"]
+    _df = df[df["classifier"] == "Ensemble"].copy()
     classifier_name = f"Ensemble_{eval_set}" if not baseline else f"Baseline_Ensemble_{eval_set}"
     _df["classifier"] = classifier_name
     assert isinstance(_df, pd.DataFrame)
