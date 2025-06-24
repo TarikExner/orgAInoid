@@ -1,48 +1,60 @@
 import os
 import numpy as np
 import pandas as pd
-import pickle
-from tqdm import tqdm
 
 from scipy.spatial.distance import pdist, squareform, cdist
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
-from sklearn.metrics import f1_score, confusion_matrix
+from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
 
-from sklearn.multioutput import MultiOutputClassifier
-from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.tree import DecisionTreeClassifier
 
 from sklearn.manifold import TSNE
 from umap import UMAP
 
-import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
 
-from typing import Optional, Literal, NoReturn, Union, Sequence
+from typing import Optional, Sequence
 
-from ..classification._dataset import OrganoidDataset, OrganoidTrainingDataset
-from ..classification.models import DenseNet121, ResNet50, MobileNetV3_Large
-
-from ..classification._utils import create_dataloader
-from ..classification._evaluation import ModelWithTemperature
 from ..classification._utils import (create_data_dfs,
                                      _get_data_array,
                                      _get_labels_array)
 
 from . import figure_config as cfg
 
+from .figure_data_utils import (
+    _loop_to_timepoint,
+    _build_timeframe_dict,
+    check_for_file,
+    get_data_columns_morphometrics,
+    _rename_annotation_columns,
+    add_loop_from_timeframe,
+    f1_scores,
+    _read_neural_net_results,
+    _save_neural_net_results,
+    _read_classifier_results,
+    _save_classifier_results,
+    _get_labels,
+    _postprocess_cnn_frame,
+    calculate_f1_scores,
+    _instantiate_classifier,
+    ensemble_probability_averaging,
+    generate_neural_net_ensemble,
+    _read_val_dataset_split,
+    _read_val_dataset_full,
+    create_val_loader,
 
-METADATA_COLUMNS = [
-    'experiment', 'well', 'file_name', 'position', 'slice', 'loop',
-    'Condition', 'RPE_Final', 'RPE_Norin', 'RPE_Cassian',
-    'Confidence_score_RPE', 'Total_RPE_amount', 'RPE_classes', 'Lens_Final',
-    'Lens_Norin', 'Lens_Cassian', 'Confidence_score_lens', 'Lens_area',
-    'Lens_classes', 'label'
-]
+    METADATA_COLUMNS,
+    READOUT_BASELINE_READOUT_MAP,
+    BEST_CLASSIFIERS,
+    PROJECTION_TO_PROJECTION_ID_MAP,
+    BASELINE_READOUT_TO_READOUT_MAP,
+
+    Readouts,
+    BaselineReadouts,
+    EvaluationSets,
+    Projections,
+    ProjectionIDs
+)
 
 CLASS_ENTRIES = {
     "RPE_Final": ["No", "Yes"],
@@ -57,117 +69,6 @@ PC_COLUMNS = [
     f"PC{i}" for i in range(1,21)
 ]
 
-_CONTAINS_MAP = {
-    "RPE_Final_Contains": "RPE_Final",
-    "Lens_Final_Contains": "Lens_Final"
-}
-_STRING_LABEL_COLS = {"RPE_Final", "Lens_Final"}
-
-_BINARY_MAP = {"yes": 1, "no": 0}
-
-_DEFAULT_HUMAN_COLS = [
-    "human_eval_RPE_Final_Contains",
-    "human_eval_Lens_Final_Contains",
-    "human_eval_RPE_Final",
-    "human_eval_Lens_Final",
-    "human_eval_RPE_classes",
-    "human_eval_Lens_classes"
-]
-
-N_CLASSES_DICT: dict[str, int] = {
-    "RPE_Final": 2,
-    "Lens_Final": 2,
-    "RPE_classes": 4,
-    "Lens_classes": 4,
-    "RPE_Final_Contains": 2,
-    "Lens_Final_Contains": 2
-}
-
-MODEL_NAMES = ["DenseNet121", "ResNet50", "MobileNetV3_Large"]
-
-ModelNames = Literal["DenseNet121", "ResNet50", "MobileNetV3_Large"]
-
-EvaluationSets = Literal["test", "val"]
-
-Readouts = Literal[
-    "RPE_Final",
-    "Lens_Final",
-    "RPE_classes",
-    "Lens_classes"
-]
-BaselineReadouts = Literal[
-    "Baseline_RPE_Final",
-    "Baseline_Lens_Final",
-    "Baseline_RPE_classes",
-    "Baseline_Lens_classes"
-]
-
-READOUT_BASELINE_READOUT_MAP: dict[Readouts, BaselineReadouts] = {
-    "RPE_Final": "Baseline_RPE_Final",
-    "Lens_Final": "Baseline_Lens_Final",
-    "RPE_classes": "Baseline_RPE_classes",
-    "Lens_classes": "Baseline_Lens_classes"
-}
-
-BASELINE_READOUT_TO_READOUT_MAP: dict[BaselineReadouts, Readouts] = {
-    "Baseline_RPE_Final": "RPE_Final",
-    "Baseline_Lens_Final": "Lens_Final",
-    "Baseline_RPE_classes": "RPE_classes",
-    "Baseline_Lens_classes": "Lens_classes"
-}
-
-HumanReadouts = Literal[
-    "RPE_Final_Contains",
-    "Lens_Final_Contains",
-    "RPE_Final",
-    "Lens_Final",
-    "RPE_classes",
-    "Lens_classes"
-]
-
-Projections = Literal["max", "sum", "all_slices", ""]
-ProjectionIDs = Literal["ZMAX", "ZSUM", "ALL_SLICES", "SL3"]
-
-PROJECTION_SAVE_MAP: dict[Union[Projections, ProjectionIDs], Union[Projections, ProjectionIDs]] = {
-    "SL3": "SL3",
-    "ZMAX": "max",
-    "ZSUM": "sum",
-    "ALL_SLICES": "all_slices",
-    "": "SL3",
-    "max": "max",
-    "sum": "sum",
-    "all_slices": "all_slices"
-}
-
-PROJECTION_TO_PROJECTION_ID_MAP: dict[Projections, ProjectionIDs] = {
-    "max": "ZMAX",
-    "sum": "ZSUM",
-    "all_slices": "ALL_SLICES",
-    "": "SL3"
-}
-
-BEST_CLASSIFIERS = {
-    "RPE_Final": DecisionTreeClassifier,
-    "RPE_classes": DecisionTreeClassifier,
-    "Lens_Final": DecisionTreeClassifier,
-    "Lens_classes": DecisionTreeClassifier,
-    "morph_classes": DecisionTreeClassifier
-}
-
-def _loop_to_timepoint(loops: list[str]) -> list[int]:
-    return [int(lo.split("LO")[1]) for lo in loops]
-
-def _build_timeframe_dict(n_timeframes: int, total: int = 144) -> dict[str, int]:
-    chunk = total // n_timeframes
-    return {
-        f"LO{i:03d}": min((i - 1) // chunk + 1, n_timeframes)
-        for i in range(1, total + 1)
-    }
-
-def check_for_file(output_file: str) -> Optional[pd.DataFrame]:
-    if os.path.isfile(output_file):
-        return pd.read_csv(output_file, index_col = False)
-    return
 
 def get_morphometrics_frame(results_dir: str,
                             suffix: Optional[str] = None) -> pd.DataFrame:
@@ -193,8 +94,6 @@ def get_morphometrics_frame(results_dir: str,
     assert isinstance(df, pd.DataFrame)
     return df
 
-def get_data_columns_morphometrics(df: pd.DataFrame):
-    return [col for col in df.columns if col not in METADATA_COLUMNS]
 
 def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
                                                 data_columns: list[str],
@@ -245,7 +144,7 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
         for i, tp in enumerate(timepoints)
     }
 
-    df["timeframe"] = df["loop"].map(timeframe_dict)
+    df["timeframe"] = df["loop"].map(lambda x, m=timeframe_dict: m.get(x))
     df["timeframe"] = df["timeframe"].astype(str)
     df.to_csv(output_file, index = False)
     return df
@@ -275,7 +174,8 @@ def calculate_organoid_distances(df: pd.DataFrame,
 
         print(f">>> Calculating distances for experiment {experiment} using {save_suffix.strip('_')} data")
         exp_data = df[df["experiment"] == experiment].copy()
-        time_points = sorted(exp_data["loop"].unique())
+        exp_data: pd.DataFrame
+        time_points = sorted(np.unique(exp_data["loop"].to_numpy()))
 
         exp_data[data_columns] = StandardScaler().fit_transform(exp_data[data_columns])
         if use_pca:
@@ -567,8 +467,6 @@ def neighbors_per_well_by_experiment(df: pd.DataFrame,
     df.to_csv(output_file, index = False)
     return df
 
-
-
 def get_ground_truth_annotations(morphometrics_dir: str = "",
                                  n_timeframes: int = 12,
                                  output_dir: str = "./figure_data",
@@ -589,22 +487,6 @@ def get_ground_truth_annotations(morphometrics_dir: str = "",
 
     return morphometrics
     
-def _rename_annotation_columns(df: pd.DataFrame) -> pd.DataFrame:
-    eval_id = df["Evaluator_ID"].unique()[0]
-    eval_id = "human_eval"
-    df = df.rename(
-        columns = {
-            "FileName": "file_name",
-            "ContainsRPE": f"{eval_id}_RPE_Final_Contains",
-            "WillDevelopRPE": f"{eval_id}_RPE_Final",
-            "RPESize": f"{eval_id}_RPE_classes",
-            "ContainsLens": f"{eval_id}_Lens_Final_Contains",
-            "WillDevelopLens": f"{eval_id}_Lens_Final",
-            "LensSize": f"{eval_id}_Lens_classes"
-        }
-    )
-    return df
-
 def concat_human_evaluations(results_dir: str = "",
                              output_dir: str = "./figure_data",
                              output_filename: str = "human_evaluations_concat") -> pd.DataFrame:
@@ -642,47 +524,6 @@ def create_human_ground_truth_comparison(evaluator_results_dir: str,
     comparison.to_csv(output_file, index = False)
     return comparison
 
-
-def f1_scores(df: pd.DataFrame,
-              group_keys: list[str],
-              average: str = "weighted") -> pd.DataFrame:
-    """
-    Compute weighted F1 scores for each human prediction column against its ground truth counterpart,
-    grouped by specified keys. Ensures each class appears at least once for stable scoring.
-
-    Returns one F1 column per prediction.
-    """
-    n_classes_dict = N_CLASSES_DICT
-    pred_cols = _DEFAULT_HUMAN_COLS
-
-    records = []
-    for keys, grp in df.groupby(group_keys):
-        if not isinstance(keys, tuple):
-            keys = (keys,)
-        row = dict(zip(group_keys, keys))
-        for pred in pred_cols:
-            # resolve target gt col
-            short = pred.replace('human_eval_', '')
-            gt_col = _CONTAINS_MAP.get(short, short)
-            # extract true/pred labels
-            if gt_col in _STRING_LABEL_COLS:
-                y_true = grp[gt_col].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
-                y_pred = grp[pred].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
-            else:
-                y_true = grp[gt_col].astype(int).to_numpy()
-                y_pred = grp[pred].astype(int).to_numpy()
-            # pad missing classes
-            n = n_classes_dict[gt_col]
-            present = set(np.unique(y_true)) | set(np.unique(y_pred))
-            missing = set(range(n)) - present
-            if missing:
-                pad = np.array(list(missing), dtype=int)
-                y_true = np.concatenate([y_true, pad])
-                y_pred = np.concatenate([y_pred, pad])
-            # compute f1
-            row[f"F1_{short}"] = f1_score(y_true, y_pred, average=average)
-        records.append(row)
-    return pd.DataFrame.from_records(records)
 
 def human_f1_per_evaluator(evaluator_results_dir: str,
                            morphometrics_dir: str,
@@ -752,21 +593,6 @@ def get_dataset_annotations(annotations_dir: str,
     annotations.to_csv(output_file, index = False)
     return annotations
 
-def add_loop_from_timeframe(df: pd.DataFrame,
-                            n_timeframes: int = 12,
-                            total_loops: int = 144,
-                            timeframe_col: str = "timeframe",
-                            loop_col: str = "loop") -> pd.DataFrame:
-    """Calculates backwards and adds the maximum loop number for every given timeframe"""
-    chunk = total_loops // n_timeframes
-    max_loops = {
-        tf: min(tf * chunk, total_loops)
-        for tf in range(1, n_timeframes + 1)
-    }
-    df = df.copy()
-    df[loop_col] = df[timeframe_col].map(max_loops)
-    return df
-
 def confusion_matrix_last_timeframe_all(df: pd.DataFrame,
                                         truth_col: str,
                                         pred_col: str,
@@ -822,256 +648,6 @@ def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
                                                       pred_col = "human_eval_RPE_Final_Contains")
     np.save(output_filename, conf_matrix)
     return conf_matrix
-
-## neural net evaluation
-def _preprocess_results_file(df: pd.DataFrame) -> pd.DataFrame:
-    df = df[df["ExperimentID"] != "ExperimentID"].copy()
-    assert isinstance(df, pd.DataFrame)
-    df["ValF1"] = df["ValF1"].astype(float)
-    df["TestF1"] = df["TestF1"].astype(float)
-    return df
-
-def _create_f1_weights(results: pd.DataFrame) -> pd.DataFrame:
-    """calculates the max f1 score by model"""
-    return results.groupby(["ValExpID", "Model"]).max(["TestF1", "ValF1"]).reset_index()
-
-def read_classification_results(results_dir,
-                                readout: Readouts) -> pd.DataFrame:
-    scores = pd.read_csv(os.path.join(results_dir, f"{readout}.txt"))
-    scores = _preprocess_results_file(scores)
-    return scores
-
-def _get_model(model_name: str,
-               num_classes: int) -> torch.nn.Module:
-    if model_name == "DenseNet121":
-        return DenseNet121(num_classes = num_classes, dropout = 0.2)
-    elif model_name == "ResNet50":
-        return ResNet50(num_classes = num_classes, dropout = 0.2)
-    elif model_name == "MobileNetV3_Large":
-        return MobileNetV3_Large(num_classes = num_classes, dropout = 0.5)
-    else:
-        raise ValueError(f"Unknown Model {model_name}")
-
-def _instantiate_model(model_name: str,
-                       eval_set: Literal["test", "val"],
-                       val_experiment_id: str,
-                       readout: Readouts,
-                       classifier_dir: str):
-    num_classes = N_CLASSES_DICT[readout]
-    model = _get_model(model_name, num_classes)
-    model_name = model.__class__.__name__
-
-    model_file_name = f"{model_name}_{eval_set}_f1_{val_experiment_id}_{readout}"
-    print(f"...loading model {model_file_name}")
-
-    state_dict_path = os.path.join(
-        classifier_dir, f"{model_file_name}_base_model.pth"
-    )
-    model.load_state_dict(torch.load(state_dict_path))
-    model.eval()
-    model.cuda()
-    return model
-
-def model_setup_with_temperature(model_name,
-                                 eval_set: EvaluationSets,
-                                 val_experiment_id: str,
-                                 readout: Readouts,
-                                 val_loader: DataLoader,
-                                 classifier_dir: str):
-    model = _instantiate_model(model_name = model_name,
-                               eval_set = eval_set,
-                               val_experiment_id = val_experiment_id,
-                               readout = readout,
-                               classifier_dir = classifier_dir)
-    model = ModelWithTemperature(model, eval_set, val_experiment_id)
-    model.set_temperature(val_loader)
-    return model
-
-def generate_neural_net_ensemble(val_experiment_id: str,
-                                 readout: Union[Readouts, BaselineReadouts],
-                                 val_loader: DataLoader,
-                                 eval_set: EvaluationSets,
-                                 experiment_dir: str,
-                                 output_dir: str = "./figure_data",
-                                 output_file_name: str = "model_ensemble") -> list[torch.nn.Module]:
-    save_dir = os.path.join(output_dir, f"classification_{readout}")
-    os.makedirs(save_dir, exist_ok=True)
-    output_file = os.path.join(save_dir, f"{output_file_name}.models")
-
-    if "Baseline_" in readout:
-        readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
-
-    if os.path.isfile(output_file):
-        with open(output_file, "rb") as file:
-            models = pickle.load(file)
-        return models
-
-    classifier_dir = os.path.join(experiment_dir, "classifiers")
-
-    models = []
-    for model_name in MODEL_NAMES:
-        _model = model_setup_with_temperature(
-            model_name = model_name,
-            eval_set = eval_set,
-            val_experiment_id = val_experiment_id,
-            readout = readout,
-            val_loader = val_loader,
-            classifier_dir = classifier_dir
-        )
-        models.append(_model)
-
-    with open(output_file, "wb") as file:
-        pickle.dump(models, file)
-
-    return models
-
-def ensemble_probability_averaging(models, dataloader, weights=None) -> tuple[np.ndarray, np.ndarray, dict]:
-    """\
-    Weights is a dictionary where the keys are the model names
-    and the values is the val_f1_score.
-    """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    all_labels = []
-    all_preds = []
-    single_predictions = {model.original_name: [] for model in models}
-    
-    with torch.no_grad():
-        for inputs, labels in tqdm(dataloader):
-            inputs = inputs.to(device)
-            prob_sum = 0
-            total_weight = 0
-            
-            for model in models:
-                logits = model(inputs)
-                preds_single = torch.argmax(logits, dim=1).detach().cpu().numpy()
-                single_predictions[model.original_name].append(preds_single)
-                probs = F.softmax(logits, dim=1)
-                
-                if weights is not None:
-                    weight = weights[model.original_name]
-                else:
-                    # If no weights provided, use equal weighting
-                    weight = 1.0
-                
-                # Accumulate the weighted probabilities
-                prob_sum += weight * probs
-                total_weight += weight
-            
-            # Normalize the accumulated probabilities
-            probs_avg = prob_sum / total_weight
-            # Determine the ensemble predictions
-            preds = torch.argmax(probs_avg, dim=1)
-            # Collect labels and predictions
-            all_labels.extend(labels.cpu().numpy())
-            all_preds.extend(preds.cpu().numpy())
-    
-    return np.array(all_labels), np.array(all_preds), single_predictions
-
-def _read_val_dataset_full(raw_data_dir: str,
-                           file_name: str) -> OrganoidDataset:
-    validation_dataset_file = os.path.join(raw_data_dir, file_name)
-    return OrganoidDataset.read_classification_dataset(validation_dataset_file)
-
-def _read_val_dataset_split(raw_data_dir: str,
-                            file_name: str,
-                            readout: Readouts) -> OrganoidTrainingDataset:
-    ds = _read_val_dataset_full(raw_data_dir, file_name)
-    return OrganoidTrainingDataset(ds, readout = readout)
-
-def _create_val_loader_full_dataset(val_dataset: OrganoidDataset,
-                                    readout: Readouts) -> DataLoader:
-    X, y = val_dataset.X, val_dataset.y[readout]
-    return create_dataloader(X, y, batch_size = 128, shuffle = False, train = False)
-
-def _create_val_loader_split(val_dataset: OrganoidTrainingDataset) -> DataLoader:
-    X, y = val_dataset.X_test, val_dataset.y_test
-    return create_dataloader(X, y, batch_size = 128, shuffle = False, train = False)
-
-def create_val_loader(val_dataset: Union[OrganoidDataset, OrganoidTrainingDataset],
-                      readout: Readouts,
-                      eval_set: EvaluationSets) -> Union[DataLoader, NoReturn]:
-    if eval_set == "test":
-        return _create_val_loader_split(val_dataset)
-    elif eval_set == "val":
-        return _create_val_loader_full_dataset(val_dataset,
-                                               readout = readout)
-    else:
-        raise ValueError(f"eval_set has to be one of 'test' and 'val'. Received {eval_set}")
-
-def calculate_f1_scores(df) -> pd.DataFrame:
-    loops = df.sort_values(["loop"], ascending = True)["loop"].unique().tolist()
-    f1_scores = pd.DataFrame(
-        df.groupby('loop').apply(
-            lambda x: f1_score(x['truth'], x['pred'], average = "weighted")
-        ),
-        columns = ["F1"]
-    ).reset_index()
-    f1_scores["loop"] = _loop_to_timepoint(loops)
-    return f1_scores
-
-def _create_cnn_filename(val_experiment_id: str,
-                         val_dataset_id: str,
-                         eval_set: EvaluationSets,
-                         proj: ProjectionIDs) -> str:
-    return f"{val_dataset_id}_{val_experiment_id}_{eval_set}_{proj}"
-
-def _save_neural_net_results(output_dir: str,
-                             readout: Readouts,
-                             val_experiment_id: str,
-                             val_dataset_id: str,
-                             eval_set: EvaluationSets,
-                             proj: ProjectionIDs,
-                             f1_scores: pd.DataFrame,
-                             confusion_matrices: np.ndarray) -> None:
-    proj = PROJECTION_SAVE_MAP[proj]
-    save_dir = os.path.join(output_dir, f"classification_{readout}")
-    os.makedirs(save_dir, exist_ok=True)
-    file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
-                                     val_dataset_id = val_dataset_id,
-                                     eval_set = eval_set,
-                                     proj = proj)
-
-    f1_scores.to_csv(
-        os.path.join(save_dir, f"{file_name}_CNNF1.csv"),
-        index = False
-    )
-
-    np.save(
-        os.path.join(save_dir, f"{file_name}_CNNCM.npy"),
-        confusion_matrices
-    )
-    return
-
-def _read_neural_net_results(output_dir: str,
-                             readout: Union[Readouts, BaselineReadouts],
-                             val_experiment_id: str,
-                             val_dataset_id: str,
-                             eval_set: EvaluationSets,
-                             proj: ProjectionIDs) -> tuple:
-    proj = PROJECTION_SAVE_MAP[proj]
-    save_dir = os.path.join(output_dir, f"classification_{readout}")
-    file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
-                                     val_dataset_id = val_dataset_id,
-                                     eval_set = eval_set,
-                                     proj = proj)
-    csv_file = os.path.join(save_dir, f"{file_name}_CNNF1.csv")
-    if os.path.isfile(csv_file):
-        f1_scores = pd.read_csv(csv_file, index_col = False)
-    else:
-        return None, None
-
-    numpy_file = os.path.join(save_dir, f"{file_name}_CNNCM.npy")
-    if os.path.isfile(numpy_file):
-        confusion_matrices = np.load(numpy_file)
-    else:
-        return None, None
-
-    return f1_scores, confusion_matrices
-
-def _get_labels(readout: Union[Readouts, BaselineReadouts]) -> list[int]:
-    if "Baseline_" in readout:
-        readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
-    return [0, 1] if readout in ["RPE_Final", "Lens_Final"] else [0, 1, 2, 3]
 
 def neural_net_evaluation_baseline(val_dataset_id: str,
                                    val_experiment_id: str,
@@ -1305,84 +881,6 @@ def neural_net_evaluation(val_dataset_id: str,
 
     return neural_net_f1, confusion_matrices
 
-def _get_best_params(hyperparameter_dir: str,
-                     projection: str,
-                     classifier_name: str,
-                     readout: str) -> dict:
-    file_name = os.path.join(
-            hyperparameter_dir,
-            projection,
-            f"best_params_{classifier_name}_{readout}.dict"
-    )
-    with open(file_name, "rb") as file:
-        best_params_ = pickle.load(file)
-
-    return best_params_
-
-def _instantiate_classifier(clf,
-                            readout: Readouts,
-                            best_params: dict):
-    # if readout == "RPE_Final":
-    #     if "n_jobs" not in best_params:
-    #         best_params["n_jobs"] = 16
-    #     return clf(**best_params)
-    # else:
-    #     return MultiOutputClassifier(clf(**best_params), n_jobs = 16)
-    return clf(**best_params)
-
-def _save_classifier_results(output_dir: str,
-                             readout: Union[Readouts, BaselineReadouts],
-                             val_experiment_id: str,
-                             val_dataset_id: str,
-                             eval_set: EvaluationSets,
-                             proj: Projections,
-                             f1_scores: pd.DataFrame,
-                             confusion_matrices: np.ndarray) -> None:
-    proj = PROJECTION_SAVE_MAP[proj]
-    save_dir = os.path.join(output_dir, f"classification_{readout}")
-    os.makedirs(save_dir, exist_ok=True)
-    file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
-                                     val_dataset_id = val_dataset_id,
-                                     eval_set = eval_set,
-                                     proj = proj)
-
-    f1_scores.to_csv(
-        os.path.join(save_dir, f"{file_name}_CLFF1.csv"),
-        index = False
-    )
-
-    np.save(
-        os.path.join(save_dir, f"{file_name}_CLFCM.npy"),
-        confusion_matrices
-    )
-    return
-
-def _read_classifier_results(output_dir: str,
-                             readout: Union[Readouts, BaselineReadouts],
-                             val_experiment_id: str,
-                             val_dataset_id: str,
-                             eval_set: EvaluationSets,
-                             proj: Projections) -> tuple:
-    proj = PROJECTION_SAVE_MAP[proj]
-    save_dir = os.path.join(output_dir, f"classification_{readout}")
-    file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
-                                     val_dataset_id = val_dataset_id,
-                                     eval_set = eval_set,
-                                     proj = proj)
-    csv_file = os.path.join(save_dir, f"{file_name}_CLFF1.csv")
-    if os.path.isfile(csv_file):
-        f1_scores = pd.read_csv(csv_file, index_col = False)
-    else:
-        return None, None
-
-    numpy_file = os.path.join(save_dir, f"{file_name}_CLFCM.npy")
-    if os.path.isfile(numpy_file):
-        confusion_matrices = np.load(numpy_file)
-    else:
-        return None, None
-
-    return f1_scores, confusion_matrices
-    
 def classifier_evaluation(val_experiment_id: str,
                           readout: Readouts,
                           eval_set: EvaluationSets,
@@ -1543,15 +1041,6 @@ def classifier_evaluation_baseline(val_experiment_id: str,
 
     return f1_scores, confusion_matrices
 
-def _postprocess_cnn_frame(df: pd.DataFrame,
-                           eval_set: EvaluationSets,
-                           baseline: bool = False) -> pd.DataFrame:
-    _df = df[df["classifier"] == "Ensemble"].copy()
-    classifier_name = f"Ensemble_{eval_set}" if not baseline else f"Baseline_Ensemble_{eval_set}"
-    _df["classifier"] = classifier_name
-    assert isinstance(_df, pd.DataFrame)
-    return _df
-
 def generate_classification_results(readout: Readouts,
                                     output_dir: str,
                                     proj: Projections,
@@ -1688,8 +1177,8 @@ def get_classification_f1_data(readout: Readouts,
     human_data = human_f1_per_experiment(evaluator_results_dir = evaluator_results_dir,
                                          morphometrics_dir = morphometrics_dir,
                                          output_dir = output_dir)
-    human_data["loop"] = add_loop_from_timeframe(human_data,
-                                                 n_timeframes = 12)
+    human_data = add_loop_from_timeframe(human_data,
+                                         n_timeframes = 12)
     human_data["classifier"] = "human"
     cols_to_choose = ["experiment", "loop", "F1", "classifier"]
     human_data = human_data.rename({f"F1_{readout}": "F1"})
