@@ -12,7 +12,7 @@ from matplotlib.ticker import MultipleLocator
 from . import figure_config as cfg
 from . import figure_utils as utils
 
-from .figure_data_generation import get_classification_f1_data
+from . import get_classification_f1_data
 
 def _generate_main_figure(rpe_f1: pd.DataFrame,
                           lens_f1: pd.DataFrame,

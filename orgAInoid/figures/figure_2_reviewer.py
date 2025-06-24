@@ -10,12 +10,12 @@ from matplotlib.axes import Axes
 from . import figure_config as cfg
 from . import figure_utils as utils
 
-from .figure_data_generation import (get_morphometrics_frame,
-                                     get_data_columns_morphometrics,
-                                     calculate_organoid_dimensionality_reduction,
-                                     compare_neighbors_by_experiment,
-                                     neighbors_per_well_by_experiment,
-                                     PC_COLUMNS)
+from . import (get_morphometrics_frame,
+               get_data_columns_morphometrics,
+               calculate_organoid_dimensionality_reduction,
+               compare_neighbors_by_experiment,
+               neighbors_per_well_by_experiment,
+               PC_COLUMNS)
 
 def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
                           jaccard_umap_pca: pd.DataFrame,

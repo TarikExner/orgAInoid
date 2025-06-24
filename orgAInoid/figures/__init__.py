@@ -16,6 +16,15 @@ from .figure_S7 import figure_S7_generation
 
 from .figure_S9 import figure_S9_generation
 
+from .figure_data_generation import (get_morphometrics_frame,
+                                     calculate_organoid_dimensionality_reduction,
+                                     calculate_organoid_distances,
+                                     compare_neighbors_by_experiment,
+                                     get_classification_f1_data,
+                                     neighbors_per_well_by_experiment,
+                                     PC_COLUMNS)
+from .figure_data_utils import get_data_columns_morphometrics
+
 __all__ = [
     "figure_1_generation",
     "figure_2_generation",
