@@ -888,7 +888,7 @@ def model_setup_with_temperature(model_name,
     return model
 
 def generate_neural_net_ensemble(val_experiment_id: str,
-                                 readout: Readouts,
+                                 readout: Union[Readouts, BaselineReadouts],
                                  val_loader: DataLoader,
                                  eval_set: EvaluationSets,
                                  experiment_dir: str,
@@ -987,7 +987,7 @@ def _create_val_loader_split(val_dataset: OrganoidTrainingDataset) -> DataLoader
     X, y = val_dataset.X_test, val_dataset.y_test
     return create_dataloader(X, y, batch_size = 128, shuffle = False, train = False)
 
-def create_val_loader(val_dataset: OrganoidDataset,
+def create_val_loader(val_dataset: Union[OrganoidDataset, OrganoidTrainingDataset],
                       readout: Readouts,
                       eval_set: EvaluationSets) -> Union[DataLoader, NoReturn]:
     if eval_set == "test":
@@ -1496,17 +1496,17 @@ def classifier_evaluation_baseline(val_experiment_id: str,
         data_columns = data_columns
     )
     X_train = _get_data_array(train_df, data_columns)
-    y_train = _get_labels_array(train_df, readout)
+    y_train = _get_labels_array(train_df, original_readout)
 
     # baseline: we shuffle:
     np.random.seed(187)
     np.random.shuffle(y_train)
 
     X_test = _get_data_array(test_df, data_columns)
-    y_test = _get_labels_array(test_df, readout)
+    y_test = _get_labels_array(test_df, original_readout)
 
     X_val = _get_data_array(val_df, data_columns)
-    y_val = _get_labels_array(val_df, readout)
+    y_val = _get_labels_array(val_df, original_readout)
 
     clf_ = BEST_CLASSIFIERS[original_readout]
     clf_name = clf_().__class__.__name__
