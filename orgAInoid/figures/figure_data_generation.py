@@ -1181,7 +1181,7 @@ def get_classification_f1_data(readout: Readouts,
                                          n_timeframes = 12)
     human_data["classifier"] = "human"
     cols_to_choose = ["experiment", "loop", "F1", "classifier"]
-    human_data = human_data.rename({f"F1_{readout}": "F1"})
+    human_data = human_data.rename(columns = {f"F1_{readout}": "F1"})
     human_data = human_data[cols_to_choose]
 
     return pd.concat([classifier_f1s, baseline_f1s, human_data], axis = 0)
