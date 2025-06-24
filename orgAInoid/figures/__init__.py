@@ -22,7 +22,11 @@ from .figure_data_generation import (get_morphometrics_frame,
                                      compare_neighbors_by_experiment,
                                      get_classification_f1_data,
                                      neighbors_per_well_by_experiment,
-                                     PC_COLUMNS)
+                                     PC_COLUMNS,
+get_dataset_annotations,
+                                     human_f1_RPE_visibility_conf_matrix,
+                                     human_f1_per_evaluator,
+                                     add_loop_from_timeframe)
 from .figure_data_utils import get_data_columns_morphometrics
 
 __all__ = [
