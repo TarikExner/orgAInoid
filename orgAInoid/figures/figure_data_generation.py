@@ -1583,6 +1583,7 @@ def generate_classification_results(readout: Readouts,
                 weights = weights,
                 raw_data_dir = raw_data_dir,
             )
+            cnn_f1 = _postprocess_cnn_frame(cnn_f1, eval_set, baseline = False)
             cnn_f1s.append(cnn_f1)
             cnn_cms.append(cnn_cm)
 
