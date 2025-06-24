@@ -13,11 +13,7 @@ from sklearn.manifold import TSNE
 from umap import UMAP
 
 
-from typing import Optional, Sequence
-
-from ..classification._utils import (create_data_dfs,
-                                     _get_data_array,
-                                     _get_labels_array)
+from typing import Optional
 
 from . import figure_config as cfg
 
@@ -25,34 +21,19 @@ from .figure_data_utils import (
     _loop_to_timepoint,
     _build_timeframe_dict,
     check_for_file,
-    get_data_columns_morphometrics,
     _rename_annotation_columns,
     add_loop_from_timeframe,
     f1_scores,
-    _read_neural_net_results,
-    _save_neural_net_results,
-    _read_classifier_results,
-    _save_classifier_results,
-    _get_labels,
-    _postprocess_cnn_frame,
-    calculate_f1_scores,
-    _instantiate_classifier,
-    ensemble_probability_averaging,
-    generate_neural_net_ensemble,
-    _read_val_dataset_split,
-    _read_val_dataset_full,
-    create_val_loader,
     convert_cnn_output_to_float,
+    _generate_classification_results,
+    get_morphometrics_frame,
 
-    METADATA_COLUMNS,
     READOUT_BASELINE_READOUT_MAP,
-    BEST_CLASSIFIERS,
-    PROJECTION_TO_PROJECTION_ID_MAP,
-    BASELINE_READOUT_TO_READOUT_MAP,
+    _STRING_LABEL_COLS,
+    _BINARY_MAP,
 
     Readouts,
     BaselineReadouts,
-    EvaluationSets,
     Projections,
     ProjectionIDs
 )
@@ -69,31 +50,6 @@ EVALUATORS = ["HEAT21", "HEAT22", "HEAT23", "HEAT24", "HEAT25", "HEAT27"]
 PC_COLUMNS = [
     f"PC{i}" for i in range(1,21)
 ]
-
-
-def get_morphometrics_frame(results_dir: str,
-                            suffix: Optional[str] = None) -> pd.DataFrame:
-    if not suffix:
-        suffix = ""
-
-    df = pd.DataFrame()
-    for i, exp in enumerate(cfg.EXPERIMENTS):
-        input_dir = os.path.join(results_dir, f"{exp}_morphometrics{suffix}.csv")
-        data = pd.read_csv(input_dir)
-        if i == 0:
-            df = data
-        else:
-            df = pd.concat([df, data], axis = 0)
-
-    df = df.drop(["label"], axis = 1)
-
-    # we remove columns and rows that only contain NA
-    df = df.dropna(how = "all", axis = 1)
-    
-    data_columns = [col for col in df.columns if col not in METADATA_COLUMNS]  
-    df = df.dropna(how = "all", axis = 0, subset = data_columns)
-    assert isinstance(df, pd.DataFrame)
-    return df
 
 
 def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
@@ -654,281 +610,8 @@ def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
     np.save(output_filename, conf_matrix)
     return conf_matrix
 
-def _neural_net_evaluation(val_dataset_id: str,
-                           val_experiment_id: str,
-                           eval_set: EvaluationSets,
-                           readout: BaselineReadouts,
-                           raw_data_dir: str,
-                           experiment_dir: str,
-                           output_dir: str,
-                           proj: ProjectionIDs = "SL3",
-                           weights: Optional[dict] = None,
-                           baseline: bool = False) -> tuple:
-
-    f1_scores, confusion_matrices = _read_neural_net_results(
-        output_dir = output_dir,
-        readout = readout,
-        val_experiment_id = val_experiment_id,
-        val_dataset_id = val_dataset_id,
-        eval_set = eval_set,
-        proj = proj
-    )
-    if f1_scores is not None and confusion_matrices is not None:
-        return f1_scores, confusion_matrices
-
-    val_dataset_filename = (
-        f"M{val_dataset_id}_full_{proj}_fixed.cds"
-        if eval_set == "test"
-        else f"{val_dataset_id}_full_{proj}_fixed.cds"
-    )
-    
-    if baseline:
-        original_readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
-    else:
-        original_readout = readout
-
-    if eval_set == "test":
-        val_dataset = _read_val_dataset_split(raw_data_dir = raw_data_dir,
-                                              file_name = val_dataset_filename,
-                                              readout = readout if not baseline else original_readout)
-    else:
-        val_dataset = _read_val_dataset_full(raw_data_dir = raw_data_dir,
-                                             file_name = val_dataset_filename)
-
-    val_loader = create_val_loader(val_dataset = val_dataset,
-                                   readout = readout if not baseline else original_readout,
-                                   eval_set = eval_set)
-    assert -1 not in val_dataset.metadata["IMAGE_ARRAY_INDEX"]
-    df = val_dataset.metadata
-    # in order to keep the X shape, we set for SL003
-    df = df[df["slice"] == "SL003"]
-    if eval_set == "test":
-        df = df[df["set"] == "test"]
-    assert pd.Series(df["IMAGE_ARRAY_INDEX"]).is_monotonic_increasing
-    assert isinstance(df, pd.DataFrame)
-    
-    if hasattr(val_dataset, "dataset_metadata"):
-        print("Current validation dataset: ", val_dataset.dataset_metadata.dataset_id)
-
-    models = generate_neural_net_ensemble(
-        val_experiment_id = val_experiment_id,
-        readout = readout,
-        val_loader = val_loader,
-        eval_set = eval_set,
-        experiment_dir = experiment_dir,
-        output_dir = output_dir,
-        output_file_name = f"model_ensemble_{readout}_{val_experiment_id}_{proj}"
-    )
-    truth_arr, ensemble_pred, single_predictions = ensemble_probability_averaging(
-        models, val_loader, weights = weights
-    )
-    single_predictions = {
-        model: np.hstack(single_predictions[model]) for model in single_predictions
-    }
-
-    truth_array = np.array([np.argmax(el) for el in truth_arr])
-
-    # this happens for some reason in E002 when SUMmed...
-    if truth_array.shape[0] > df.index.shape[0] or ensemble_pred.shape[0] > df.index.shape[0]:
-        truth_array = truth_array[:df.index.shape[0]]
-        ensemble_pred = ensemble_pred[:df.index.shape[0]]
-        single_predictions = {
-            model: array[:df.index.shape[0]]
-            for model, array in single_predictions.items()
-        }
-        print("\n\nWARNING!!! ARRAY SHAPES DO NOT MATCH!!!\n\n")
-    
-    truth_values = pd.DataFrame(
-        data = truth_array,
-        columns = ["truth"],
-        index = df.index
-    )
-
-    pred_values = pd.DataFrame(
-        data = ensemble_pred,
-        columns = ["pred"],
-        index = df.index
-    )
-
-    assert truth_values.shape[0] == pred_values.shape[0]
-
-    df = pd.concat([df, truth_values, pred_values], axis = 1)
-
-    f1_dfs = []
-
-    labels = _get_labels(readout)
-    conf_matrix_df = df.copy()
-    confusion_matrices = conf_matrix_df.groupby("loop").apply(
-        lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
-    )
-    confusion_matrices = np.array(confusion_matrices.tolist())
-
-    ensemble_f1 = calculate_f1_scores(df)
-    ensemble_f1 = ensemble_f1.rename(columns = {"F1": "Ensemble"}).set_index("loop")
-    f1_dfs.append(ensemble_f1)
-
-    for model in single_predictions:
-        df.loc[:, "pred"] = single_predictions[model]
-        f1 = calculate_f1_scores(df)
-        f1 = f1.rename(columns = {"F1": model}).set_index("loop")
-        f1_dfs.append(f1)
-
-    neural_net_f1 = pd.concat(f1_dfs, axis=1)
-    neural_net_f1 = neural_net_f1.reset_index().melt(id_vars = "loop",
-                                                     value_name = "F1",
-                                                     var_name = "classifier")
-    neural_net_f1["experiment"] = val_dataset_id
-
-    _save_neural_net_results(output_dir = output_dir,
-                             readout = readout,
-                             val_dataset_id = val_dataset_id,
-                             val_experiment_id = val_experiment_id,
-                             proj = proj,
-                             eval_set = eval_set,
-                             f1_scores = neural_net_f1,
-                             confusion_matrices = confusion_matrices)
-
-    return neural_net_f1, confusion_matrices
 
 
-def neural_net_evaluation_baseline(val_dataset_id: str,
-                                   val_experiment_id: str,
-                                   eval_set: EvaluationSets,
-                                   readout: BaselineReadouts,
-                                   raw_data_dir: str,
-                                   experiment_dir: str,
-                                   output_dir: str,
-                                   proj: ProjectionIDs = "SL3",
-                                   weights: Optional[dict] = None) -> tuple:
-
-    kwargs = locals()
-    return _neural_net_evaluation(baseline = True, **kwargs)
-
-def neural_net_evaluation(val_dataset_id: str,
-                          val_experiment_id: str,
-                          eval_set: EvaluationSets,
-                          readout: Readouts,
-                          raw_data_dir: str,
-                          experiment_dir: str,
-                          output_dir: str,
-                          proj: ProjectionIDs = "SL3",
-                          weights: Optional[dict] = None) -> tuple:
-
-    kwargs = locals()
-    return _neural_net_evaluation(baseline = False, **kwargs)
-
-def _classifier_evaluation(val_experiment_id: str,
-                           readout: Readouts,
-                           eval_set: EvaluationSets,
-                           morphometrics_dir: str,
-                           hyperparameter_dir: str,
-                           proj: Projections = "",
-                           output_dir: str = "./figure_data",
-                           baseline: bool = False) -> tuple[pd.DataFrame, np.ndarray]:
-
-    val_dataset_id = val_experiment_id
-
-    if baseline:
-        original_readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
-    else:
-        original_readout = readout
-
-    f1_scores, confusion_matrices = _read_classifier_results(
-        output_dir = output_dir,
-        readout = readout,
-        val_experiment_id = val_experiment_id,
-        val_dataset_id = val_dataset_id,
-        eval_set = eval_set,
-        proj = proj
-    )
-    if f1_scores is not None and confusion_matrices is not None:
-        return f1_scores, confusion_matrices
-
-    labels = _get_labels(readout)
-
-    suffix = f"_{proj}" if proj else ""
-    morphometrics_frame = get_morphometrics_frame(results_dir = morphometrics_dir,
-                                                  suffix = suffix)
-    data_columns = get_data_columns_morphometrics(morphometrics_frame)
-
-    train_df, test_df, val_df = create_data_dfs(
-        df = morphometrics_frame,
-        experiment = val_experiment_id,
-        readout = readout,
-        data_columns = data_columns
-    )
-    X_train = _get_data_array(train_df, data_columns)
-    y_train = _get_labels_array(train_df, readout if not baseline else original_readout)
-
-    if baseline:
-        # baseline: we shuffle:
-        np.random.seed(187)
-        np.random.shuffle(y_train)
-
-    X_test = _get_data_array(test_df, data_columns)
-    y_test = _get_labels_array(test_df, readout if not baseline else original_readout)
-
-    X_val = _get_data_array(val_df, data_columns)
-    y_val = _get_labels_array(val_df, readout if not baseline else original_readout)
-
-    clf_ = BEST_CLASSIFIERS[readout]
-    clf_name = clf_().__class__.__name__
-    best_params = {}
-    # best_params = _get_best_params(hyperparameter_dir,
-    #                                readout = readout,
-    #                                projection = proj,
-    #                                classifier_name = clf_name)
-    clf = _instantiate_classifier(clf_,
-                                  readout = readout if not baseline else original_readout,
-                                  best_params = best_params)
-    clf.fit(X_train, y_train)
-
-    result_df = val_df if eval_set == "val" else test_df
-    result_df["truth"] = np.argmax(y_val, axis = 1) if eval_set == "val" else np.argmax(y_test, axis = 1)
-    predictions = clf.predict(X_val if eval_set == "val" else X_test)
-    result_df["pred"] = np.argmax(predictions, axis = 1)
-
-    f1_scores = calculate_f1_scores(result_df)
-    f1_scores["experiment"] = val_dataset_id
-    f1_scores["classifier"] = "Morphometrics"
-
-    confusion_matrices = result_df.groupby("loop").apply(
-        lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
-    )
-    confusion_matrices = np.array(confusion_matrices.tolist())
-
-    _save_classifier_results(output_dir = output_dir,
-                             readout = readout,
-                             val_dataset_id = val_dataset_id,
-                             val_experiment_id = val_experiment_id,
-                             proj = proj,
-                             eval_set = eval_set,
-                             f1_scores = f1_scores,
-                             confusion_matrices = confusion_matrices)
-
-    return f1_scores, confusion_matrices
-
-
-def classifier_evaluation(val_experiment_id: str,
-                          readout: Readouts,
-                          eval_set: EvaluationSets,
-                          morphometrics_dir: str,
-                          hyperparameter_dir: str,
-                          proj: Projections = "",
-                          output_dir: str = "./figure_data") -> tuple[pd.DataFrame, np.ndarray]:
-
-    kwargs = locals()
-    return _classifier_evaluation(baseline = False, **kwargs)
-
-def classifier_evaluation_baseline(val_experiment_id: str,
-                                   readout: BaselineReadouts,
-                                   eval_set: EvaluationSets,
-                                   morphometrics_dir: str,
-                                   hyperparameter_dir: str,
-                                   proj: Projections = "",
-                                   output_dir: str = "./figure_data") -> tuple[pd.DataFrame, np.ndarray]:
-    kwargs = locals()
-    return _classifier_evaluation(baseline = True, **kwargs)
 
 def generate_classification_results(readout: Readouts,
                                     output_dir: str,
@@ -936,50 +619,9 @@ def generate_classification_results(readout: Readouts,
                                     hyperparameter_dir: str,
                                     experiment_dir: str,
                                     morphometrics_dir: str,
-                                    raw_data_dir: str):
-
-    experiments = cfg.EXPERIMENTS
-
-    clf_f1s = []
-    cnn_f1s = []
-    clf_cms = []
-    cnn_cms = []
-    eval_sets: Sequence[EvaluationSets] = ["test", "val"]
-
-    for experiment in experiments:
-        # TODO: weights are the F1 scores!
-        weights = None
-        for eval_set in eval_sets:
-            cnn_f1, cnn_cm = neural_net_evaluation(
-                val_dataset_id = experiment,
-                val_experiment_id = experiment,
-                eval_set = eval_set,
-                readout = readout,
-                experiment_dir = experiment_dir,
-                output_dir = output_dir,
-                proj = PROJECTION_TO_PROJECTION_ID_MAP[proj],
-                weights = weights,
-                raw_data_dir = raw_data_dir,
-            )
-            cnn_f1 = _postprocess_cnn_frame(cnn_f1, eval_set, baseline = False)
-            cnn_f1s.append(cnn_f1)
-            cnn_cms.append(cnn_cm)
-
-            clf_f1, clf_cm = classifier_evaluation(
-                val_experiment_id = experiment,
-                readout = readout,
-                eval_set = eval_set,
-                morphometrics_dir = morphometrics_dir,
-                hyperparameter_dir = hyperparameter_dir,
-                proj = proj,
-                output_dir = output_dir
-            )
-            clf_f1s.append(clf_f1)
-            clf_cms.append(clf_cm)
-
-    f1_scores = pd.concat([*clf_f1s, *cnn_f1s], axis = 0)
-
-    return f1_scores, clf_cms, cnn_cms
+                                    raw_data_dir: str,
+                                    baseline: bool = False):
+    return _generate_classification_results(**locals())
 
 def generate_baseline_results(readout: BaselineReadouts,
                               output_dir: str,
@@ -987,50 +629,9 @@ def generate_baseline_results(readout: BaselineReadouts,
                               hyperparameter_dir: str,
                               experiment_dir: str,
                               morphometrics_dir: str,
-                              raw_data_dir: str):
-
-    experiments = cfg.EXPERIMENTS
-
-    clf_f1s = []
-    cnn_f1s = []
-    clf_cms = []
-    cnn_cms = []
-    eval_sets: Sequence[EvaluationSets] = ["test", "val"]
-
-    for experiment in experiments:
-        # TODO: weights are the F1 scores!
-        weights = None
-        for eval_set in eval_sets:
-            cnn_f1, cnn_cm = neural_net_evaluation_baseline(
-                val_dataset_id = experiment,
-                val_experiment_id = experiment,
-                eval_set = eval_set,
-                readout = readout,
-                experiment_dir = experiment_dir,
-                output_dir = output_dir,
-                proj = PROJECTION_TO_PROJECTION_ID_MAP[proj],
-                weights = weights,
-                raw_data_dir = raw_data_dir,
-            )
-            cnn_f1 = _postprocess_cnn_frame(cnn_f1, eval_set, baseline = True)
-            cnn_f1s.append(cnn_f1)
-            cnn_cms.append(cnn_cm)
-
-            clf_f1, clf_cm = classifier_evaluation_baseline(
-                val_experiment_id = experiment,
-                readout = readout,
-                eval_set = eval_set,
-                morphometrics_dir = morphometrics_dir,
-                hyperparameter_dir = hyperparameter_dir,
-                proj = proj,
-                output_dir = output_dir
-            )
-            clf_f1s.append(clf_f1)
-            clf_cms.append(clf_cm)
-
-    f1_scores = pd.concat([*clf_f1s, *cnn_f1s], axis = 0)
-
-    return f1_scores, clf_cms, cnn_cms
+                              raw_data_dir: str,
+                              baseline: bool = False):
+    return _generate_classification_results(**locals())
 
 def get_classification_f1_data(readout: Readouts,
                                output_dir: str,
