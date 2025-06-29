@@ -588,14 +588,11 @@ def _postprocess_cnn_frame(df: pd.DataFrame,
     return _df
 
 def convert_cnn_output_to_float(data: pd.DataFrame) -> pd.DataFrame:
-    data = cast(pd.DataFrame, data[data["ExperimentID"] != "ExperimentID"])
-    data["TrainF1"] = data["TrainF1"].astype(float)
-    data["TestF1"] = data["TestF1"].astype(float)
-    data["ValF1"] = data["ValF1"].astype(float)
-    data["TrainLoss"] = data["TrainLoss"].astype(float)
-    data["TestLoss"] = data["TestLoss"].astype(float)
-    data["ValLoss"] = data["ValLoss"].astype(float)
-    data["Epoch"] = data["Epoch"].astype(int)
+    data = cast(pd.DataFrame, data[data["ExperimentID"] != "ExperimentID"].copy())
+    float_cols = ["TrainF1", "TestF1", "ValF1", "TrainLoss", "TestLoss", "ValLoss"]
+    for col in float_cols:
+        data.loc[:, col] = data[col].astype(float)
+    data.loc[:, "Epoch"] = data["Epoch"].astype(int)
     return data
 
 def _neural_net_evaluation(val_dataset_id: str,
