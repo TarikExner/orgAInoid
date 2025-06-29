@@ -63,7 +63,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
 
         
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels = ["CNN (image data): Validation", "CNN (image data): Test", "Random Forest (morphometrics): Validation", "Random Forest (morphometrics): Test", "Expert prediction"]
+        # labels = ["CNN (image data): Validation", "CNN (image data): Test", "Random Forest (morphometrics): Validation", "Random Forest (morphometrics): Test", "Expert prediction"]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title("Prediction accuracy: Emergence of RPE", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -113,7 +113,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         )
 
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
+        # labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title("Prediction accuracy: Emergence of Lenses", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -163,7 +163,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
 
         
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels = ["CNN (image data): Validation", "CNN (image data): Test", "HGBC (morphometrics): Validation", "HGBC (morphometrics): Test", "Expert prediction"]
+        # labels = ["CNN (image data): Validation", "CNN (image data): Test", "HGBC (morphometrics): Validation", "HGBC (morphometrics): Test", "Expert prediction"]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title("Prediction accuracy: RPE area", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 0.99)
@@ -213,7 +213,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         )
 
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
+        # labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title("Prediction accuracy: Lens sizes", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 0.99)

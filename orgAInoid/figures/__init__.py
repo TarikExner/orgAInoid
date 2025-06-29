@@ -67,8 +67,6 @@ DIRECTORIES = {
     "lens_classification_dir_max": "../classification/experiment_45_Lens_Final_ZMAX",
     "rpe_classes_classification_dir_max": "../classification/experiment_46_RPE_classes_ZMAX",
     "lens_classes_classification_dir_max": "../classification/experiment_47_Lens_classes_ZMAX",
-
-
 }
 
 def generate_final_figures():

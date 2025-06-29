@@ -117,10 +117,10 @@ PROJECTION_TO_PROJECTION_ID_MAP: dict[Projections, ProjectionIDs] = {
 }
 
 BEST_CLASSIFIERS = {
-    "RPE_Final": DecisionTreeClassifier, #RandomForestClassifier,
-    "RPE_classes": DecisionTreeClassifier,
-    "Lens_Final": DecisionTreeClassifier,
-    "Lens_classes": DecisionTreeClassifier,
+    "RPE_Final": RandomForestClassifier,
+    "RPE_classes": HistGradientBoostingClassifier,
+    "Lens_Final": QuadraticDiscriminantAnalysis,
+    "Lens_classes": QuadraticDiscriminantAnalysis,
     "morph_classes": DecisionTreeClassifier
 }
 
@@ -516,13 +516,12 @@ def _get_best_params(hyperparameter_dir: str,
 def _instantiate_classifier(clf,
                             readout: Readouts,
                             best_params: dict):
-    # if readout == "RPE_Final":
-    #     if "n_jobs" not in best_params:
-    #         best_params["n_jobs"] = 16
-    #     return clf(**best_params)
-    # else:
-    #     return MultiOutputClassifier(clf(**best_params), n_jobs = 16)
-    return clf(**best_params)
+    if readout == "RPE_Final":
+        if "n_jobs" not in best_params:
+            best_params["n_jobs"] = 16
+        return clf(**best_params)
+    else:
+        return MultiOutputClassifier(clf(**best_params), n_jobs = 16)
 
 def _save_classifier_results(output_dir: str,
                              readout: Union[Readouts, BaselineReadouts],
@@ -550,7 +549,6 @@ def _save_classifier_results(output_dir: str,
         confusion_matrices
     )
     return
-
 
 def _read_classifier_results(output_dir: str,
                              readout: Union[Readouts, BaselineReadouts],
@@ -789,10 +787,11 @@ def _classifier_evaluation(val_experiment_id: str,
     clf_ = BEST_CLASSIFIERS[readout if not baseline else original_readout]
     clf_name = clf_().__class__.__name__
     best_params = {}
-    # best_params = _get_best_params(hyperparameter_dir,
-    #                                readout = readout,
-    #                                projection = proj,
-    #                                classifier_name = clf_name)
+
+    best_params = _get_best_params(hyperparameter_dir,
+                                   readout = readout,
+                                   projection = proj,
+                                   classifier_name = clf_name)
     clf = _instantiate_classifier(clf_,
                                   readout = readout if not baseline else original_readout,
                                   best_params = best_params)
