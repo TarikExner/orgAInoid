@@ -226,7 +226,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
     fig = plt.figure(layout = "constrained",
                      figsize = (cfg.FIGURE_WIDTH_FULL, cfg.FIGURE_HEIGHT_FULL))
     gs = GridSpec(ncols = 6,
-                  nrows = 3,
+                  nrows = 4,
                   figure = fig,
                   height_ratios = [1,1,1,1])
     a_coords = gs[0,:]

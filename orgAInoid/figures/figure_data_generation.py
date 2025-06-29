@@ -767,6 +767,26 @@ def load_and_aggregate_matrices(readout: Readouts,
     df.index.name = 'loop'
     return df
 
+def classwise_confusion_matrix(matrix):
+    """
+    Compute 2x2 numpy arrays for all classes from a 4x4 confusion matrix.
+
+    Args:
+        matrix (ndarray): A 4x4 percentage confusion matrix.
+
+    Returns:
+        tuple: A tuple of 4 numpy arrays, each representing a 2x2 confusion matrix for a class.
+    """
+    n_classes = matrix.shape[0]
+    results = []
+
+    for focus_class in range(n_classes):
+        tp = matrix[focus_class, focus_class]
+        fn = np.sum(matrix[focus_class, :]) - tp
+        fp = np.sum(matrix[:, focus_class]) - tp
+        tn = np.sum(matrix) - tp - fn - fp
+        results.append(np.array([[tn, fp], [fn, tp]]))
+    return tuple(results)
 
 def convert_to_percentages(df: pd.DataFrame,
                            matrix_col: str = 'mean_matrix') -> pd.DataFrame:
@@ -829,7 +849,7 @@ def flatten_for_plotting(df: pd.DataFrame,
 def create_confusion_matrix_frame(readout: Readouts,
                                   classifier: Literal["neural_net", "classifier"],
                                   eval_set: Literal["test", "val"],
-                                  proj: ProjectionIDs, # = ""!
+                                  proj: Projections, # = ""!
                                   figure_data_dir: str,
                                   morphometrics_dir: str) -> pd.DataFrame:
     """
@@ -838,6 +858,12 @@ def create_confusion_matrix_frame(readout: Readouts,
     - Multi-class readouts (RPE_classes_classification, Lens_classes_classification): 4 classes.
     Columns reflect confusion matrix components, rows are loop hours.
     """
+    output_dir = os.path.join(figure_data_dir, f"classification_{readout}")
+    output_filename = os.path.join(output_dir, f"conf_matrices_{classifier}_{eval_set}.data")
+
+    if os.path.isfile(output_filename):
+        return pd.read_pickle(output_filename)
+
     base_df = load_and_aggregate_matrices(
         readout = readout,
         classifier = classifier,
@@ -849,4 +875,5 @@ def create_confusion_matrix_frame(readout: Readouts,
     pct_df = convert_to_percentages(base_df)
     cls = 2 if 'classification' in readout and 'classes' not in readout else 4
     plot_df = flatten_for_plotting(pct_df, classes=cls)
+    plot_df.to_pickle(output_filename)
     return plot_df

@@ -9,9 +9,9 @@ from .figure_5 import figure_5_generation
 from .figure_S1 import figure_S1_generation
 from .figure_S2 import figure_S2_generation
 from .figure_S3 import figure_S3_generation
-
+from .figure_S4 import figure_S4_generation
 from .figure_S5 import figure_S5_generation
-
+from .figure_S6 import figure_S6_generation
 from .figure_S7 import figure_S7_generation
 
 from .figure_S9 import figure_S9_generation
@@ -28,9 +28,9 @@ __all__ = [
     "figure_S1_generation",
     "figure_S2_generation",
     "figure_S3_generation",
-
+    "figure_S4_generation",
     "figure_S5_generation",
-
+    "figure_S6_generation",
     "figure_S7_generation",
 
     "figure_S9_generation"
@@ -84,9 +84,9 @@ def generate_final_figures():
     figure_S1_generation(**DIRECTORIES)
     figure_S2_generation(**DIRECTORIES)
     figure_S3_generation(**DIRECTORIES)
-
+    figure_S4_generation(**DIRECTORIES)
     figure_S5_generation(**DIRECTORIES)
-
+    figure_S6_generation(**DIRECTORIES)
     figure_S7_generation(**DIRECTORIES)
 
     figure_S9_generation(**DIRECTORIES)
