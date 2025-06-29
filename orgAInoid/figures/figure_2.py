@@ -132,7 +132,7 @@ def _generate_main_figure(dimred_data: pd.DataFrame,
         distance_plot = fig.add_subplot(fig_sgs[0])
         
         sns.lineplot(
-            cast(pd.DataFrame, data=data[data['distance_type'] == 'interorganoid']),
+            data = cast(pd.DataFrame, data[data['distance_type'] == 'interorganoid']),
             x='hours', y='distance', hue = "experiment", palette = "tab20", errorbar = "se",
             ax=distance_plot
         )
