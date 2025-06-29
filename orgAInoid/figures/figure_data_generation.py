@@ -683,7 +683,7 @@ def get_classifier_comparison(classifier_results_dir: str,
     # CLFCOMP_SLICE3
     # CLFCOMP_MAX
     # HYPERPARAM_SUM
-    save_suffix = f"_{proj}"
+    save_suffix = f"_{readout}_{proj}"
 
     output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
     existing_file = check_for_file(output_file)

@@ -117,7 +117,7 @@ PROJECTION_TO_PROJECTION_ID_MAP: dict[Projections, ProjectionIDs] = {
 }
 
 BEST_CLASSIFIERS = {
-    "RPE_Final": DecisionTreeClassifier,
+    "RPE_Final": DecisionTreeClassifier, #RandomForestClassifier,
     "RPE_classes": DecisionTreeClassifier,
     "Lens_Final": DecisionTreeClassifier,
     "Lens_classes": DecisionTreeClassifier,
