@@ -693,11 +693,11 @@ def get_classifier_comparison(classifier_results_dir: str,
     if proj == "SL3":
         proj = "SLICE3"
     benchmark = pd.read_csv(
-        os.path.join(classifier_results_dir, f"CLFCOMP_{proj}.txt"),
+        os.path.join(classifier_results_dir, f"CLFCOMP_{proj}.log"),
         index_col = False
     )
     hyperparam_tuning = pd.read_csv(
-        os.path.join(classifier_results_dir, f"HYPERPARAM_{proj}.txt"),
+        os.path.join(classifier_results_dir, f"HYPERPARAM_{proj}.log"),
         index_col = False
     )
     benchmark["tuning"] = "not tuned"

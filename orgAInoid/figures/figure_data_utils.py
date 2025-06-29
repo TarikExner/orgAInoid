@@ -808,7 +808,7 @@ def _classifier_evaluation(val_experiment_id: str,
 
     f1_scores = calculate_f1_scores(result_df)
     f1_scores["experiment"] = val_dataset_id
-    f1_scores["classifier"] = f"Morphometrics_{eval_set}" if not baseline else f"Morphometrics_{eval_set}"
+    f1_scores["classifier"] = f"Morphometrics_{eval_set}" if not baseline else f"Baseline_Morphometrics_{eval_set}"
 
     confusion_matrices = result_df.groupby("loop").apply(
         lambda group: confusion_matrix(group["truth"], group["pred"], labels = labels)
@@ -928,4 +928,3 @@ def _generate_classification_results(readout: Union[Readouts, BaselineReadouts],
     f1_scores = pd.concat([*clf_f1s, *cnn_f1s], axis = 0)
 
     return f1_scores, clf_cms, cnn_cms
-
