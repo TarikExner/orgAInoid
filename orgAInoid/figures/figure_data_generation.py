@@ -758,7 +758,8 @@ def load_and_aggregate_matrices(readout,
         clf_tag = "CNN" if classifier == "neural_net" else "CLF"
         fname = f"{exp}_{exp}_{eval_set}_{proj}_{clf_tag}CM.npy"
         mats = np.load(os.path.join(conf_dir, fname))
-        loops = morpho["loop"].unique().tolist()
+        loops = morpho.loc[morpho["experiment"] == exp, "loop"].unique().tolist()
+        assert len(loops) == mats.shape[0], f"{len(loops)} loops, {mats.shape[0]} mats"
         for i, lo in enumerate(loops):
             data.setdefault(lo, []).append(mats[i])
 
