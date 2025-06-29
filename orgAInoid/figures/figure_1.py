@@ -148,7 +148,7 @@ def _generate_main_figure(annotation_data: pd.DataFrame,
         
         histkwargs = {"stat": "proportion", "bins": 20, "kde": True, "fill": False, "thresh": None}
         sns.histplot(data = cast(pd.DataFrame, data[data["RPE_Final"] == "yes"]), x = "Total_RPE_amount", **histkwargs, ax = left_histogram_plot, color = "black")
-        sns.histplot(data = cast(data[data["Lens_Final"] == "yes"]), x = "Lens_area", **histkwargs, ax = right_histogram_plot, color = "black")
+        sns.histplot(data = cast(pd.DataFrame, data[data["Lens_Final"] == "yes"]), x = "Lens_area", **histkwargs, ax = right_histogram_plot, color = "black")
 
         left_histogram_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         left_histogram_plot.set_title("RPE area distribution", fontsize = cfg.TITLE_SIZE)
