@@ -727,7 +727,7 @@ def get_cnn_output(classification_dir: str,
     )
     data = convert_cnn_output_to_float(data)
 
-    data.to_csv(output_file)
+    data.to_csv(output_file, index = False)
     return data
 
 def load_and_aggregate_matrices(readout,

@@ -11,45 +11,73 @@ import cv2
 
 import pickle
 
-import .figure_config as cfg
-import .figure_utils as utils
+from . import figure_config as cfg
+from . import figure_utils as utils
 
-def generate_subfigure_a(fig: Figure,
-                         ax: Axes,
-                         gs: SubplotSpec,
-                         subfigure_label) -> None:
-    ax.axis("off")
-    utils._figure_label(ax, subfigure_label, x = -0.4)
+from .figure_data_generation import (get_classification_f1_data,
+                                     create_confusion_matrix_frame)
 
-    data = pd.read_csv("./figure_data/rpe_classes_classification.csv", index_col = [0])
-    data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
-    data["hours"] = data["loop"] / 2
+def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
+                          lens_classes_f1_data: pd.DataFrame,
+                          rpe_classes__clf_test_cm: pd.DataFrame,
+                          rpe_classes__clf_val_cm: pd.DataFrame,
+                          lens_classes_clf_test_cm: pd.DataFrame,
+                          lens_classes_clf_val_cm: pd.DataFrame,
+                          figure_output_dir: str,
+                          figure_name: str):
+    def generate_subfigure_a(fig: Figure,
+                             ax: Axes,
+                             gs: SubplotSpec,
+                             subfigure_label) -> None:
+        ax.axis("off")
+        utils._figure_label(ax, subfigure_label, x = -0.4)
 
-    fig_sgs = gs.subgridspec(1,2)
+        data = rpe_f1_data
+        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
+        data["hours"] = data["loop"] / 2
 
-    accuracy_plot_test = fig.add_subplot(fig_sgs[0])
-    sns.lineplot(data = data[data["classifier"] == "Morphometrics_test"], x = "hours", y = "F1", hue = "experiment", ax = accuracy_plot_test, errorbar = "se", palette = cfg.EXPERIMENT_LEGEND_CMAP)
-    accuracy_plot_test.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
-    accuracy_plot_test.text(x = 40, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-    accuracy_plot_test.set_title("Prediction accuracy: RPE area\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
-    accuracy_plot_test.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-    accuracy_plot_test.set_ylim(-0.1, 1.1)
-    accuracy_plot_test.tick_params(**cfg.TICKPARAMS_PARAMS)
-    accuracy_plot_test.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)    
-    accuracy_plot_test.legend().remove()
+        fig_sgs = gs.subgridspec(1,2)
 
-    accuracy_plot_val = fig.add_subplot(fig_sgs[1])
-    sns.lineplot(data = data[data["classifier"] == "Morphometrics_val"], x = "hours", y = "F1", hue = "experiment", ax = accuracy_plot_val, errorbar = "se", palette = "tab20")
-    accuracy_plot_val.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
-    accuracy_plot_val.text(x = 40, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-    accuracy_plot_val.set_title("Prediction accuracy: RPE area\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
-    accuracy_plot_val.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-    accuracy_plot_val.set_ylim(-0.1, 1.1)
-    accuracy_plot_val.tick_params(**cfg.TICKPARAMS_PARAMS)
-    accuracy_plot_val.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)    
-    accuracy_plot_val.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.TITLE_SIZE, **cfg.TWO_COL_LEGEND)
+        accuracy_plot_test = fig.add_subplot(fig_sgs[0])
+        sns.lineplot(
+            data = data[data["classifier"] == "Morphometrics_test"],
+            x = "hours",
+            y = "F1",
+            hue = "experiment",
+            ax = accuracy_plot_test,
+            errorbar = "se",
+            palette = cfg.EXPERIMENT_LEGEND_CMAP
+        )
+        accuracy_plot_test.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
+        accuracy_plot_test.text(x = 40, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        accuracy_plot_test.set_title("Prediction accuracy: Emergence of RPE\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_test.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
+        accuracy_plot_test.set_ylim(-0.1, 1.1)
+        accuracy_plot_test.tick_params(**cfg.TICKPARAMS_PARAMS)
+        accuracy_plot_test.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)    
+        accuracy_plot_test.legend().remove()
 
-    return
+        accuracy_plot_val = fig.add_subplot(fig_sgs[1])
+        sns.lineplot(
+            data = data[data["classifier"] == "Morphometrics_val"],
+            x = "hours",
+            y = "F1",
+            hue = "experiment",
+            ax = accuracy_plot_val,
+            errorbar = "se",
+            palette = "tab20"
+        )
+        accuracy_plot_val.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
+        accuracy_plot_val.text(x = 40, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        accuracy_plot_val.set_title("Prediction accuracy: RPE area\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_val.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
+        accuracy_plot_val.set_ylim(-0.1, 1.1)
+        accuracy_plot_val.tick_params(**cfg.TICKPARAMS_PARAMS)
+        accuracy_plot_val.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)    
+        accuracy_plot_val.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.TITLE_SIZE)
+
+        return
+
 
 def generate_subfigure_b(fig: Figure,
                          ax: Axes,
