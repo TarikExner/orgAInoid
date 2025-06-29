@@ -730,10 +730,10 @@ def get_cnn_output(classification_dir: str,
     data.to_csv(output_file)
     return data
 
-def load_and_aggregate_matrices(readout: Readouts,
+def load_and_aggregate_matrices(readout,
                                 classifier: Literal["neural_net", "classifier"],
                                 eval_set: Literal["test", "val"],
-                                proj: Projections,
+                                proj,
                                 figure_data_dir: str,
                                 morphometrics_dir: str) -> pd.DataFrame:
     """
@@ -763,7 +763,10 @@ def load_and_aggregate_matrices(readout: Readouts,
             data.setdefault(lo, []).append(mats[i])
 
     mean_dict = {lo: np.mean(ms, axis=0) for lo, ms in data.items()}
-    df = pd.DataFrame.from_dict(mean_dict, orient='index', columns=['mean_matrix'])
+    df = pd.DataFrame({
+        'loop': list(mean_dict.keys()),
+        'mean_matrix': list(mean_dict.values())
+    }).set_index('loop')
     df.index.name = 'loop'
     return df
 
@@ -797,7 +800,6 @@ def convert_to_percentages(df: pd.DataFrame,
     df['percentage_matrix'] = df[matrix_col].apply(lambda m: (m / m.sum()) * 100)
     return df
 
-
 def flatten_for_plotting(df: pd.DataFrame,
                          classes: int) -> pd.DataFrame:
     """
@@ -807,14 +809,24 @@ def flatten_for_plotting(df: pd.DataFrame,
       each with ['tn','tp','fn','fp'].
     Index is loop divided by 2 (float).
     """
+    """
+    Flatten percentage_matrix for plotting.
+    - For 2 classes: return DataFrame with columns ['tn','tp','fn','fp'].
+    - For N>2 classes: return dict mapping 'class0'..'class{N-1}' to DataFrames
+      each with ['tn','tp','fn','fp'].
+    Index is loop divided by 2 (float).
+    """
+    # dynamic class count from matrix shape
+    sample_mat = df['percentage_matrix'].iloc[0]
+    n_classes = sample_mat.shape[0]
     # compute numeric loop index
     loops = df.index.to_series().str.replace('LO','').astype(int) / 2
 
-    if classes == 2:
+    if n_classes == 2:
         labels = ['tn','fp','fn','tp']
-        records = []
+        records: list[pd.DataFrame] = []
         for lo, pct in df['percentage_matrix'].items():
-            values = pct.ravel().astype(float)
+            values = pct.reshape(4).astype(float)
             rec = pd.DataFrame({
                 'loop': loops.loc[lo],
                 'component': labels,
@@ -828,10 +840,10 @@ def flatten_for_plotting(df: pd.DataFrame,
     else:
         # multiclass: build per-class 2x2 frames
         cmaps = df['percentage_matrix'].apply(classwise_confusion_matrix)
-        out: dict[str, list[pd.DataFrame]] = {f'class{i}': [] for i in range(classes)}
+        out: dict[str, list[pd.DataFrame]] = {f'class{i}': [] for i in range(n_classes)}
         for lo, tups in cmaps.items():
             for i, cm2 in enumerate(tups):
-                values = cm2.ravel().astype(float)
+                values = cm2.reshape(4).astype(float)
                 labels = ['tn','fp','fn','tp']
                 rec = pd.DataFrame({
                     'loop': loops.loc[lo],
