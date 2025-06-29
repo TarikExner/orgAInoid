@@ -758,7 +758,7 @@ def load_and_aggregate_matrices(readout,
         clf_tag = "CNN" if classifier == "neural_net" else "CLF"
         fname = f"{exp}_{exp}_{eval_set}_{proj}_{clf_tag}CM.npy"
         mats = np.load(os.path.join(conf_dir, fname))
-        if eval_set == "val":
+        if eval_set == "test":
             loops = morpho.loc[morpho["experiment"] != exp, "loop"].unique().tolist()
         else:
             loops = morpho.loc[morpho["experiment"] == exp, "loop"].unique().tolist()
