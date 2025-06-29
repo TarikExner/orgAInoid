@@ -30,7 +30,7 @@ def _generate_main_figure(rpe_classes_output: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.3)
         fig_sgs = gs.subgridspec(1,4)
 
-        readout = "RPE_Final"
+        readout = "RPE_classes"
         model = "DenseNet121"
 
         data = rpe_classes_output
@@ -78,7 +78,7 @@ def _generate_main_figure(rpe_classes_output: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.3)
         fig_sgs = gs.subgridspec(1,4)
 
-        readout = "RPE_Final"
+        readout = "RPE_classes"
         model = "ResNet50"
 
         data = rpe_classes_output
@@ -126,7 +126,7 @@ def _generate_main_figure(rpe_classes_output: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.3)
         fig_sgs = gs.subgridspec(1,4)
 
-        readout = "RPE_Final"
+        readout = "RPE_classes"
         model = "MobileNetV3_Large"
 
         data = rpe_classes_output
@@ -174,7 +174,7 @@ def _generate_main_figure(rpe_classes_output: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.3)
         fig_sgs = gs.subgridspec(1,4)
 
-        readout = "Lens_Final"
+        readout = "Lens_classes"
         model = "DenseNet121"
 
         data = lens_classes_output
@@ -222,7 +222,7 @@ def _generate_main_figure(rpe_classes_output: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.3)
         fig_sgs = gs.subgridspec(1,4)
 
-        readout = "Lens_Final"
+        readout = "Lens_classes"
         model = "ResNet50"
 
         data = lens_classes_output
@@ -270,7 +270,7 @@ def _generate_main_figure(rpe_classes_output: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.3)
         fig_sgs = gs.subgridspec(1,4)
 
-        readout = "Lens_Final"
+        readout = "Lens_classes"
         model = "MobileNetV3_Large"
 
         data = lens_classes_output
