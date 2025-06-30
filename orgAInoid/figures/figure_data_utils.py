@@ -505,8 +505,8 @@ def _get_best_params(hyperparameter_dir: str,
                      readout: str) -> dict:
     if not projection:
         projection = "SLICE3"
-    else:
-        projection = projection.upper()
+
+    projection = projection.upper()
     file_name = os.path.join(
             hyperparameter_dir,
             projection,
