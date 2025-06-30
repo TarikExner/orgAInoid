@@ -506,6 +506,9 @@ def _get_best_params(hyperparameter_dir: str,
     if not projection:
         projection = "SLICE3"
 
+    if "Baseline_" in readout:
+        readout = readout.split("Baseline_")[1]
+
     projection = projection.upper()
     file_name = os.path.join(
             hyperparameter_dir,
