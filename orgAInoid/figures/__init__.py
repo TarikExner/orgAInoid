@@ -9,21 +9,26 @@ from .figure_5 import figure_5_generation
 from .figure_S1 import figure_S1_generation
 from .figure_S2 import figure_S2_generation
 from .figure_S3 import figure_S3_generation
+from .figure_S3_reviewer import figure_S3_reviewer_generation
 from .figure_S4 import figure_S4_generation
 from .figure_S5 import figure_S5_generation
 from .figure_S6 import figure_S6_generation
 from .figure_S7 import figure_S7_generation
+from .figure_S7_reviewer import figure_S7_reviewer_generation
 
 from .figure_S9 import figure_S9_generation
 
 __all__ = [
     "figure_1_generation",
     "figure_2_generation",
-    "figure_2_reviewer_generation",
     "figure_3_generation",
-    "figure_3_reviewer_generation",
     "figure_4_generation",
     "figure_5_generation",
+
+    "figure_2_reviewer_generation",
+    "figure_3_reviewer_generation",
+    "figure_S3_reviewer_generation",
+    "figure_S7_reviewer_generation",
 
     "figure_S1_generation",
     "figure_S2_generation",
@@ -32,7 +37,6 @@ __all__ = [
     "figure_S5_generation",
     "figure_S6_generation",
     "figure_S7_generation",
-
     "figure_S9_generation"
 ]
 
@@ -78,6 +82,9 @@ def generate_final_figures():
 
     figure_2_reviewer_generation(**DIRECTORIES)
     figure_3_reviewer_generation(**DIRECTORIES)
+
+    figure_S3_reviewer_generation(**DIRECTORIES)
+    figure_S7_reviewer_generation(**DIRECTORIES)
 
     figure_S1_generation(**DIRECTORIES)
     figure_S2_generation(**DIRECTORIES)
