@@ -18,6 +18,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
                           lens_f1: pd.DataFrame,
                           rpe_classes_f1: pd.DataFrame,
                           lens_classes_f1: pd.DataFrame,
+                          projection: str,
                           figure_output_dir: str = "",
                           sketch_dir: str = "",
                           figure_name: str = ""):
@@ -65,7 +66,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         handles, labels = accuracy_plot.get_legend_handles_labels()
         # labels = ["CNN (image data): Validation", "CNN (image data): Test", "Random Forest (morphometrics): Validation", "Random Forest (morphometrics): Test", "Expert prediction"]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_title("Prediction accuracy: Emergence of RPE", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"Prediction accuracy: Emergence of RPE\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylim(0.18, 1.099)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -115,7 +116,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         handles, labels = accuracy_plot.get_legend_handles_labels()
         # labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_title("Prediction accuracy: Emergence of Lenses", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"Prediction accuracy: Emergence of Lenses\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylim(0.18, 1.149)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -165,7 +166,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         handles, labels = accuracy_plot.get_legend_handles_labels()
         # labels = ["CNN (image data): Validation", "CNN (image data): Test", "HGBC (morphometrics): Validation", "HGBC (morphometrics): Test", "Expert prediction"]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_title("Prediction accuracy: RPE area", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"Prediction accuracy: RPE area\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 0.99)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -215,7 +216,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         handles, labels = accuracy_plot.get_legend_handles_labels()
         # labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_title("Prediction accuracy: Lens sizes", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"Prediction accuracy: Lens sizes\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 0.99)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -316,6 +317,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
                           lens_f1 = lens_final_f1s,
                           rpe_classes_f1 = rpe_classes_f1,
                           lens_classes_f1 = lens_classes_f1,
+                          projection = "sum",
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
                           figure_name = "Reviewer_Figure_3")
@@ -368,6 +370,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
                           lens_f1 = lens_final_f1s,
                           rpe_classes_f1 = rpe_classes_f1,
                           lens_classes_f1 = lens_classes_f1,
+                          projection = "max",
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
                           figure_name = "Reviewer_Figure_4")
