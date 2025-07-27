@@ -493,7 +493,7 @@ def _read_neural_net_results(output_dir: str,
         return None, None
 
     if f1_scores is not None and confusion_matrices is not None:
-        print(f"Reading classifier files for {val_experiment_id}")
+        print(f"Reading NeuralNet results for {val_experiment_id}: {readout} ({eval_set})")
 
     return f1_scores, confusion_matrices
 
@@ -585,7 +585,7 @@ def _read_classifier_results(output_dir: str,
         return None, None
 
     if f1_scores is not None and confusion_matrices is not None:
-        print(f"Reading classifier files for {val_experiment_id}")
+        print(f"Reading classifier results for {val_experiment_id}: {readout} ({eval_set})")
 
     return f1_scores, confusion_matrices
     
