@@ -492,6 +492,9 @@ def _read_neural_net_results(output_dir: str,
     else:
         return None, None
 
+    if f1_scores is not None and confusion_matrices is not None:
+        print(f"Reading classifier files for {val_experiment_id}")
+
     return f1_scores, confusion_matrices
 
 def _get_labels(readout: Union[Readouts, BaselineReadouts]) -> list[int]:
@@ -580,6 +583,9 @@ def _read_classifier_results(output_dir: str,
         confusion_matrices = np.load(numpy_file)
     else:
         return None, None
+
+    if f1_scores is not None and confusion_matrices is not None:
+        print(f"Reading classifier files for {val_experiment_id}")
 
     return f1_scores, confusion_matrices
     
