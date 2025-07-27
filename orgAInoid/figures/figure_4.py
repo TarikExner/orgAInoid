@@ -248,5 +248,5 @@ def figure_4_generation(sketch_dir: str,
                           lens_classes_f1 = lens_classes_f1s,
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
-                          figure_name = "Figure_3")
+                          figure_name = "Figure_4")
 

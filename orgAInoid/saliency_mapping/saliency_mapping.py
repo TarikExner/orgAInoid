@@ -89,10 +89,15 @@ def save_saliency_h5(all_results: dict,
                     grp_model = grp_loop.require_group(model_name)
 
                     for alg_name, statuses in algs.items():
-                        # special–case for the original input image
                         if isinstance(statuses, np.ndarray):
                             arr32 = statuses.astype(np.float32)
-                            ds_name = "input_image"
+                            # special-case for the input image or mask
+                            if alg_name == "image":
+                                ds_name = "input_image"
+                            elif alg_name == "mask":
+                                ds_name = "mask"
+                            else:
+                                ds_name = alg_name
                             if ds_name in grp_model:
                                 del grp_model[ds_name]
                             grp_model.create_dataset(
@@ -123,6 +128,7 @@ def compute_saliencies(dataset: OrganoidDataset,
                        model_directory: str,
                        baseline_directory: str,
                        well: Optional[str] = None,
+                       combine_images: Literal["mean", "sum"] = "sum",
                        cnn_models: list[str] = ["DenseNet121", "ResNet50", "MobileNetV3_Large"],
                        segmentator_input_dir: str = "../segmentation/segmentators",
                        output_dir: str = "./saliencies",
@@ -177,7 +183,7 @@ def compute_saliencies(dataset: OrganoidDataset,
 
         assert len(cnn_loader) == len(loops)
 
-        for i, ((img, cls), mask, loop) in enumerate(
+        for i, ((img, _cls), mask, loop) in enumerate(
             tqdm(zip(cnn_loader, masks, loops), desc=f"Well {well}", total=len(cnn_loader))
         ):
             image = images[i][0]
@@ -194,17 +200,18 @@ def compute_saliencies(dataset: OrganoidDataset,
             mask3 = mask2d.unsqueeze(0).repeat(3,1,1).unsqueeze(0).to(DEVICE)
 
             _image = img.to(DEVICE)
-            _class = torch.argmax(cls, dim=1).to(DEVICE)
+            _class = torch.argmax(_cls, dim=1).to(DEVICE)
             _baseline = create_baseline_image(img, mask.unsqueeze(0), method="mean").to(DEVICE)
 
             orig_img = img.detach().cpu().numpy().astype(np.float32)
 
+            sample_results = {"image": orig_img, "mask": mask.detach().cpu().numpy()}
+
             for model_name in cnn_models:
                 trained = models[model_name]
                 baseline = models[f"{model_name}_baseline"]
-                sample_results = {
-                    "image": orig_img
-                }
+
+                sample_results[model_name] = {}
 
                 for fn_name, fn in SALIENCY_FUNCTIONS.items():
                     common_kwargs = {
@@ -227,13 +234,20 @@ def compute_saliencies(dataset: OrganoidDataset,
                            "model": baseline,
                            "target_layer": target_layers[f"{model_name}_baseline"]}
                     )
-                    out_trained = out_trained.float()
-                    out_base = out_base.float()
 
-                    attr_trained = out_trained.detach().cpu().numpy()
-                    attr_baseline = out_base.detach().cpu().numpy()
+                    attr_trained = out_trained.float().detach().cpu().numpy()
+                    attr_baseline = out_base.float().detach().cpu().numpy()
 
-                    sample_results[fn_name] = {
+                    if combine_images == "sum":
+                        attr_trained = attr_trained[0].sum(axis = 0)
+                        attr_baseline = attr_baseline[0].sum(axis = 0)
+                    elif combine_images == "mean":
+                        attr_trained = attr_trained[0].mean(axis = 0)
+                        attr_baseline = attr_baseline[0].mean(axis = 0)
+                    else:
+                        raise ValueError(f"Unknown combination method {combine_images}")
+
+                    sample_results[model_name][fn_name] = {
                         "trained": attr_trained,
                         "baseline": attr_baseline 
                     }
@@ -248,10 +262,10 @@ def compute_saliencies(dataset: OrganoidDataset,
                     # free up any cached GPU memory
                     torch.cuda.empty_cache()
 
-                well_results[loop][model_name] = sample_results
-                del sample_results
-                gc.collect()
-                torch.cuda.empty_cache()
+            well_results[loop] = sample_results
+            del sample_results
+            gc.collect()
+            torch.cuda.empty_cache()
 
         all_results[well] = well_results
 
