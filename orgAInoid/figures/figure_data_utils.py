@@ -881,6 +881,26 @@ def classifier_evaluation_baseline(val_experiment_id: str,
                                    baseline: bool = True) -> tuple[pd.DataFrame, np.ndarray]:
     return _classifier_evaluation(**locals())
 
+def calculate_f1_weights(classification_dir: str,
+                         readout: Readouts,
+                         proj: Projections,
+                         experiment: str,
+                         output_dir: str,
+                         eval_set: Literal["test", "val"]) -> pd.DataFrame:
+    data = pd.read_csv(
+        os.path.join(classification_dir, f"results/{readout}.txt"),
+        index_col = False
+    )
+    data = convert_cnn_output_to_float(data)
+    data = data[data["ValExpID"] == experiment]
+    readout_score = "ValF1" if eval_set == "val" else "TestF1"
+    raw_scores = data.groupby(["Model", "ValExpID"]).max()[readout_score].reset_index()
+    res = {}
+    for model in raw_scores["Model"]:
+        res[model] = raw_scores.loc[raw_scores["Model"] == model, readout_score].iloc[0]
+    
+    return res
+
 def _generate_classification_results(readout: Union[Readouts, BaselineReadouts],
                                      output_dir: str,
                                      proj: Projections,
@@ -906,8 +926,17 @@ def _generate_classification_results(readout: Union[Readouts, BaselineReadouts],
 
     for experiment in experiments:
         # TODO: weights are the F1 scores!
-        weights = None
         for eval_set in eval_sets:
+            if not baseline:
+                weights = calculate_f1_weights(classification_dir = experiment_dir,
+                                               readout = readout,
+                                               experiment = experiment,
+                                               proj = proj,
+                                               eval_set = eval_set,
+                                               output_dir = output_dir)
+            else:
+                weights = None
+
             cnn_f1, cnn_cm = nn_eval_func(
                 val_dataset_id = experiment,
                 val_experiment_id = experiment,
