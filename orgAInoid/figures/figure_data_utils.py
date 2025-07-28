@@ -526,7 +526,7 @@ def _get_best_params(hyperparameter_dir: str,
 def _instantiate_classifier(clf,
                             readout: Readouts,
                             best_params: dict):
-    if readout == "RPE_Final":
+    if "RPE_Final" in readout:
         if "n_jobs" not in best_params:
             best_params["n_jobs"] = 16
         return clf(**best_params)
@@ -808,6 +808,7 @@ def _classifier_evaluation(val_experiment_id: str,
     clf = _instantiate_classifier(clf_,
                                   readout = readout if not baseline else original_readout,
                                   best_params = best_params)
+    print(f"Fitting classifier {clf_name} for {readout}: {eval_set}")
     clf.fit(X_train, y_train)
 
     result_df = val_df if eval_set == "val" else test_df

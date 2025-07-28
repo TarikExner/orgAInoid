@@ -711,7 +711,7 @@ def get_classifier_comparison(classifier_results_dir: str,
     data["ALGORITHM"] = [f"{algorithm}: {tuning}" for algorithm, tuning in zip(data["algorithm"].tolist(), data["tuning"].tolist())]
 
     data.to_csv(output_file, index = False)
-    return data
+    return cast(pd.DataFrame, data)
 
 def get_cnn_output(classification_dir: str,
                    readout: Readouts,
@@ -860,10 +860,10 @@ def flatten_for_plotting(df: pd.DataFrame,
                 })
                 out[f'class{i}'].append(rec)
         result: dict[str, pd.DataFrame] = {}
-        for cls, recs in out.items():
+        for _cls, recs in out.items():
             long = pd.concat(recs, ignore_index=True)
             df_cls = long.pivot(index='loop', columns='component', values='value')
-            result[cls] = df_cls[['tn','tp','fn','fp']]
+            result[_cls] = df_cls[['tn','tp','fn','fp']]
         return result
 
 def create_confusion_matrix_frame(readout: Readouts,
@@ -893,7 +893,7 @@ def create_confusion_matrix_frame(readout: Readouts,
         morphometrics_dir = morphometrics_dir
     )
     pct_df = convert_to_percentages(base_df)
-    cls = 2 if 'classification' in readout and 'classes' not in readout else 4
-    plot_df = flatten_for_plotting(pct_df, classes=cls)
+    _cls = 2 if 'classification' in readout and 'classes' not in readout else 4
+    plot_df = flatten_for_plotting(pct_df, classes=_cls)
     plot_df.to_pickle(output_filename)
     return plot_df

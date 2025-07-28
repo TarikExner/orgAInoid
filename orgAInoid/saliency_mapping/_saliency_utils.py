@@ -38,13 +38,15 @@ def initialize_model(model: torch.nn.Module,
     model.cuda()
     return model
 
-def instantiate_model(model_name: str) -> torch.nn.Module:
+def instantiate_model(model_name: str,
+                      readout: str) -> torch.nn.Module:
+    n_classes = 4 if "_classes" in readout else 2
     if model_name == "DenseNet121":
-        return DenseNet121()
+        return DenseNet121(num_classes = n_classes)
     elif model_name == "ResNet50":
-        return ResNet50()
+        return ResNet50(num_classes = n_classes)
     elif model_name == "MobileNetV3_Large":
-        return MobileNetV3_Large()
+        return MobileNetV3_Large(num_classes = n_classes)
     else:
         raise ValueError(f"Model name not known: {model_name}")
 
@@ -85,13 +87,13 @@ def initialize_models(models: list[str],
             baseline_directory,
             f"{model_name}_val_f1_{experiment}_{readout}_base_model.pth"
         )
-        raw_model = instantiate_model(model_name)
+        raw_model = instantiate_model(model_name, readout = readout)
         if model_name == "ResNet50":
             raw_model = remove_relu_modules(raw_model)
             # disable_inplace_relu(raw_model)
         model_dict[model_name] = initialize_model(raw_model, state_dict_path)
 
-        raw_model = instantiate_model(model_name)
+        raw_model = instantiate_model(model_name, readout = readout)
         if model_name == "ResNet50":
             raw_model = remove_relu_modules(raw_model)
             # disable_inplace_relu(raw_model)

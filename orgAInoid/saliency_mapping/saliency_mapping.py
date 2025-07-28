@@ -71,14 +71,16 @@ def save_saliency_h5(all_results: dict,
                      readout: str,
                      output_dir: str
                      ):
-    # all_results: { well: { loop: { model: { 
-    #       "image": np.ndarray,
-    #       alg_name: { "trained": arr, "baseline": arr }, ...
-    # }}}}
+    # all_results structure: 
+    #   { well_key: { loop_idx: { model_name: {
+    #         "image": np.ndarray,    # shape (1,3,H,W)
+    #         "mask":  np.ndarray,    # shape (1,1,H,W)
+    #         alg_name: {"trained": arr2d, "baseline": arr2d}, ...
+    #   }}}}
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, f"{experiment}_{well}_{readout}.h5")
 
-    with h5py.File(file_path, "w") as h5f:
+    with h5py.File(file_path, 'w') as h5f:
         for well_key, loops in all_results.items():
             grp_well = h5f.require_group(str(well_key))
 
@@ -89,13 +91,13 @@ def save_saliency_h5(all_results: dict,
                     grp_model = grp_loop.require_group(model_name)
 
                     for alg_name, statuses in algs.items():
+                        # Special case: image or mask saved as raw array
                         if isinstance(statuses, np.ndarray):
                             arr32 = statuses.astype(np.float32)
-                            # special-case for the input image or mask
-                            if alg_name == "image":
-                                ds_name = "input_image"
-                            elif alg_name == "mask":
-                                ds_name = "mask"
+                            if alg_name == 'image':
+                                ds_name = 'input_image'
+                            elif alg_name == 'mask':
+                                ds_name = 'mask'
                             else:
                                 ds_name = alg_name
                             if ds_name in grp_model:
@@ -108,9 +110,9 @@ def save_saliency_h5(all_results: dict,
                             )
                             continue
 
-                        # otherwise it's the usual alg: {trained,baseline}
+                        # Otherwise it's a saliency dict with 'trained' and 'baseline'
                         grp_alg = grp_model.require_group(alg_name)
-                        for status, array in statuses.items():  # "trained" or "baseline"
+                        for status, array in statuses.items():
                             arr32 = array.astype(np.float32)
                             if status in grp_alg:
                                 del grp_alg[status]
