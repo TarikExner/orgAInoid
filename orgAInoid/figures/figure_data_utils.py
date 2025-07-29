@@ -156,6 +156,13 @@ def get_morphometrics_frame(results_dir: str,
     data_columns = [col for col in df.columns if col not in METADATA_COLUMNS]  
     df = df.dropna(how = "all", axis = 0, subset = data_columns)
     assert isinstance(df, pd.DataFrame)
+    # we have to read in the morph_classes differently:
+    morph_classes = pd.read_csv(f"morph_classes{suffix}.csv", index_col = False)
+    df = df.merge(
+        morph_classes[["experiment", "well", "morph_classes"]],
+        on = ["experiment", "well"],
+        how = "left"
+    )
     return df
 
 def _loop_to_timepoint(loops: list[str]) -> list[int]:
