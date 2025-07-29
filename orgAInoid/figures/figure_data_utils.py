@@ -347,6 +347,7 @@ def generate_neural_net_ensemble(val_experiment_id: str,
     classifier_dir = os.path.join(experiment_dir, "classifiers")
 
     models = []
+    print(f"Creating model ensemble on eval_set {eval_set}")
     for model_name in MODEL_NAMES:
         _model = model_setup_with_temperature(
             model_name = model_name,
@@ -675,7 +676,7 @@ def _neural_net_evaluation(val_dataset_id: str,
     
     if hasattr(val_dataset, "dataset_metadata"):
         print("Current validation dataset: ", val_dataset.dataset_metadata.dataset_id)
-
+    
     models = generate_neural_net_ensemble(
         val_experiment_id = val_experiment_id,
         readout = readout,
