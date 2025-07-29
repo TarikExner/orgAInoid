@@ -80,7 +80,8 @@ N_CLASSES_DICT: dict[str, int] = {
     "RPE_classes": 4,
     "Lens_classes": 4,
     "RPE_Final_Contains": 2,
-    "Lens_Final_Contains": 2
+    "Lens_Final_Contains": 2,
+    "morph_classes": 4
 }
 
 MODEL_NAMES = ["DenseNet121", "ResNet50", "MobileNetV3_Large"]
@@ -122,7 +123,7 @@ BEST_CLASSIFIERS = {
     "RPE_classes": HistGradientBoostingClassifier,
     "Lens_Final": QuadraticDiscriminantAnalysis,
     "Lens_classes": QuadraticDiscriminantAnalysis,
-    "morph_classes": RandomForestClassifier
+    "morph_classes": DecisionTreeClassifier
 }
 
 _CONTAINS_MAP = {
