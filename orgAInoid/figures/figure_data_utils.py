@@ -901,7 +901,7 @@ def calculate_f1_weights(classification_dir: str,
     raw_scores = data.groupby(["Model", "ValExpID"]).max()[readout_score].reset_index()
     res = {}
     for model in raw_scores["Model"]:
-        res[f"{model}_{eval_set}_{experiment}] = raw_scores.loc[raw_scores["Model"] == model, readout_score].iloc[0]
+        res[f"{model}_{eval_set}_{experiment}"] = raw_scores.loc[raw_scores["Model"] == model, readout_score].iloc[0]
     
     return res
 
