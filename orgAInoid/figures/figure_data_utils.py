@@ -291,7 +291,7 @@ def _get_model(model_name: str,
         raise ValueError(f"Unknown Model {model_name}")
 
 def _instantiate_model(model_name: str,
-                       eval_set: Literal["test", "val"],
+                       eval_set: EvaluationSets,
                        val_experiment_id: str,
                        readout: Readouts,
                        classifier_dir: str):
@@ -685,6 +685,7 @@ def _neural_net_evaluation(val_dataset_id: str,
         output_dir = output_dir,
         output_file_name = f"model_ensemble_{readout}_{val_experiment_id}_{proj}"
     )
+    print([model.original_name for model in models])
     truth_arr, ensemble_pred, single_predictions = ensemble_probability_averaging(
         models, val_loader, weights = weights
     )
