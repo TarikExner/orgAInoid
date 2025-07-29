@@ -1396,7 +1396,8 @@ def _one_hot_encode_labels(labels_array: np.ndarray,
         "RPE_Final": 2,
         "Lens_Final": 2,
         "RPE_classes": 4,
-        "Lens_classes": 4
+        "Lens_classes": 4,
+        "morph_classes": 4
     }
     n_classes = n_classes_dict[readout]
     n_appended = 0
