@@ -347,7 +347,6 @@ def generate_neural_net_ensemble(val_experiment_id: str,
     classifier_dir = os.path.join(experiment_dir, "classifiers")
 
     models = []
-    print(f"Creating model ensemble on eval_set {eval_set}")
     for model_name in MODEL_NAMES:
         _model = model_setup_with_temperature(
             model_name = model_name,
@@ -913,7 +912,7 @@ def calculate_f1_weights(classification_dir: str,
     raw_scores = data.groupby(["Model", "ValExpID"]).max()[readout_score].reset_index()
     res = {}
     for model in raw_scores["Model"]:
-        res[f"{model}_{eval_set}_{experiment}"] = raw_scores.loc[raw_scores["Model"] == model, readout_score].iloc[0]
+        res[f"{model}_test_{experiment}"] = raw_scores.loc[raw_scores["Model"] == model, readout_score].iloc[0]
     
     return res
 
