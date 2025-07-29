@@ -31,7 +31,8 @@ Readouts = Literal[
     "RPE_Final",
     "Lens_Final",
     "RPE_classes",
-    "Lens_classes"
+    "Lens_classes",
+    "morph_classes"
 ]
 BaselineReadouts = Literal[
     "Baseline_RPE_Final",
@@ -121,7 +122,7 @@ BEST_CLASSIFIERS = {
     "RPE_classes": HistGradientBoostingClassifier,
     "Lens_Final": QuadraticDiscriminantAnalysis,
     "Lens_classes": QuadraticDiscriminantAnalysis,
-    "morph_classes": DecisionTreeClassifier
+    "morph_classes": RandomForestClassifier
 }
 
 _CONTAINS_MAP = {
@@ -513,6 +514,8 @@ def _get_best_params(hyperparameter_dir: str,
         readout = readout.split("Baseline_")[1]
 
     projection = projection.upper()
+    if readout == "morph_classes":
+        readout = "RPE_Final"
     file_name = os.path.join(
             hyperparameter_dir,
             projection,

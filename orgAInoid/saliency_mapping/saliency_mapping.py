@@ -72,58 +72,59 @@ def save_saliency_h5(all_results: dict,
                      output_dir: str
                      ):
     # all_results structure: 
-    #   { well_key: { loop_idx: { model_name: {
-    #         "image": np.ndarray,    # shape (1,3,H,W)
-    #         "mask":  np.ndarray,    # shape (1,1,H,W)
-    #         alg_name: {"trained": arr2d, "baseline": arr2d}, ...
+    #   { well_key: { loop_idx: 
+    #       "image": np.ndarray,    # shape (1,3,H,W)
+    #       "mask":  np.ndarray,    # shape (1,1,H,W)
+    #       { model_name: {
+    #           alg_name: {"trained": arr2d, "baseline": arr2d}, ...
     #   }}}}
-    os.makedirs(output_dir, exist_ok=True)
-    file_path = os.path.join(output_dir, f"{experiment}_{well}_{readout}.h5")
 
-    with h5py.File(file_path, 'w') as h5f:
+    os.makedirs(output_dir, exist_ok=True)
+    path = os.path.join(output_dir, f"{experiment}_{well}_{readout}.h5")
+
+    with h5py.File(path, 'w') as h5f:
         for well_key, loops in all_results.items():
             grp_well = h5f.require_group(str(well_key))
 
-            for loop_idx, models in loops.items():
+            for loop_idx, sample in loops.items():
                 grp_loop = grp_well.require_group(str(loop_idx))
 
-                for model_name, algs in models.items():
+                img = sample['image'].astype(np.float32)
+                grp_loop.create_dataset(
+                    'input_image', data=img,
+                    compression="gzip",
+                    chunks=img.shape
+                )
+
+                msk = sample['mask'].astype(np.float32)
+                grp_loop.create_dataset(
+                    'mask', data=msk,
+                    compression="gzip",
+                    chunks=msk.shape
+                )
+
+                for model_name, algs in sample.items():
+                    if model_name in ('image','mask'):
+                        continue     # skip the two ND arrays
+
                     grp_model = grp_loop.require_group(model_name)
+                    for fn_name, statuses in algs.items():
+                        grp_fn = grp_model.require_group(fn_name)
 
-                    for alg_name, statuses in algs.items():
-                        # Special case: image or mask saved as raw array
-                        if isinstance(statuses, np.ndarray):
-                            arr32 = statuses.astype(np.float32)
-                            if alg_name == 'image':
-                                ds_name = 'input_image'
-                            elif alg_name == 'mask':
-                                ds_name = 'mask'
-                            else:
-                                ds_name = alg_name
-                            if ds_name in grp_model:
-                                del grp_model[ds_name]
-                            grp_model.create_dataset(
-                                ds_name,
-                                data=arr32,
-                                compression="gzip",
-                                chunks=arr32.shape
-                            )
-                            continue
+                        tr = statuses['trained'].astype(np.float32)
+                        grp_fn.create_dataset(
+                            'trained', data=tr,
+                            compression="gzip",
+                            chunks=tr.shape
+                        )
+                        bl = statuses['baseline'].astype(np.float32)
+                        grp_fn.create_dataset(
+                            'baseline', data=bl,
+                            compression="gzip",
+                            chunks=bl.shape
+                        )
 
-                        # Otherwise it's a saliency dict with 'trained' and 'baseline'
-                        grp_alg = grp_model.require_group(alg_name)
-                        for status, array in statuses.items():
-                            arr32 = array.astype(np.float32)
-                            if status in grp_alg:
-                                del grp_alg[status]
-                            grp_alg.create_dataset(
-                                status,
-                                data=arr32,
-                                compression="gzip",
-                                chunks=arr32.shape
-                            )
-
-    print(f"Saved saliency maps to {file_path}")
+    print(f"Saved saliency maps to {path}")
 
 def compute_saliencies(dataset: OrganoidDataset,
                        readout: Readouts,
