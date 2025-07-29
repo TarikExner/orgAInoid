@@ -948,6 +948,7 @@ def _generate_classification_results(readout: Union[Readouts, BaselineReadouts],
                                                proj = proj,
                                                eval_set = eval_set,
                                                output_dir = output_dir)
+                print(weights)
             else:
                 weights = None
 
