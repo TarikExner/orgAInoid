@@ -3,6 +3,7 @@ from .figure_2 import figure_2_generation
 from .figure_2_reviewer import figure_2_reviewer_generation
 from .figure_3 import figure_3_generation
 from .figure_3_reviewer import figure_3_reviewer_generation
+from .figure_3_reviewer_morph_classes import figure_3_reviewer_morph_classes_generation
 from .figure_4 import figure_4_generation
 from .figure_5 import figure_5_generation
 
@@ -28,6 +29,7 @@ __all__ = [
     "figure_2_reviewer_generation",
     "figure_3_reviewer_generation",
     "figure_S3_reviewer_generation",
+    "figure_3_reviewer_morph_classes_generation",
     "figure_S7_reviewer_generation",
 
     "figure_S1_generation",
@@ -61,16 +63,19 @@ DIRECTORIES = {
     "lens_baseline_dir": "../classification/experiment_37_Lens_baseline",
     "rpe_classes_baseline_dir": "../classification/experiment_38_RPEC_baseline",
     "lens_classes_baseline_dir": "../classification/experiment_39_LensC_baseline",
+    "morph_classes_classification_dir": "../classification/experiment_48_morph_classes",
 
     "rpe_classification_dir_sum": "../classification/experiment_40_RPE_Final_ZSUM",
     "lens_classification_dir_sum": "../classification/experiment_41_Lens_Final_ZSUM",
     "rpe_classes_classification_dir_sum": "../classification/experiment_42_RPE_classes_Final_ZSUM",
     "lens_classes_classification_dir_sum": "../classification/experiment_43_Lens_classes_Final_ZSUM",
+    "morph_classes_classification_dir_sum": "../classification/experiment_49_morph_classes_ZSUM",
 
     "rpe_classification_dir_max": "../classification/experiment_44_RPE_Final_ZMAX",
     "lens_classification_dir_max": "../classification/experiment_45_Lens_Final_ZMAX",
     "rpe_classes_classification_dir_max": "../classification/experiment_46_RPE_classes_ZMAX",
     "lens_classes_classification_dir_max": "../classification/experiment_47_Lens_classes_ZMAX",
+    "morph_classes_classification_dir_max": "../classification/experiment_50_morph_classes_ZMAX",
 }
 
 def generate_final_figures():
@@ -82,6 +87,7 @@ def generate_final_figures():
 
     figure_2_reviewer_generation(**DIRECTORIES)
     figure_3_reviewer_generation(**DIRECTORIES)
+    figure_3_reviewer_morph_classes_generation(**DIRECTORIES)
 
     figure_S3_reviewer_generation(**DIRECTORIES)
     figure_S7_reviewer_generation(**DIRECTORIES)

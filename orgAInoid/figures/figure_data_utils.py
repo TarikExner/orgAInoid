@@ -123,7 +123,7 @@ BEST_CLASSIFIERS = {
     "RPE_classes": HistGradientBoostingClassifier,
     "Lens_Final": QuadraticDiscriminantAnalysis,
     "Lens_classes": QuadraticDiscriminantAnalysis,
-    "morph_classes": DecisionTreeClassifier
+    "morph_classes": QuadraticDiscriminantAnalysis
 }
 
 _CONTAINS_MAP = {
@@ -526,7 +526,7 @@ def _get_best_params(hyperparameter_dir: str,
 
     projection = projection.upper()
     if readout == "morph_classes":
-        readout = "RPE_Final"
+        readout = "RPE_classes"
     file_name = os.path.join(
             hyperparameter_dir,
             projection,
