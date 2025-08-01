@@ -156,6 +156,11 @@ def compute_saliencies(dataset: OrganoidDataset,
         raise ValueError("There should only be one experiment")
     experiment = experiments[0]
 
+    # pre-check if we already ran this
+    output_file = os.path.join(output_dir, f"{experiment}_{well}_{readout}.h5")
+    if os.path.isfile(output_file):
+        return {}
+
     models = initialize_models(cnn_models,
                                experiment,
                                readout,

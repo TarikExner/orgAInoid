@@ -27,17 +27,27 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
                              ax: Axes,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
-        """Contains the raw values of RPE/Lens over all organoids"""
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
         data = rpe_f1
+
+        data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
+        data.loc[data["classifier"].str.contains("Baseline_Ensemble"), "classifier"] = "Baseline_Ensemble"
+
         data["hours"] = data["loop"] / 2
 
         fig_sgs = gs.subgridspec(1,1)
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(data = data, x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
+        sns.lineplot(
+            data = data,
+            x = "hours",
+            y = "F1",
+            hue = "classifier",
+            ax = accuracy_plot,
+            errorbar = "se",
+        )
 
         accuracy_plot.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot.text(x = 120/2, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
@@ -64,11 +74,21 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
 
         
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        # labels = ["CNN (image data): Validation", "CNN (image data): Test", "Random Forest (morphometrics): Validation", "Random Forest (morphometrics): Test", "Expert prediction"]
-        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
+        labels_dict = {
+            # we switch nomenclature for test and val sets
+            "Morphometrics_test": "Random Forest (morphometrics): Validation",
+            "Morphometrics_val": "Random Forest (morphometrics): Test",
+            "Ensemble_test": "CNN (image data): Validation",
+            "Ensemble_val": "CNN (image data): Test",
+            "human": "Expert prediction",
+            "Baseline_Morphometrics": "Random Forest (morphometrics): Baseline",
+            "Baseline_Ensemble": "CNN (image data): Baseline"
+        }
+        labels = [labels_dict[label] for label in labels]
+        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title(f"Prediction accuracy: Emergence of RPE\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.set_ylim(0.18, 1.099)
+        accuracy_plot.set_ylim(0.01, 1.099)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
@@ -78,17 +98,28 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
                              ax: Axes,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
-        """Contains the raw values of RPE/Lens over all organoids"""
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
         data = lens_f1
+
+        # preprocessing:
+        data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
+        data.loc[data["classifier"].str.contains("Baseline_Ensemble"), "classifier"] = "Baseline_Ensemble"
+
         data["hours"] = data["loop"] / 2
 
         fig_sgs = gs.subgridspec(1,1)
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(data = data, x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
+        sns.lineplot(
+            data = data,
+            x = "hours",
+            y = "F1",
+            hue = "classifier",
+            ax = accuracy_plot,
+            errorbar = "se",
+        )
 
         accuracy_plot.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot.text(x = 120/2, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
@@ -114,11 +145,21 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         )
 
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        # labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
-        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
+        labels_dict = {
+            # we switch nomenclature for test and val sets
+            "Morphometrics_test": "Random Forest (morphometrics): Validation",
+            "Morphometrics_val": "Random Forest (morphometrics): Test",
+            "Ensemble_test": "CNN (image data): Validation",
+            "Ensemble_val": "CNN (image data): Test",
+            "human": "Expert prediction",
+            "Baseline_Morphometrics": "Random Forest (morphometrics): Baseline",
+            "Baseline_Ensemble": "CNN (image data): Baseline"
+        }
+        labels = [labels_dict[label] for label in labels]
+        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title(f"Prediction accuracy: Emergence of Lenses\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.set_ylim(0.18, 1.149)
+        accuracy_plot.set_ylim(0.01, 1.149)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
@@ -132,12 +173,24 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
         data = rpe_classes_f1
+
+        # preprocessing:
+        data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
+        data.loc[data["classifier"].str.contains("Baseline_Ensemble"), "classifier"] = "Baseline_Ensemble"
+
         data["hours"] = data["loop"] / 2
 
         fig_sgs = gs.subgridspec(1,1)
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(data = data, x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
+        sns.lineplot(
+            data = data,
+            x = "hours",
+            y = "F1",
+            hue = "classifier",
+            ax = accuracy_plot,
+            errorbar = "se",
+        )
 
         accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.62, linestyle = "--", color = "black")
         accuracy_plot.text(x = 32, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
@@ -164,8 +217,18 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
 
         
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        # labels = ["CNN (image data): Validation", "CNN (image data): Test", "HGBC (morphometrics): Validation", "HGBC (morphometrics): Test", "Expert prediction"]
-        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
+        labels_dict = {
+            # we switch nomenclature for test and val sets
+            "Morphometrics_test": "HGBC (morphometrics): Validation",
+            "Morphometrics_val": "HGBC (morphometrics): Test",
+            "Ensemble_test": "CNN (image data): Validation",
+            "Ensemble_val": "CNN (image data): Test",
+            "human": "Expert prediction",
+            "Baseline_Morphometrics": "HGBC (morphometrics): Baseline",
+            "Baseline_Ensemble": "CNN (image data): Baseline"
+        }
+        labels = [labels_dict[label] for label in labels]
+        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title(f"Prediction accuracy: RPE area\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 0.99)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -178,17 +241,29 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
                              ax: Axes,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
-        """Contains the raw values of RPE/Lens over all organoids"""
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
         data = lens_classes_f1
+
+        # preprocessing:
+        data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
+        data.loc[data["classifier"].str.contains("Baseline_Ensemble"), "classifier"] = "Baseline_Ensemble"
+
         data["hours"] = data["loop"] / 2
 
         fig_sgs = gs.subgridspec(1,1)
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(data = data, x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
+        sns.lineplot(
+            data = data,
+            x = "hours",
+            y = "F1",
+            hue = "classifier",
+            ax = accuracy_plot,
+            errorbar = "se",
+        )
+
 
         accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.62, linestyle = "--", color = "black")
         accuracy_plot.text(x = 32, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
@@ -214,8 +289,19 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         )
 
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        # labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
-        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
+        labels_dict = {
+            # we switch nomenclature for test and val sets
+            "Morphometrics_test": "QDA (morphometrics): Validation",
+            "Morphometrics_val": "QDA (morphometrics): Test",
+            "Ensemble_test": "CNN (image data): Validation",
+            "Ensemble_val": "CNN (image data): Test",
+            "human": "Expert prediction",
+            "Baseline_Morphometrics": "QDA (morphometrics): Baseline",
+            "Baseline_Ensemble": "CNN (image data): Baseline"
+        }
+        labels = [labels_dict[label] for label in labels]
+
+        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title(f"Prediction accuracy: Lens sizes\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 0.99)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -374,5 +460,3 @@ def figure_3_reviewer_generation(sketch_dir: str,
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
                           figure_name = "Reviewer_Figure_4")
-
-
