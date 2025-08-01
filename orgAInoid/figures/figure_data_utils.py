@@ -62,7 +62,7 @@ METADATA_COLUMNS = [
     'Condition', 'RPE_Final', 'RPE_Norin', 'RPE_Cassian',
     'Confidence_score_RPE', 'Total_RPE_amount', 'RPE_classes', 'Lens_Final',
     'Lens_Norin', 'Lens_Cassian', 'Confidence_score_lens', 'Lens_area',
-    'Lens_classes', 'label'
+    'Lens_classes', 'label', 'morph_classes'
 ]
 
 _DEFAULT_HUMAN_COLS = [
