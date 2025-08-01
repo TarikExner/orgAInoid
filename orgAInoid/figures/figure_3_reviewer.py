@@ -86,9 +86,9 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         }
         labels = [labels_dict[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"Prediction accuracy: Emergence of RPE\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"Prediction accuracy: Emergence of RPE\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.set_ylim(0.01, 1.19)
+        accuracy_plot.set_ylim(0.01, 1.24)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
@@ -157,9 +157,9 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         }
         labels = [labels_dict[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"Prediction accuracy: Emergence of Lenses\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"Prediction accuracy: Emergence of Lenses\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.set_ylim(0.01, 1.19)
+        accuracy_plot.set_ylim(0.01, 1.24)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
@@ -192,8 +192,8 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
             errorbar = "se",
         )
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.62, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 32, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.35, linestyle = "--", color = "black")
+        accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         RPE_prediction_cutoff = 26/2
         RPE_visibility_cutoff = 96/2
@@ -229,8 +229,8 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         }
         labels = [labels_dict[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"Prediction accuracy: RPE area\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_ylim(0.03, 1.09)
+        accuracy_plot.set_title(f"Prediction accuracy: RPE area\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_ylim(0.03, 1.02)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -265,8 +265,8 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         )
 
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.62, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 32, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.35, linestyle = "--", color = "black")
+        accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         lens_prediction_cutoff = 14/2
         lens_visibility_cutoff = 86/2
@@ -302,8 +302,8 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         labels = [labels_dict[label] for label in labels]
 
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"Prediction accuracy: Lens sizes\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_ylim(0.03, 1.09)
+        accuracy_plot.set_title(f"Prediction accuracy: Lens sizes\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_ylim(0.03, 1.02)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
