@@ -123,7 +123,7 @@ BEST_CLASSIFIERS = {
     "RPE_classes": HistGradientBoostingClassifier,
     "Lens_Final": QuadraticDiscriminantAnalysis,
     "Lens_classes": QuadraticDiscriminantAnalysis,
-    "morph_classes": QuadraticDiscriminantAnalysis
+    "morph_classes": DecisionTreeClassifier
 }
 
 _CONTAINS_MAP = {
