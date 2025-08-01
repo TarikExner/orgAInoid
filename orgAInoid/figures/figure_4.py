@@ -43,8 +43,8 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         accuracy_plot = fig.add_subplot(fig_sgs[0])
         sns.lineplot(data = data, x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.62, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 32, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
+        accuracy_plot.text(x = 60, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         RPE_prediction_cutoff = 26/2
         RPE_visibility_cutoff = 96/2
@@ -82,7 +82,7 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
 
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title("Prediction accuracy: RPE area", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_ylim(0.03, 0.99)
+        accuracy_plot.set_ylim(-0.097, 0.99)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -110,8 +110,8 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         accuracy_plot = fig.add_subplot(fig_sgs[0])
         sns.lineplot(data = data, x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.62, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 32, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
+        accuracy_plot.text(x = 60, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         lens_prediction_cutoff = 14/2
         lens_visibility_cutoff = 86/2
@@ -148,7 +148,7 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
 
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title("Prediction accuracy: Lens sizes", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_ylim(0.03, 0.99)
+        accuracy_plot.set_ylim(-0.097, 0.99)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
