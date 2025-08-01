@@ -192,7 +192,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
             errorbar = "se",
         )
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.35, linestyle = "--", color = "black")
+        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
         accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         RPE_prediction_cutoff = 26/2
@@ -265,7 +265,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         )
 
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.35, linestyle = "--", color = "black")
+        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
         accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         lens_prediction_cutoff = 14/2
