@@ -55,7 +55,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         RPE_prediction_cutoff = 22/2
         RPE_visibility_cutoff = 96/2
         accuracy_plot.annotate(
-            "Confident Deep Learning Predictions",
+            "Confident Deep\nLearning Predictions",
             xy=(RPE_prediction_cutoff, 0.95),
             xytext=(RPE_prediction_cutoff, 1.05),
             arrowprops=dict(facecolor='black', arrowstyle="->"),
@@ -85,10 +85,10 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
             "Baseline_Ensemble": "CNN (image data): Baseline"
         }
         labels = [labels_dict[label] for label in labels]
-        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title(f"Prediction accuracy: Emergence of RPE\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.set_ylim(0.01, 1.099)
+        accuracy_plot.set_ylim(0.01, 1.19)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
@@ -156,10 +156,10 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
             "Baseline_Ensemble": "CNN (image data): Baseline"
         }
         labels = [labels_dict[label] for label in labels]
-        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title(f"Prediction accuracy: Emergence of Lenses\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.set_ylim(0.01, 1.149)
+        accuracy_plot.set_ylim(0.01, 1.19)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
@@ -228,9 +228,9 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
             "Baseline_Ensemble": "CNN (image data): Baseline"
         }
         labels = [labels_dict[label] for label in labels]
-        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title(f"Prediction accuracy: RPE area\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_ylim(0.03, 0.99)
+        accuracy_plot.set_ylim(0.03, 1.09)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -301,9 +301,9 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         }
         labels = [labels_dict[label] for label in labels]
 
-        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title(f"Prediction accuracy: Lens sizes\non image projection {projection}", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_ylim(0.03, 0.99)
+        accuracy_plot.set_ylim(0.03, 1.09)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
