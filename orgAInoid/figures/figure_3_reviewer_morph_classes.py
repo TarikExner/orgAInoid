@@ -66,7 +66,7 @@ def _generate_main_figure(morph_classes_normal: pd.DataFrame,
             "Baseline_Ensemble": "CNN (image data): Baseline"
         }
         labels = [labels_dict[label] for label in labels]
-        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
+        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_title(f"Prediction accuracy: Morph classes\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylim(0.18, 1.01)
