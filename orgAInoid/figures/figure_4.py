@@ -63,8 +63,19 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
 
         
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels = ["CNN (image data): Validation", "CNN (image data): Test", "HGBC (morphometrics): Validation", "HGBC (morphometrics): Test", "Expert prediction"]
-        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
+        labels_dict = {
+            # we switch nomenclature for test and val sets
+            "Morphometrics_test": "HGBC (morphometrics): Validation",
+            "Morphometrics_val": "HGBC (morphometrics): Test",
+            "Ensemble_test": "CNN (image data): Validation",
+            "Ensemble_val": "CNN (image data): Test",
+            "human": "Expert prediction",
+            "Baseline_Morphometrics": "HGBC (morphometrics): Baseline",
+            "Baseline_Ensemble": "CNN (image data): Baseline"
+        }
+        labels = [labels_dict[label] for label in labels]
+
+        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title("Prediction accuracy: RPE area", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 0.99)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -113,8 +124,19 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         )
 
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels = ["CNN (image data): Validation", "CNN (image data): Test", "QDA (morphometrics): Validation", "QDA (morphometrics): Test", "Expert prediction"]
-        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
+        labels_dict = {
+            # we switch nomenclature for test and val sets
+            "Morphometrics_test": "QDA (morphometrics): Validation",
+            "Morphometrics_val": "QDA (morphometrics): Test",
+            "Ensemble_test": "CNN (image data): Validation",
+            "Ensemble_val": "CNN (image data): Test",
+            "human": "Expert prediction",
+            "Baseline_Morphometrics": "QDA (morphometrics): Baseline",
+            "Baseline_Ensemble": "CNN (image data): Baseline"
+        }
+        labels = [labels_dict[label] for label in labels]
+
+        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title("Prediction accuracy: Lens sizes", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 0.99)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)

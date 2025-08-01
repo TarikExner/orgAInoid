@@ -49,7 +49,7 @@ def _generate_main_figure(morph_classes_normal: pd.DataFrame,
             errorbar = "se",
         )
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
+        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.60, linestyle = "--", color = "black")
         accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         
@@ -67,7 +67,7 @@ def _generate_main_figure(morph_classes_normal: pd.DataFrame,
         }
         labels = [labels_dict[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_title(f"Prediction accuracy: Morph classes\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"Prediction accuracy: Morphometrics clusters\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylim(0.18, 1.01)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
