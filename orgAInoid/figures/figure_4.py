@@ -31,6 +31,11 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
         data = rpe_classes_f1
+
+        # preprocessing:
+        data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
+        data.loc[data["classifier"].str.contains("Baseline_Ensemble"), "classifier"] = "Baseline_Ensemble"
+
         data["hours"] = data["loop"] / 2
 
         fig_sgs = gs.subgridspec(1,1)
@@ -93,6 +98,11 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
         data = lens_classes_f1
+
+        # preprocessing:
+        data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
+        data.loc[data["classifier"].str.contains("Baseline_Ensemble"), "classifier"] = "Baseline_Ensemble"
+
         data["hours"] = data["loop"] / 2
 
         fig_sgs = gs.subgridspec(1,1)
