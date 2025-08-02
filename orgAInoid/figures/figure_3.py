@@ -102,7 +102,6 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
             "Baseline_Ensemble": "CNN (image data): Baseline"
         }
         labels = [labels_dict[label] for label in labels]
-
         accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
         accuracy_plot.set_title("Prediction accuracy: Emergence of RPE", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)

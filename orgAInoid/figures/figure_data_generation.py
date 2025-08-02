@@ -1,3 +1,4 @@
+import warnings
 import os
 import numpy as np
 import pandas as pd
@@ -897,3 +898,81 @@ def create_confusion_matrix_frame(readout: Readouts,
     plot_df = flatten_for_plotting(pct_df, classes=_cls)
     plot_df.to_pickle(output_filename)
     return plot_df
+
+
+def run_f1_statistics(df: pd.DataFrame,
+                      readout: Readouts,
+                      p_adjust: str = "bonferroni") -> pd.DataFrame:
+
+    from scipy.stats import shapiro, f_oneway, ttest_ind
+
+    group_col = "classifier"
+    value_col = "F1"
+    loop_col = "loop"
+    records = []
+
+    for loop in sorted(df[loop_col].unique()):
+        sub = df[df[loop_col] == loop]
+        
+
+        # 1) Normality check
+        for clf, grp in sub.groupby(group_col):
+            W, p_sw = shapiro(grp[value_col])
+            if p_sw < 0.05:
+                warnings.warn(
+                    f'Loop {loop}, classifier "{clf}" fails normality (Shapiro p={p_sw:.3f})',
+                    UserWarning
+                )
+        
+        # 2) ANOVA
+        groups = [grp[value_col].values
+                  for _, grp in sub.groupby(group_col)]
+        F, p_anova = f_oneway(*groups)
+        records.append({
+            'loop':      loop,
+            'test':      'anova',
+            'group1':    None,
+            'group2':    None,
+            'statistic': F,
+            'p_raw':     p_anova,
+            'p_adj':     p_anova
+        })
+        
+        # pairwise ttest
+        classes = sorted(sub[group_col].unique())
+        pair_results = []
+        for i in range(len(classes)):
+            for j in range(i+1, len(classes)):
+                g1, g2 = classes[i], classes[j]
+                a = sub.loc[sub[group_col]==g1, value_col].values
+                b = sub.loc[sub[group_col]==g2, value_col].values
+                t_stat, p_val = ttest_ind(a, b, equal_var=True)
+                pair_results.append((g1, g2, t_stat, p_val))
+
+        m = len(pair_results)
+        raw_ps = [pr[3] for pr in pair_results]
+        if p_adjust == 'bonferroni':
+            adj_ps = [min(p*m, 1.0) for p in raw_ps]
+        elif p_adjust == 'holm':
+            order = np.argsort(raw_ps)
+            adj = np.empty(m)
+            for rank, idx in enumerate(order):
+                adj[idx] = min((m-rank)*raw_ps[idx], 1.0)
+            adj_ps = list(adj)
+        else:
+            raise ValueError(f'Unknown p_adjust: {p_adjust}')
+
+        for (g1, g2, t_stat, p_val), p_a in zip(pair_results, adj_ps):
+            records.append({
+                'loop':      loop,
+                'test':      't-test',
+                'group1':    g1,
+                'group2':    g2,
+                'statistic': t_stat,
+                'p_raw':     p_val,
+                'p_adj':     p_a
+            })
+
+    res = pd.DataFrame.from_records(records)
+    res["readout"] = readout
+    return res

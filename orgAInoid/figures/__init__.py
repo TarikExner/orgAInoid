@@ -19,6 +19,8 @@ from .figure_S7_reviewer import figure_S7_reviewer_generation
 
 from .figure_S9 import figure_S9_generation
 
+from .supp_file_S1 import supplementary_file_S1_generation
+
 __all__ = [
     "figure_1_generation",
     "figure_2_generation",
@@ -39,7 +41,9 @@ __all__ = [
     "figure_S5_generation",
     "figure_S6_generation",
     "figure_S7_generation",
-    "figure_S9_generation"
+    "figure_S9_generation",
+
+    "supplementary_file_S1_generation"
 ]
 
 DIRECTORIES = {
@@ -101,6 +105,8 @@ def generate_final_figures():
     figure_S7_generation(**DIRECTORIES)
 
     figure_S9_generation(**DIRECTORIES)
+
+    supplementary_file_S1_generation(**DIRECTORIES)
 
 
 
