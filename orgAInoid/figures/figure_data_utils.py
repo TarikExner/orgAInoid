@@ -560,12 +560,13 @@ def _save_classifier_results(output_dir: str,
                              eval_set: EvaluationSets,
                              proj: Projections,
                              f1_scores: pd.DataFrame,
-                             confusion_matrices: np.ndarray) -> None:
+                             confusion_matrices: np.ndarray,
+                             external_experiment_id: Optional[str] = None) -> None:
     proj = PROJECTION_SAVE_MAP[proj]
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     os.makedirs(save_dir, exist_ok=True)
     file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
-                                     val_dataset_id = val_dataset_id,
+                                     val_dataset_id = external_experiment_id or val_dataset_id,
                                      eval_set = eval_set,
                                      proj = proj)
 
@@ -857,7 +858,8 @@ def _classifier_evaluation(val_experiment_id: str,
                              proj = proj,
                              eval_set = eval_set,
                              f1_scores = f1_scores,
-                             confusion_matrices = confusion_matrices)
+                             confusion_matrices = confusion_matrices,
+                             external_experiment_id = external_experiment_id)
 
     return f1_scores, confusion_matrices
 
