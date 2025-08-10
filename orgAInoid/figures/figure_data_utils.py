@@ -585,11 +585,12 @@ def _read_classifier_results(output_dir: str,
                              val_experiment_id: str,
                              val_dataset_id: str,
                              eval_set: EvaluationSets,
-                             proj: Projections) -> tuple:
+                             proj: Projections,
+                             external_experiment_id: Optional[str])-> tuple:
     proj = PROJECTION_SAVE_MAP[proj]
     save_dir = os.path.join(output_dir, f"classification_{readout}")
     file_name = _create_cnn_filename(val_experiment_id = val_experiment_id,
-                                     val_dataset_id = val_dataset_id,
+                                     val_dataset_id = external_experiment_id or val_dataset_id,
                                      eval_set = eval_set,
                                      proj = proj)
     csv_file = os.path.join(save_dir, f"{file_name}_CLFF1.csv")
@@ -787,7 +788,8 @@ def _classifier_evaluation(val_experiment_id: str,
         val_experiment_id = val_experiment_id,
         val_dataset_id = val_dataset_id,
         eval_set = eval_set,
-        proj = proj
+        proj = proj,
+        external_experiment_id = external_experiment_id
     )
     if f1_scores is not None and confusion_matrices is not None:
         return f1_scores, confusion_matrices
