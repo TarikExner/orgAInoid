@@ -27,6 +27,7 @@ from .figure_data_utils import (
     f1_scores,
     convert_cnn_output_to_float,
     _generate_classification_results,
+    _generate_classification_results_external_experiment,
     get_morphometrics_frame,
 
     READOUT_BASELINE_READOUT_MAP,
@@ -630,6 +631,64 @@ def generate_baseline_results(readout: BaselineReadouts,
                               raw_data_dir: str,
                               baseline: bool = True):
     return _generate_classification_results(**locals())
+
+def generate_classification_results_external_experiment(external_experiment_id: str,
+                                                        readout: BaselineReadouts,
+                                                        output_dir: str,
+                                                        proj: Projections,
+                                                        hyperparameter_dir: str,
+                                                        experiment_dir: str,
+                                                        morphometrics_dir: str,
+                                                        raw_data_dir: str,
+                                                        baseline: bool = True):
+    return _generate_classification_results_external_experiment(**locals())
+
+def generate_baseline_results_external_experiment(external_experiment_id: str,
+                                                  readout: BaselineReadouts,
+                                                  output_dir: str,
+                                                  proj: Projections,
+                                                  hyperparameter_dir: str,
+                                                  experiment_dir: str,
+                                                  morphometrics_dir: str,
+                                                  raw_data_dir: str,
+                                                  baseline: bool = True):
+    return _generate_classification_results_external_experiment(**locals())
+
+def get_classification_f1_data_external_experiment(external_experiment_id: str,
+                                                   readout: Readouts,
+                                                   output_dir: str,
+                                                   proj: Projections,
+                                                   hyperparameter_dir: str,
+                                                   classification_dir: str,
+                                                   baseline_dir: Optional[str],
+                                                   morphometrics_dir: str,
+                                                   raw_data_dir: str,
+                                                   evaluator_results_dir: str) -> pd.DataFrame:
+    classifier_f1s, _, _ = generate_classification_results_external_experiment(
+        external_experiment_id = external_experiment_id,
+        readout = readout,
+        output_dir = output_dir,
+        proj = proj,
+        hyperparameter_dir = hyperparameter_dir,
+        experiment_dir = classification_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir
+    )
+    if baseline_dir is not None:
+        baseline_f1s, _, _ = generate_baseline_results_external_experiment(
+            external_experiment_id = external_experiment_id,
+            readout = READOUT_BASELINE_READOUT_MAP[readout],
+            output_dir = output_dir,
+            proj = proj,
+            hyperparameter_dir = hyperparameter_dir,
+            experiment_dir = baseline_dir,
+            morphometrics_dir = morphometrics_dir,
+            raw_data_dir = raw_data_dir
+        )
+    else:
+        baseline_f1s = pd.DataFrame()
+
+    return pd.concat([classifier_f1s, baseline_f1s], axis = 0)
 
 def get_classification_f1_data(readout: Readouts,
                                output_dir: str,
