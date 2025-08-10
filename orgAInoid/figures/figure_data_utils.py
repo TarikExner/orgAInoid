@@ -942,7 +942,6 @@ def _generate_classification_results_external_experiment(external_experiment_id:
     cnn_f1s = []
     clf_cms = []
     cnn_cms = []
-    eval_sets: Sequence[EvaluationSets] = ["test", "val"]
 
     if baseline:
         nn_eval_func = neural_net_evaluation_baseline
@@ -952,7 +951,7 @@ def _generate_classification_results_external_experiment(external_experiment_id:
         clf_eval_func = classifier_evaluation
 
     for experiment in experiments:
-        for eval_set in eval_sets:
+        for eval_set in ["val"]:
             if not baseline:
                 weights = calculate_f1_weights(classification_dir = experiment_dir,
                                                readout = readout,

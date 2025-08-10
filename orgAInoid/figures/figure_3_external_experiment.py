@@ -12,7 +12,8 @@ from matplotlib.ticker import MultipleLocator
 from . import figure_config as cfg
 from . import figure_utils as utils
 
-from .figure_data_generation import get_classification_f1_data_external_experiment
+from .figure_data_generation import (get_classification_f1_data_external_experiment,
+                                     get_classification_f1_data)
 
 def _generate_main_figure(rpe_f1: pd.DataFrame,
                           lens_f1: pd.DataFrame,
@@ -353,6 +354,17 @@ def figure_3_reviewer_external_experiment_generation(sketch_dir: str,
                                                      figure_data_dir: str,
                                                      evaluator_results_dir: str,
                                                      **kwargs) -> None:
+    rpe_final_f1s_test = get_classification_f1_data(
+        readout = "RPE_Final",
+        output_dir = figure_data_dir,
+        proj = "",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = rpe_classification_dir,
+        baseline_dir = rpe_baseline_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
     rpe_final_f1s = get_classification_f1_data_external_experiment(
         external_experiment_id = "E017",
         readout = "RPE_Final",
@@ -361,6 +373,20 @@ def figure_3_reviewer_external_experiment_generation(sketch_dir: str,
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = rpe_classification_dir,
         baseline_dir = rpe_baseline_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    rpe_final_f1s_test = rpe_final_f1s_test[~rpe_final_f1s_test["classifier"].str.contains("val")]
+    rpe_final_f1s = pd.concat([rpe_final_f1s, rpe_final_f1s_test], axis = 0)
+
+    lens_final_f1s_test = get_classification_f1_data(
+        readout = "Lens_Final",
+        output_dir = figure_data_dir,
+        proj = "",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = lens_classification_dir,
+        baseline_dir = lens_baseline_dir,
         morphometrics_dir = morphometrics_dir,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
@@ -377,6 +403,20 @@ def figure_3_reviewer_external_experiment_generation(sketch_dir: str,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
+    lens_final_f1s_test = lens_final_f1s_test[~lens_final_f1s_test["classifier"].str.contains("val")]
+    lens_final_f1s = pd.concat([lens_final_f1s, lens_final_f1s_test], axis = 0)
+
+    rpe_classes_f1_test = get_classification_f1_data(
+        readout = "RPE_classes",
+        output_dir = figure_data_dir,
+        proj = "",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = rpe_classes_classification_dir,
+        baseline_dir = rpe_classes_baseline_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
     rpe_classes_f1 = get_classification_f1_data_external_experiment(
         external_experiment_id = "E017",
         readout = "RPE_classes",
@@ -385,6 +425,20 @@ def figure_3_reviewer_external_experiment_generation(sketch_dir: str,
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = rpe_classes_classification_dir,
         baseline_dir = rpe_classes_baseline_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    rpe_classes_f1_test = rpe_classes_f1_test[~rpe_classes_f1_test["classifier"].str.contains("val")]
+    rpe_classes_f1 = pd.concat([rpe_classes_f1, rpe_classes_f1_test], axis = 0)
+
+    lens_classes_f1_test = get_classification_f1_data(
+        readout = "Lens_classes",
+        output_dir = figure_data_dir,
+        proj = "",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = lens_classes_classification_dir,
+        baseline_dir = lens_classes_baseline_dir,
         morphometrics_dir = morphometrics_dir,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
@@ -401,6 +455,9 @@ def figure_3_reviewer_external_experiment_generation(sketch_dir: str,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
+    lens_classes_f1_test = lens_classes_f1_test[~lens_classes_f1_test["classifier"].str.contains("val")]
+    lens_classes_f1 = pd.concat([lens_classes_f1_test, lens_classes_f1], axis = 0)
+
     _generate_main_figure(rpe_f1 = rpe_final_f1s,
                           lens_f1 = lens_final_f1s,
                           rpe_classes_f1 = rpe_classes_f1,
