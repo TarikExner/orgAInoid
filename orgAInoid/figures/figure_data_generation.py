@@ -640,7 +640,7 @@ def generate_classification_results_external_experiment(external_experiment_id: 
                                                         experiment_dir: str,
                                                         morphometrics_dir: str,
                                                         raw_data_dir: str,
-                                                        baseline: bool = True):
+                                                        baseline: bool = False):
     return _generate_classification_results_external_experiment(**locals())
 
 def generate_baseline_results_external_experiment(external_experiment_id: str,
