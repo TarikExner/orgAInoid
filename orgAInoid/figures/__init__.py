@@ -4,6 +4,7 @@ from .figure_2_reviewer import figure_2_reviewer_generation
 from .figure_3 import figure_3_generation
 from .figure_3_reviewer import figure_3_reviewer_generation
 from .figure_3_reviewer_morph_classes import figure_3_reviewer_morph_classes_generation
+from .figure_3_external_experiment import figure_3_reviewer_external_experiment_generation
 from .figure_4 import figure_4_generation
 from .figure_5 import figure_5_generation
 
@@ -32,6 +33,7 @@ __all__ = [
     "figure_3_reviewer_generation",
     "figure_S3_reviewer_generation",
     "figure_3_reviewer_morph_classes_generation",
+    "figure_3_reviewer_external_experiment_generation",
     "figure_S7_reviewer_generation",
 
     "figure_S1_generation",
@@ -92,7 +94,7 @@ def generate_final_figures():
     figure_2_reviewer_generation(**DIRECTORIES)
     figure_3_reviewer_generation(**DIRECTORIES)
     figure_3_reviewer_morph_classes_generation(**DIRECTORIES)
-
+    figure_3_reviewer_external_experiment_generation(**DIRECTORIES)
     figure_S3_reviewer_generation(**DIRECTORIES)
     figure_S7_reviewer_generation(**DIRECTORIES)
 
