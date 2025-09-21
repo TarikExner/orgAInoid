@@ -280,11 +280,11 @@ def figure_2_generation(morphometrics_dir: str,
                           figure_name = "Figure_2",
                           sketch_dir = sketch_dir)
 
-    _generate_main_figure(dimred_data = dimreds,
-                          distance_data = organoid_distances,
-                          figure_output_dir = figure_output_dir,
-                          figure_name = "Reviewer_Figure_1",
-                          sketch_dir = sketch_dir)
+    # _generate_main_figure(dimred_data = dimreds,
+    #                       distance_data = organoid_distances,
+    #                       figure_output_dir = figure_output_dir,
+    #                       figure_name = "Reviewer_Figure_1",
+    #                       sketch_dir = sketch_dir)
 
     return
 

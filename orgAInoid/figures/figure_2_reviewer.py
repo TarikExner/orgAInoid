@@ -268,5 +268,5 @@ def figure_2_reviewer_generation(morphometrics_dir: str,
                           well_enrichment_raw = well_frac_raw_umap,
                           well_enrichment_pca = well_frac_pca_umap,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Reviewer_Figure_2")
+                          figure_name = "Supplementary_Figure_S3")
     return

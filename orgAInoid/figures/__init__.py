@@ -84,7 +84,20 @@ DIRECTORIES = {
     "morph_classes_experiment_dir_max": "../classification/experiment_50_Morph_classes_ZMAX",
 }
 
+DESCRIPTIONS = {
+    "Supplementary_Figure_S1":
+        "original Supp Fig S1 showing Supplementary data for Figure 1",
+    "Supplementary_Figure_S2":
+        "original Supp Fig S2 showing Supplementary data for Figure 2, distances of no-Wnt-organoids",
+    "Supplementary_Figure_S3":
+        "jaccard neighbor data on organoid distances",
+    "Supplementary_Figure_S4":
+        "original Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
 
+
+
+        
+}
 # Reviewer_Figure_1: figure_2.py
 # Reviewer_Figure_2: figure_2_reviewer
 
