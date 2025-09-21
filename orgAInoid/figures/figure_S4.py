@@ -352,6 +352,122 @@ def figure_S4_generation(sketch_dir: str,
                           lens_clf_test_cm = lens_clf_test_cm,
                           lens_clf_val_cm = lens_clf_val_cm,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S4")
+                          figure_name = "Supplementary_Figure_S7")
+
+    rpe_final_f1s = get_classification_f1_data(
+        readout = "RPE_Final",
+        output_dir = figure_data_dir,
+        proj = "sum",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = rpe_classification_dir,
+        baseline_dir = rpe_baseline_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    rpe_clf_test_cm = create_confusion_matrix_frame(readout = "RPE_Final",
+                                                    classifier = "classifier",
+                                                    eval_set = "test",
+                                                    proj = "sum",
+                                                    figure_data_dir = figure_data_dir,
+                                                    morphometrics_dir = morphometrics_dir)
+    rpe_clf_val_cm = create_confusion_matrix_frame(readout = "RPE_Final",
+                                                    classifier = "classifier",
+                                                    eval_set = "val",
+                                                    proj = "sum",
+                                                    figure_data_dir = figure_data_dir,
+                                                    morphometrics_dir = morphometrics_dir)
+
+    lens_final_f1s = get_classification_f1_data(
+        readout = "Lens_Final",
+        output_dir = figure_data_dir,
+        proj = "sum",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = lens_classification_dir,
+        baseline_dir = lens_baseline_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+
+    lens_clf_test_cm = create_confusion_matrix_frame(readout = "Lens_Final",
+                                                     classifier = "classifier",
+                                                     eval_set = "test",
+                                                     proj = "sum",
+                                                     figure_data_dir = figure_data_dir,
+                                                     morphometrics_dir = morphometrics_dir)
+    lens_clf_val_cm = create_confusion_matrix_frame(readout = "Lens_Final",
+                                                    classifier = "classifier",
+                                                    eval_set = "val",
+                                                    proj = "sum",
+                                                    figure_data_dir = figure_data_dir,
+                                                    morphometrics_dir = morphometrics_dir)
+
+    _generate_main_figure(rpe_f1_data = rpe_final_f1s,
+                          lens_f1_data = lens_final_f1s,
+                          rpe_clf_test_cm = rpe_clf_test_cm,
+                          rpe_clf_val_cm = rpe_clf_val_cm,
+                          lens_clf_test_cm = lens_clf_test_cm,
+                          lens_clf_val_cm = lens_clf_val_cm,
+                          figure_output_dir = figure_output_dir,
+                          figure_name = "Supplementary_Figure_S8")
+
+    rpe_final_f1s = get_classification_f1_data(
+        readout = "RPE_Final",
+        output_dir = figure_data_dir,
+        proj = "max",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = rpe_classification_dir,
+        baseline_dir = rpe_baseline_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    rpe_clf_test_cm = create_confusion_matrix_frame(readout = "RPE_Final",
+                                                    classifier = "classifier",
+                                                    eval_set = "test",
+                                                    proj = "max",
+                                                    figure_data_dir = figure_data_dir,
+                                                    morphometrics_dir = morphometrics_dir)
+    rpe_clf_val_cm = create_confusion_matrix_frame(readout = "RPE_Final",
+                                                    classifier = "classifier",
+                                                    eval_set = "val",
+                                                    proj = "max",
+                                                    figure_data_dir = figure_data_dir,
+                                                    morphometrics_dir = morphometrics_dir)
+
+    lens_final_f1s = get_classification_f1_data(
+        readout = "Lens_Final",
+        output_dir = figure_data_dir,
+        proj = "max",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = lens_classification_dir,
+        baseline_dir = lens_baseline_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+
+    lens_clf_test_cm = create_confusion_matrix_frame(readout = "Lens_Final",
+                                                     classifier = "classifier",
+                                                     eval_set = "test",
+                                                     proj = "max",
+                                                     figure_data_dir = figure_data_dir,
+                                                     morphometrics_dir = morphometrics_dir)
+    lens_clf_val_cm = create_confusion_matrix_frame(readout = "Lens_Final",
+                                                    classifier = "classifier",
+                                                    eval_set = "val",
+                                                    proj = "max",
+                                                    figure_data_dir = figure_data_dir,
+                                                    morphometrics_dir = morphometrics_dir)
+
+    _generate_main_figure(rpe_f1_data = rpe_final_f1s,
+                          lens_f1_data = lens_final_f1s,
+                          rpe_clf_test_cm = rpe_clf_test_cm,
+                          rpe_clf_val_cm = rpe_clf_val_cm,
+                          lens_clf_test_cm = lens_clf_test_cm,
+                          lens_clf_val_cm = lens_clf_val_cm,
+                          figure_output_dir = figure_output_dir,
+                          figure_name = "Supplementary_Figure_S9")
 
 

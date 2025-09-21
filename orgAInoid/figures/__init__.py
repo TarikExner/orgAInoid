@@ -93,6 +93,11 @@ DESCRIPTIONS = {
         "jaccard neighbor data on organoid distances",
     "Supplementary_Figure_S4":
         "original Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
+    "Supplementary_Figure_S5":
+        "SUM IMAGES: Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
+    "Supplementary_Figure_S6":
+        "MAX IMAGES: Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
+
 
 
 
