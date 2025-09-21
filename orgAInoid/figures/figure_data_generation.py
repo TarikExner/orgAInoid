@@ -458,6 +458,8 @@ def concat_human_evaluations(results_dir: str = "",
     for evaluator in EVALUATORS:
         df = pd.read_csv(os.path.join(results_dir, f"{evaluator}_organoid_classification.csv"))
         df = rename_annotation_columns(df)
+        df = df.replace(to_replace = "Yes", value = "yes")
+        df = df.replace(to_replace = "No", value = "no")
         eval_dfs.append(df)
 
     human_evaluations = pd.concat(eval_dfs, axis = 0)
