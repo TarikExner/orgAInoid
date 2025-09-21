@@ -84,6 +84,22 @@ DIRECTORIES = {
     "morph_classes_experiment_dir_max": "../classification/experiment_50_Morph_classes_ZMAX",
 }
 
+
+# Reviewer_Figure_1: figure_2.py
+# Reviewer_Figure_2: figure_2_reviewer
+
+# Reviewer_Figure_3: figure_3_reviewer
+# Reviewer_Figure_4: figure_3_reviewer
+
+# Reviewer_Figure_5: figure_S3_reviewer
+# Reviewer_Figure_6: figure_S3_reviewer
+
+# Reviewer_Figure_7: figure_3_reviewer_morph_classes
+# Reviewer_Figure_8: figure_3_external_experiment
+
+# Reviewer_Figure_9: figure_S7_reviewer
+# Reviewer_Figure_10: figure_S7_reviewer
+
 def generate_final_figures():
     figure_1_generation(**DIRECTORIES)
     figure_2_generation(**DIRECTORIES)

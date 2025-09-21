@@ -152,7 +152,7 @@ def figure_S7_reviewer_generation(classifier_results_dir: str,
                           lens_classes_res = lens_classes_clf,
                           proj = "SUM",
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Reviewer_Figure_7")
+                          figure_name = "Reviewer_Figure_9")
 
     rpe_classes_clf = get_classifier_comparison(classifier_results_dir = classifier_results_dir,
                                                 readout = "RPE_classes",
@@ -166,4 +166,4 @@ def figure_S7_reviewer_generation(classifier_results_dir: str,
                           lens_classes_res = lens_classes_clf,
                           proj = "MAX",
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Reviewer_Figure_8")
+                          figure_name = "Reviewer_Figure_10")
