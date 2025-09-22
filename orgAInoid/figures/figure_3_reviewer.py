@@ -476,4 +476,4 @@ def figure_3_reviewer_generation(sketch_dir: str,
                           readout = "area",
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
-                          figure_name = "Supplementary_Figure_19")
+                          figure_name = "Supplementary_Figure_S19")
