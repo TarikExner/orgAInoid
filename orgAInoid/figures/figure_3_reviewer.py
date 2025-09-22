@@ -52,8 +52,12 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
             errorbar = "se",
         )
 
-        accuracy_plot.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 120/2, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        if readout == "emergence":
+            accuracy_plot.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
+            accuracy_plot.text(x = 120/2, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        else:
+            accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
+            accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         RPE_prediction_cutoff = 22/2
         RPE_visibility_cutoff = 96/2
@@ -88,7 +92,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
             "Baseline_Ensemble": "CNN (image data): Baseline"
         }
         labels = [labels_dict[label] for label in labels]
-        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
+        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         readout_title = "Emergence of RPE" if readout == "emergence" else "RPE area"
         accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -126,8 +130,13 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
             errorbar = "se",
         )
 
-        accuracy_plot.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 120/2, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        if readout == "emergence":
+            accuracy_plot.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
+            accuracy_plot.text(x = 120/2, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        else:
+            accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
+            accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+
 
         lens_prediction_cutoff = 14/2
         lens_visibility_cutoff = 86/2
@@ -161,7 +170,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
             "Baseline_Ensemble": "CNN (image data): Baseline"
         }
         labels = [labels_dict[label] for label in labels]
-        accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
+        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         readout_title = "Emergence of Lenses" if readout == "emergence" else "Lens sizes"
         accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -199,8 +208,13 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
             errorbar = "se",
         )
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        if readout == "emergence":
+            accuracy_plot.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
+            accuracy_plot.text(x = 120/2, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        else:
+            accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
+            accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+
 
         RPE_prediction_cutoff = 26/2
         RPE_visibility_cutoff = 96/2
@@ -274,8 +288,12 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
         )
 
 
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        if readout == "emergence":
+            accuracy_plot.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
+            accuracy_plot.text(x = 120/2, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
+        else:
+            accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.30, linestyle = "--", color = "black")
+            accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
 
         lens_prediction_cutoff = 14/2
         lens_visibility_cutoff = 86/2
