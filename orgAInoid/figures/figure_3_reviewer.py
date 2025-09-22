@@ -21,7 +21,6 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
                           plot1_max: pd.DataFrame,
                           plot2_max: pd.DataFrame,
                           readout: Literal["emergence", "area"],
-                          projection: str,
                           figure_output_dir: str = "",
                           sketch_dir: str = "",
                           figure_name: str = ""):
@@ -30,6 +29,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
                              ax: Axes,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
+        projection = "sum"
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
@@ -102,6 +102,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
                              ax: Axes,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
+        projection = "sum"
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
@@ -174,6 +175,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
                              ax: Axes,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
+        projection = "max"
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
@@ -204,8 +206,8 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
         RPE_visibility_cutoff = 96/2
         accuracy_plot.annotate(
             "Confident Deep\nLearning Predictions",
-            xy=(RPE_prediction_cutoff, 0.77),
-            xytext=(RPE_prediction_cutoff, 0.87),
+            xy=(RPE_prediction_cutoff, 0.95),
+            xytext=(RPE_prediction_cutoff, 1.05),
             arrowprops=dict(facecolor='black', arrowstyle="->"),
             fontsize=cfg.TITLE_SIZE,
             ha='center'
@@ -213,8 +215,8 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
 
         accuracy_plot.annotate(
             "Confident RPE visibility",
-            xy=(RPE_visibility_cutoff, 0.77),
-            xytext=(RPE_visibility_cutoff, 0.87),
+            xy=(RPE_visibility_cutoff, 0.95),
+            xytext=(RPE_visibility_cutoff, 1.05),
             arrowprops=dict(facecolor='black', arrowstyle="->"),
             fontsize=cfg.TITLE_SIZE,
             ha='center'
@@ -247,6 +249,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
                              ax: Axes,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
+        projection = "max"
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
@@ -278,8 +281,8 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
         lens_visibility_cutoff = 86/2
         accuracy_plot.annotate(
             "Confident Deep\nLearning Predictions",
-            xy=(lens_prediction_cutoff, 0.77),
-            xytext=(lens_prediction_cutoff, 0.87),
+            xy=(lens_prediction_cutoff, 0.95),
+            xytext=(lens_prediction_cutoff, 1.05),
             arrowprops=dict(facecolor='black', arrowstyle="->"),
             fontsize=cfg.TITLE_SIZE,
             ha='center'
@@ -287,8 +290,8 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
 
         accuracy_plot.annotate(
             "Confident Lens visibility",
-            xy=(lens_visibility_cutoff, 0.77),
-            xytext=(lens_visibility_cutoff, 0.87),
+            xy=(lens_visibility_cutoff, 0.95),
+            xytext=(lens_visibility_cutoff, 1.05),
             arrowprops=dict(facecolor='black', arrowstyle="->"),
             fontsize=cfg.TITLE_SIZE,
             ha='center'
@@ -411,7 +414,6 @@ def figure_3_reviewer_generation(sketch_dir: str,
                           plot2_sum = lens_final_f1s_sum,
                           plot1_max = rpe_final_f1s_max,
                           plot2_max = rpe_final_f1s_max,
-                          projection = "sum",
                           readout = "emergence",
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
@@ -466,7 +468,6 @@ def figure_3_reviewer_generation(sketch_dir: str,
                           plot2_sum = lens_classes_f1_sum,
                           plot1_max = rpe_classes_f1_max,
                           plot2_max = lens_classes_f1_max,
-                          projection = "max",
                           readout = "area",
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
