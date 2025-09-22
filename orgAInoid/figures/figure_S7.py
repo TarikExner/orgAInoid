@@ -150,4 +150,4 @@ def figure_S7_generation(classifier_results_dir: str,
     _generate_main_figure(rpe_classes_res = rpe_classes_clf,
                           lens_classes_res = lens_classes_clf,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S7")
+                          figure_name = "Supplementary_Figure_S15")

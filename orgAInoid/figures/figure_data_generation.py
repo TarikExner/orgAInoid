@@ -797,7 +797,7 @@ def get_cnn_output(classification_dir: str,
 def load_and_aggregate_matrices(readout,
                                 classifier: Literal["neural_net", "classifier"],
                                 eval_set: Literal["test", "val"],
-                                proj,
+                                proj: str,
                                 figure_data_dir: str,
                                 morphometrics_dir: str) -> pd.DataFrame:
     """
@@ -939,7 +939,7 @@ def create_confusion_matrix_frame(readout: Readouts,
     Columns reflect confusion matrix components, rows are loop hours.
     """
     output_dir = os.path.join(figure_data_dir, f"classification_{readout}")
-    output_filename = os.path.join(output_dir, f"conf_matrices_{classifier}_{eval_set}.data")
+    output_filename = os.path.join(output_dir, f"conf_matrices_{classifier}_{eval_set}_{proj}.data")
 
     if os.path.isfile(output_filename):
         return pd.read_pickle(output_filename)
