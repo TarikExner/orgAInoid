@@ -9,15 +9,18 @@ from matplotlib.axes import Axes
 
 from matplotlib.ticker import MultipleLocator
 
+from typing import Literal
+
 from . import figure_config as cfg
 from . import figure_utils as utils
 
 from .figure_data_generation import get_classification_f1_data
 
-def _generate_main_figure(rpe_f1: pd.DataFrame,
-                          lens_f1: pd.DataFrame,
-                          rpe_classes_f1: pd.DataFrame,
-                          lens_classes_f1: pd.DataFrame,
+def _generate_main_figure(plot1_sum: pd.DataFrame,
+                          plot2_sum: pd.DataFrame,
+                          plot1_max: pd.DataFrame,
+                          plot2_max: pd.DataFrame,
+                          readout: Literal["emergence", "area"],
                           projection: str,
                           figure_output_dir: str = "",
                           sketch_dir: str = "",
@@ -30,7 +33,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
-        data = rpe_f1
+        data = plot1_sum
 
         data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
         data.loc[data["classifier"].str.contains("Baseline_Ensemble"), "classifier"] = "Baseline_Ensemble"
@@ -86,7 +89,8 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         }
         labels = [labels_dict[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"Prediction accuracy: Emergence of RPE\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
+        readout_title = "Emergence of RPE" if readout == "emergence" else "RPE area"
+        accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylim(0.01, 1.24)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -101,7 +105,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
-        data = lens_f1
+        data = plot2_sum
 
         # preprocessing:
         data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
@@ -157,7 +161,8 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         }
         labels = [labels_dict[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower center", fontsize = cfg.TITLE_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"Prediction accuracy: Emergence of Lenses\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
+        readout_title = "Emergence of Lenses" if readout == "emergence" else "Lens sizes"
+        accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylim(0.01, 1.24)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -172,7 +177,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
-        data = rpe_classes_f1
+        data = plot1_max
 
         # preprocessing:
         data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
@@ -229,7 +234,8 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         }
         labels = [labels_dict[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"Prediction accuracy: RPE area\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
+        readout_title = "Emergence of RPE" if readout == "emergence" else "RPE area"
+        accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_ylim(0.03, 1.02)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -244,7 +250,7 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
-        data = lens_classes_f1
+        data = plot2_max
 
         # preprocessing:
         data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
@@ -302,7 +308,9 @@ def _generate_main_figure(rpe_f1: pd.DataFrame,
         labels = [labels_dict[label] for label in labels]
 
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"Prediction accuracy: Lens sizes\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
+        readout_title = "Emergence of lenses" if readout == "emergence" else "Lens sizes"
+        accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
+
         accuracy_plot.set_ylim(0.03, 1.02)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -355,7 +363,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
                                  figure_data_dir: str,
                                  evaluator_results_dir: str,
                                  **kwargs) -> None:
-    rpe_final_f1s = get_classification_f1_data(
+    rpe_final_f1s_sum = get_classification_f1_data(
         readout = "RPE_Final",
         output_dir = figure_data_dir,
         proj = "sum",
@@ -366,7 +374,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
-    lens_final_f1s = get_classification_f1_data(
+    lens_final_f1s_sum = get_classification_f1_data(
         readout = "Lens_Final",
         output_dir = figure_data_dir,
         proj = "sum",
@@ -377,38 +385,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
-    rpe_classes_f1 = get_classification_f1_data(
-        readout = "RPE_classes",
-        output_dir = figure_data_dir,
-        proj = "sum",
-        hyperparameter_dir = hyperparameter_dir,
-        classification_dir = rpe_classes_classification_dir_sum,
-        baseline_dir = None,
-        morphometrics_dir = morphometrics_dir,
-        raw_data_dir = raw_data_dir,
-        evaluator_results_dir = evaluator_results_dir
-    )
-    lens_classes_f1 = get_classification_f1_data(
-        readout = "Lens_classes",
-        output_dir = figure_data_dir,
-        proj = "sum",
-        hyperparameter_dir = hyperparameter_dir,
-        classification_dir = lens_classes_classification_dir_sum,
-        baseline_dir = None,
-        morphometrics_dir = morphometrics_dir,
-        raw_data_dir = raw_data_dir,
-        evaluator_results_dir = evaluator_results_dir
-    )
-    _generate_main_figure(rpe_f1 = rpe_final_f1s,
-                          lens_f1 = lens_final_f1s,
-                          rpe_classes_f1 = rpe_classes_f1,
-                          lens_classes_f1 = lens_classes_f1,
-                          projection = "sum",
-                          figure_output_dir = figure_output_dir,
-                          sketch_dir = sketch_dir,
-                          figure_name = "Reviewer_Figure_3")
-
-    rpe_final_f1s = get_classification_f1_data(
+    rpe_final_f1s_max = get_classification_f1_data(
         readout = "RPE_Final",
         output_dir = figure_data_dir,
         proj = "max",
@@ -419,7 +396,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
-    lens_final_f1s = get_classification_f1_data(
+    lens_final_f1s_max = get_classification_f1_data(
         readout = "Lens_Final",
         output_dir = figure_data_dir,
         proj = "max",
@@ -430,7 +407,40 @@ def figure_3_reviewer_generation(sketch_dir: str,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
-    rpe_classes_f1 = get_classification_f1_data(
+    _generate_main_figure(plot1_sum = rpe_final_f1s_sum,
+                          plot2_sum = lens_final_f1s_sum,
+                          plot1_max = rpe_final_f1s_max,
+                          plot2_max = rpe_final_f1s_max,
+                          projection = "sum",
+                          readout = "emergence",
+                          figure_output_dir = figure_output_dir,
+                          sketch_dir = sketch_dir,
+                          figure_name = "Supplementary_Figure_S8")
+
+
+    rpe_classes_f1_sum = get_classification_f1_data(
+        readout = "RPE_classes",
+        output_dir = figure_data_dir,
+        proj = "sum",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = rpe_classes_classification_dir_sum,
+        baseline_dir = None,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    lens_classes_f1_sum = get_classification_f1_data(
+        readout = "Lens_classes",
+        output_dir = figure_data_dir,
+        proj = "sum",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = lens_classes_classification_dir_sum,
+        baseline_dir = None,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    rpe_classes_f1_max = get_classification_f1_data(
         readout = "RPE_classes",
         output_dir = figure_data_dir,
         proj = "max",
@@ -441,7 +451,7 @@ def figure_3_reviewer_generation(sketch_dir: str,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
-    lens_classes_f1 = get_classification_f1_data(
+    lens_classes_f1_max = get_classification_f1_data(
         readout = "Lens_classes",
         output_dir = figure_data_dir,
         proj = "max",
@@ -452,11 +462,12 @@ def figure_3_reviewer_generation(sketch_dir: str,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
-    _generate_main_figure(rpe_f1 = rpe_final_f1s,
-                          lens_f1 = lens_final_f1s,
-                          rpe_classes_f1 = rpe_classes_f1,
-                          lens_classes_f1 = lens_classes_f1,
+    _generate_main_figure(plot1_sum = rpe_classes_f1_sum,
+                          plot2_sum = lens_classes_f1_sum,
+                          plot1_max = rpe_classes_f1_max,
+                          plot2_max = lens_classes_f1_max,
                           projection = "max",
+                          readout = "area",
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
-                          figure_name = "Reviewer_Figure_4")
+                          figure_name = "Supplementary_Figure_14")
