@@ -458,8 +458,6 @@ def concat_human_evaluations(results_dir: str = "",
     for evaluator in EVALUATORS:
         df = pd.read_csv(os.path.join(results_dir, f"{evaluator}_organoid_classification.csv"))
         df = rename_annotation_columns(df)
-        df = df.replace(to_replace = "Yes", value = "yes")
-        df = df.replace(to_replace = "No", value = "no")
         eval_dfs.append(df)
 
     human_evaluations = pd.concat(eval_dfs, axis = 0)
@@ -520,7 +518,7 @@ def human_f1_per_experiment(evaluator_results_dir: str,
     """
     Weighted F1 scores per timeframe and experiment for all human_eval_ columns.
     """
-    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    output_file = os.path.join(output_dir, f"{output_filename}_{n_timeframes}.csv")
     existing_file = check_for_file(output_file)
     if existing_file is not None:
         return existing_file

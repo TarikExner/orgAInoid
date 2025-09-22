@@ -238,7 +238,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         readout_title = "Emergence of RPE" if readout == "emergence" else "RPE area"
         accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_ylim(0.03, 1.02)
+        accuracy_plot.set_ylim(0.01, 1.24)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
@@ -313,8 +313,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         readout_title = "Emergence of lenses" if readout == "emergence" else "Lens sizes"
         accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
-
-        accuracy_plot.set_ylim(0.03, 1.02)
+        accuracy_plot.set_ylim(0.01, 1.24)
         accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
