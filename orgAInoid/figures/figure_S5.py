@@ -361,5 +361,5 @@ def figure_S5_generation(rpe_classification_dir: str,
     _generate_main_figure(rpe_output = rpe_final_output,
                           lens_output = lens_final_output,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S5")
+                          figure_name = "Supplementary_Figure_S11")
 
