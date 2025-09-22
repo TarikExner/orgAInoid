@@ -75,73 +75,16 @@ def _generate_main_figure(morph_classes_normal: pd.DataFrame,
         accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
         return
 
-    def generate_subfigure_b(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
-        """Contains the raw values of RPE/Lens over all organoids"""
-        ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.4)
-
-        data = morph_classes_sum
-
-        # preprocessing:
-        data.loc[data["classifier"].str.contains("Baseline_Morphometrics"), "classifier"] = "Baseline_Morphometrics"
-        data.loc[data["classifier"].str.contains("Baseline_Ensemble"), "classifier"] = "Baseline_Ensemble"
-
-        data["hours"] = data["loop"] / 2
-
-        fig_sgs = gs.subgridspec(1,1)
-
-        accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(
-            data = data,
-            x = "hours",
-            y = "F1",
-            hue = "classifier",
-            ax = accuracy_plot,
-            errorbar = "se",
-        )
-
-        accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.60, linestyle = "--", color = "black")
-        accuracy_plot.text(x = 0, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-
-        
-        handles, labels = accuracy_plot.get_legend_handles_labels()
-        projection = "max"
-        labels_dict = {
-            # we switch nomenclature for test and val sets
-            "Morphometrics_test": "Decision Tree (morphometrics): Validation",
-            "Morphometrics_val": "Decision Tree (morphometrics): Test",
-            "Ensemble_test": "CNN (image data): Validation",
-            "Ensemble_val": "CNN (image data): Test",
-            "human": "Expert prediction",
-            "Baseline_Morphometrics": "Decision Tree (morphometrics): Baseline",
-            "Baseline_Ensemble": "CNN (image data): Baseline"
-        }
-        labels = [labels_dict[label] for label in labels]
-        accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_title(f"Prediction accuracy: Morphometrics clusters\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
-        accuracy_plot.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.set_ylim(0.18, 1.01)
-        accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
-        accuracy_plot.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
-        return
-
     fig = plt.figure(layout = "constrained",
                      figsize = (cfg.FIGURE_WIDTH_FULL, cfg.FIGURE_HEIGHT_FULL / 2))
     gs = GridSpec(ncols = 6,
-                  nrows = 2,
+                  nrows = 1,
                   figure = fig)
     a_coords = gs[0,:]
-    b_coords = gs[1,:]
 
     fig_a = fig.add_subplot(a_coords)
-    fig_b = fig.add_subplot(b_coords)
 
     generate_subfigure_a(fig, fig_a, a_coords, "A")
-    generate_subfigure_b(fig, fig_b, b_coords, "A")
 
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.pdf")
     plt.savefig(output_dir, dpi = 300, bbox_inches = "tight")
