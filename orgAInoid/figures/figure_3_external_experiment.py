@@ -464,4 +464,4 @@ def figure_3_reviewer_external_experiment_generation(sketch_dir: str,
                           lens_classes_f1 = lens_classes_f1,
                           figure_output_dir = figure_output_dir,
                           sketch_dir = sketch_dir,
-                          figure_name = "Reviewer_Figure_8")
+                          figure_name = "Supplementary_Figure_S27")
