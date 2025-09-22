@@ -25,6 +25,33 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
                           sketch_dir: str = "",
                           figure_name: str = ""):
 
+    rpe_classifier = "Random Forest"
+    lens_classifier = "QDA"
+    rpe_classes_classifier = "HGBC"
+    lens_classes_classifier = "QDA"
+
+    labels_dict_rpe = {
+        # we switch nomenclature for test and val sets
+        "Morphometrics_test": f"{rpe_classifier if readout == 'emergence' else rpe_classes_classifier} (morphometrics): Validation",
+        "Morphometrics_val": f"{rpe_classifier if readout == 'emergence' else rpe_classes_classifier} (morphometrics): Test",
+        "Ensemble_test": "CNN (image data): Validation",
+        "Ensemble_val": "CNN (image data): Test",
+        "human": "Expert prediction",
+        "Baseline_Morphometrics": f"{rpe_classifier if readout == 'emergence' else rpe_classes_classifier} (morphometrics): Baseline",
+        "Baseline_Ensemble": "CNN (image data): Baseline"
+    }
+
+    labels_dict_lens = {
+        # we switch nomenclature for test and val sets
+        "Morphometrics_test": f"{lens_classifier if readout == 'emergence' else lens_classes_classifier} (morphometrics): Validation",
+        "Morphometrics_val": f"{lens_classifier if readout == 'emergence' else lens_classes_classifier} (morphometrics): Test",
+        "Ensemble_test": "CNN (image data): Validation",
+        "Ensemble_val": "CNN (image data): Test",
+        "human": "Expert prediction",
+        "Baseline_Morphometrics": f"{lens_classifier if readout == 'emergence' else lens_classes_classifier} (morphometrics): Baseline",
+        "Baseline_Ensemble": "CNN (image data): Baseline"
+    }
+
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
                              gs: SubplotSpec,
@@ -81,17 +108,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
 
         
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels_dict = {
-            # we switch nomenclature for test and val sets
-            "Morphometrics_test": "Random Forest (morphometrics): Validation",
-            "Morphometrics_val": "Random Forest (morphometrics): Test",
-            "Ensemble_test": "CNN (image data): Validation",
-            "Ensemble_val": "CNN (image data): Test",
-            "human": "Expert prediction",
-            "Baseline_Morphometrics": "Random Forest (morphometrics): Baseline",
-            "Baseline_Ensemble": "CNN (image data): Baseline"
-        }
-        labels = [labels_dict[label] for label in labels]
+        labels = [labels_dict_rpe[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         readout_title = "Emergence of RPE" if readout == "emergence" else "RPE area"
         accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
@@ -159,17 +176,8 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
         )
 
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels_dict = {
-            # we switch nomenclature for test and val sets
-            "Morphometrics_test": "Random Forest (morphometrics): Validation",
-            "Morphometrics_val": "Random Forest (morphometrics): Test",
-            "Ensemble_test": "CNN (image data): Validation",
-            "Ensemble_val": "CNN (image data): Test",
-            "human": "Expert prediction",
-            "Baseline_Morphometrics": "Random Forest (morphometrics): Baseline",
-            "Baseline_Ensemble": "CNN (image data): Baseline"
-        }
-        labels = [labels_dict[label] for label in labels]
+
+        labels = [labels_dict_lens[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         readout_title = "Emergence of Lenses" if readout == "emergence" else "Lens sizes"
         accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
@@ -238,17 +246,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
 
         
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels_dict = {
-            # we switch nomenclature for test and val sets
-            "Morphometrics_test": "HGBC (morphometrics): Validation",
-            "Morphometrics_val": "HGBC (morphometrics): Test",
-            "Ensemble_test": "CNN (image data): Validation",
-            "Ensemble_val": "CNN (image data): Test",
-            "human": "Expert prediction",
-            "Baseline_Morphometrics": "HGBC (morphometrics): Baseline",
-            "Baseline_Ensemble": "CNN (image data): Baseline"
-        }
-        labels = [labels_dict[label] for label in labels]
+        labels = [labels_dict_rpe[label] for label in labels]
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         readout_title = "Emergence of RPE" if readout == "emergence" else "RPE area"
         accuracy_plot.set_title(f"Prediction accuracy: {readout_title}\non image projection: {projection}", fontsize = cfg.TITLE_SIZE)
@@ -316,17 +314,7 @@ def _generate_main_figure(plot1_sum: pd.DataFrame,
         )
 
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        labels_dict = {
-            # we switch nomenclature for test and val sets
-            "Morphometrics_test": "QDA (morphometrics): Validation",
-            "Morphometrics_val": "QDA (morphometrics): Test",
-            "Ensemble_test": "CNN (image data): Validation",
-            "Ensemble_val": "CNN (image data): Test",
-            "human": "Expert prediction",
-            "Baseline_Morphometrics": "QDA (morphometrics): Baseline",
-            "Baseline_Ensemble": "CNN (image data): Baseline"
-        }
-        labels = [labels_dict[label] for label in labels]
+        labels = [labels_dict_lens[label] for label in labels]
 
         accuracy_plot.legend(handles, labels, loc = "lower right", fontsize = cfg.TITLE_SIZE, ncols = 2)
         readout_title = "Emergence of lenses" if readout == "emergence" else "Lens sizes"
