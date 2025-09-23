@@ -639,16 +639,6 @@ def __neural_net_evaluation(val_dataset_id: str,
                             weights: Optional[dict] = None,
                             baseline: bool = False) -> pd.DataFrame:
 
-    f1_scores, confusion_matrices = _read_neural_net_results(
-        output_dir = output_dir,
-        readout = readout,
-        val_experiment_id = val_experiment_id,
-        val_dataset_id = val_dataset_id,
-        eval_set = eval_set,
-        proj = proj
-    )
-    if f1_scores is not None and confusion_matrices is not None:
-        return f1_scores, confusion_matrices
 
     val_dataset_filename = (
         f"M{val_dataset_id}_full_{proj}_fixed.cds"
@@ -742,6 +732,17 @@ def _neural_net_evaluation(val_dataset_id: str,
                            proj: ProjectionIDs = "SL3",
                            weights: Optional[dict] = None,
                            baseline: bool = False) -> tuple:
+
+    f1_scores, confusion_matrices = _read_neural_net_results(
+        output_dir = output_dir,
+        readout = readout,
+        val_experiment_id = val_experiment_id,
+        val_dataset_id = val_dataset_id,
+        eval_set = eval_set,
+        proj = proj
+    )
+    if f1_scores is not None and confusion_matrices is not None:
+        return f1_scores, confusion_matrices
     
     # df contains the metadata, the truth values and the pred values
     df = __neural_net_evaluation(**locals())
@@ -792,26 +793,11 @@ def __classifier_evaluation(val_experiment_id: str,
                             baseline: bool = False,
                             external_experiment_id: Optional[str] = None) -> pd.DataFrame:
 
-    val_dataset_id = val_experiment_id
-
     if baseline:
         original_readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
     else:
         original_readout = readout
 
-    f1_scores, confusion_matrices = _read_classifier_results(
-        output_dir = output_dir,
-        readout = readout,
-        val_experiment_id = val_experiment_id,
-        val_dataset_id = val_dataset_id,
-        eval_set = eval_set,
-        proj = proj,
-        external_experiment_id = external_experiment_id
-    )
-    if f1_scores is not None and confusion_matrices is not None:
-        return f1_scores, confusion_matrices
-
-    labels = _get_labels(readout)
 
     suffix = f"_{proj}" if proj else ""
     morphometrics_frame = get_morphometrics_frame(results_dir = morphometrics_dir,
@@ -870,6 +856,28 @@ def _classifier_evaluation(val_experiment_id: str,
                            output_dir: str = "./figure_data",
                            baseline: bool = False,
                            external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
+
+    val_dataset_id = val_experiment_id
+
+    if baseline:
+        original_readout = BASELINE_READOUT_TO_READOUT_MAP[readout]
+    else:
+        original_readout = readout
+
+    f1_scores, confusion_matrices = _read_classifier_results(
+        output_dir = output_dir,
+        readout = readout,
+        val_experiment_id = val_experiment_id,
+        val_dataset_id = val_dataset_id,
+        eval_set = eval_set,
+        proj = proj,
+        external_experiment_id = external_experiment_id
+    )
+    if f1_scores is not None and confusion_matrices is not None:
+        return f1_scores, confusion_matrices
+
+    labels = _get_labels(readout)
+
     # result_df contains the metadata, truth values and pred values
     result_df = __classifier_evaluation(**locals())
 
@@ -939,7 +947,7 @@ def neural_net_evaluation_raw_data(val_dataset_id: str,
                                    output_dir: str,
                                    proj: ProjectionIDs = "SL3",
                                    weights: Optional[dict] = None,
-                                   baseline: bool = False) -> tuple:
+                                   baseline: bool = False) -> pd.DataFrame:
     return __neural_net_evaluation(**locals())
 
 
@@ -1149,7 +1157,7 @@ def _generate_classification_results_raw_data(readout: Union[Readouts, BaselineR
                                               experiment_dir: str,
                                               morphometrics_dir: str,
                                               raw_data_dir: str,
-                                              baseline: bool = False):
+                                              baseline: bool = False) -> tuple[pd.DataFrame, ...]:
     experiments = cfg.EXPERIMENTS
 
     clf_f1s = []

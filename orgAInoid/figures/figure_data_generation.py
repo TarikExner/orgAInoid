@@ -630,7 +630,7 @@ def generate_classification_results_raw_data(readout: Readouts,
                                              experiment_dir: str,
                                              morphometrics_dir: str,
                                              raw_data_dir: str,
-                                             baseline: bool = False):
+                                             baseline: bool = False) -> tuple[pd.DataFrame]:
     return _generate_classification_results_raw_data(**locals())
 
 
@@ -720,7 +720,7 @@ def get_classification_f1_data_raw(readout: Readouts,
                                    baseline_dir: Optional[str],
                                    morphometrics_dir: str,
                                    raw_data_dir: str,
-                                   evaluator_results_dir: str) -> pd.DataFrame:
+                                   evaluator_results_dir: str) -> tuple[pd.DataFrame, ...]:
 
     cnn_f1s, clf_f1s = generate_classification_results_raw_data(
         readout = readout,
