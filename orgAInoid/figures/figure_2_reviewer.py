@@ -41,6 +41,8 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
         data = jaccard_tsne_pca.copy()
         data["hours"] = data["loop"] / 2
+        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
+        data = data.sort_values("experiment", ascending = True)
         data["experiment"] = data["experiment"].astype("category")
 
         fig_sgs = gs.subgridspec(1,1)
@@ -64,6 +66,8 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
         data = jaccard_tsne_raw.copy()
         data["hours"] = data["loop"] / 2
+        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
+        data = data.sort_values("experiment", ascending = True)
         data["experiment"] = data["experiment"].astype("category")
 
         fig_sgs = gs.subgridspec(1,1)
@@ -87,6 +91,8 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
         data = jaccard_umap_pca.copy()
         data["hours"] = data["loop"] / 2
+        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
+        data = data.sort_values("experiment", ascending = True)
         data["experiment"] = data["experiment"].astype("category")
 
         fig_sgs = gs.subgridspec(1,1)
@@ -111,6 +117,8 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
         data = jaccard_umap_raw.copy()
         data["hours"] = data["loop"] / 2
+        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
+        data = data.sort_values("experiment", ascending = True)
         data["experiment"] = data["experiment"].astype("category")
 
         fig_sgs = gs.subgridspec(1,1)
@@ -135,6 +143,8 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
         data = well_enrichment_pca.copy()
         data["hours"] = data["loop"] / 2
+        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
+        data = data.sort_values("experiment", ascending = True)
         data["experiment"] = data["experiment"].astype("category")
 
         fig_sgs = gs.subgridspec(1,1)
@@ -159,6 +169,8 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
         data = well_enrichment_raw.copy()
         data["hours"] = data["loop"] / 2
+        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
+        data = data.sort_values("experiment", ascending = True)
         data["experiment"] = data["experiment"].astype("category")
 
         fig_sgs = gs.subgridspec(1,1)
