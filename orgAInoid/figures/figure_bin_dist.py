@@ -187,7 +187,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
     generate_subfigure_a(fig, fig_a, a_coords, "A")
     generate_subfigure_b(fig, fig_b, b_coords, "B")
     generate_subfigure_c(fig, fig_c, c_coords, "C")
-    generate_subfigure_d(fig, fig_c, c_coords, "D")
+    generate_subfigure_d(fig, fig_d, d_coords, "D")
 
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.pdf")
     plt.savefig(output_dir, dpi = 300, bbox_inches = "tight")
