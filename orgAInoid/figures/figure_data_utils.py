@@ -628,16 +628,16 @@ def convert_cnn_output_to_float(data: pd.DataFrame) -> pd.DataFrame:
     data.loc[:, "Epoch"] = data["Epoch"].astype(int)
     return data
 
-def _neural_net_evaluation(val_dataset_id: str,
-                           val_experiment_id: str,
-                           eval_set: EvaluationSets,
-                           readout: Union[BaselineReadouts, Readouts],
-                           raw_data_dir: str,
-                           experiment_dir: str,
-                           output_dir: str,
-                           proj: ProjectionIDs = "SL3",
-                           weights: Optional[dict] = None,
-                           baseline: bool = False) -> tuple:
+def __neural_net_evaluation(val_dataset_id: str,
+                            val_experiment_id: str,
+                            eval_set: EvaluationSets,
+                            readout: Union[BaselineReadouts, Readouts],
+                            raw_data_dir: str,
+                            experiment_dir: str,
+                            output_dir: str,
+                            proj: ProjectionIDs = "SL3",
+                            weights: Optional[dict] = None,
+                            baseline: bool = False) -> pd.DataFrame:
 
     f1_scores, confusion_matrices = _read_neural_net_results(
         output_dir = output_dir,
@@ -729,6 +729,23 @@ def _neural_net_evaluation(val_dataset_id: str,
 
     df = pd.concat([df, truth_values, pred_values], axis = 1)
 
+    return df
+
+
+def _neural_net_evaluation(val_dataset_id: str,
+                           val_experiment_id: str,
+                           eval_set: EvaluationSets,
+                           readout: Union[BaselineReadouts, Readouts],
+                           raw_data_dir: str,
+                           experiment_dir: str,
+                           output_dir: str,
+                           proj: ProjectionIDs = "SL3",
+                           weights: Optional[dict] = None,
+                           baseline: bool = False) -> tuple:
+    
+    # df contains the metadata, the truth values and the pred values
+    df = __neural_net_evaluation(**locals())
+
     f1_dfs = []
 
     labels = _get_labels(readout)
@@ -765,16 +782,15 @@ def _neural_net_evaluation(val_dataset_id: str,
 
     return neural_net_f1, confusion_matrices
 
-
-def _classifier_evaluation(val_experiment_id: str,
-                           readout: Readouts,
-                           eval_set: EvaluationSets,
-                           morphometrics_dir: str,
-                           hyperparameter_dir: str,
-                           proj: Projections = "",
-                           output_dir: str = "./figure_data",
-                           baseline: bool = False,
-                           external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
+def __classifier_evaluation(val_experiment_id: str,
+                            readout: Readouts,
+                            eval_set: EvaluationSets,
+                            morphometrics_dir: str,
+                            hyperparameter_dir: str,
+                            proj: Projections = "",
+                            output_dir: str = "./figure_data",
+                            baseline: bool = False,
+                            external_experiment_id: Optional[str] = None) -> pd.DataFrame:
 
     val_dataset_id = val_experiment_id
 
@@ -842,6 +858,21 @@ def _classifier_evaluation(val_experiment_id: str,
     predictions = clf.predict(X_val if eval_set == "val" else X_test)
     result_df["pred"] = np.argmax(predictions, axis = 1)
 
+    return result_df
+
+
+def _classifier_evaluation(val_experiment_id: str,
+                           readout: Readouts,
+                           eval_set: EvaluationSets,
+                           morphometrics_dir: str,
+                           hyperparameter_dir: str,
+                           proj: Projections = "",
+                           output_dir: str = "./figure_data",
+                           baseline: bool = False,
+                           external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
+    # result_df contains the metadata, truth values and pred values
+    result_df = __classifier_evaluation(**locals())
+
     f1_scores = calculate_f1_scores(result_df)
     f1_scores["experiment"] = val_dataset_id
     f1_scores["classifier"] = f"Morphometrics_{eval_set}" if not baseline else f"Baseline_Morphometrics_{eval_set}"
@@ -875,6 +906,18 @@ def neural_net_evaluation_baseline(val_dataset_id: str,
                                    baseline: bool = True) -> tuple:
     return _neural_net_evaluation(**locals())
 
+def neural_net_evaluation_baseline_raw_data(val_dataset_id: str,
+                                            val_experiment_id: str,
+                                            eval_set: EvaluationSets,
+                                            readout: BaselineReadouts,
+                                            raw_data_dir: str,
+                                            experiment_dir: str,
+                                            output_dir: str,
+                                            proj: ProjectionIDs = "SL3",
+                                            weights: Optional[dict] = None,
+                                            baseline: bool = True) -> tuple:
+    return __neural_net_evaluation(**locals())
+
 def neural_net_evaluation(val_dataset_id: str,
                           val_experiment_id: str,
                           eval_set: EvaluationSets,
@@ -886,6 +929,18 @@ def neural_net_evaluation(val_dataset_id: str,
                           weights: Optional[dict] = None,
                           baseline: bool = False) -> tuple:
     return _neural_net_evaluation(**locals())
+
+def neural_net_evaluation_raw_data(val_dataset_id: str,
+                                   val_experiment_id: str,
+                                   eval_set: EvaluationSets,
+                                   readout: Readouts,
+                                   raw_data_dir: str,
+                                   experiment_dir: str,
+                                   output_dir: str,
+                                   proj: ProjectionIDs = "SL3",
+                                   weights: Optional[dict] = None,
+                                   baseline: bool = False) -> tuple:
+    return __neural_net_evaluation(**locals())
 
 
 def classifier_evaluation(val_experiment_id: str,
@@ -899,6 +954,17 @@ def classifier_evaluation(val_experiment_id: str,
                           external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
     return _classifier_evaluation(**locals())
 
+def classifier_evaluation_raw_data(val_experiment_id: str,
+                                   readout: Readouts,
+                                   eval_set: EvaluationSets,
+                                   morphometrics_dir: str,
+                                   hyperparameter_dir: str,
+                                   proj: Projections = "",
+                                   output_dir: str = "./figure_data",
+                                   baseline: bool = False,
+                                   external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
+    return __classifier_evaluation(**locals())
+
 def classifier_evaluation_baseline(val_experiment_id: str,
                                    readout: BaselineReadouts,
                                    eval_set: EvaluationSets,
@@ -909,6 +975,17 @@ def classifier_evaluation_baseline(val_experiment_id: str,
                                    baseline: bool = True,
                                    external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
     return _classifier_evaluation(**locals())
+
+def classifier_evaluation_baseline_raw_data(val_experiment_id: str,
+                                            readout: BaselineReadouts,
+                                            eval_set: EvaluationSets,
+                                            morphometrics_dir: str,
+                                            hyperparameter_dir: str,
+                                            proj: Projections = "",
+                                            output_dir: str = "./figure_data",
+                                            baseline: bool = True,
+                                            external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
+    return __classifier_evaluation(**locals())
 
 def calculate_f1_weights(classification_dir: str,
                          readout: Readouts,
@@ -1064,3 +1141,65 @@ def _generate_classification_results(readout: Union[Readouts, BaselineReadouts],
     f1_scores = pd.concat([*clf_f1s, *cnn_f1s], axis = 0)
 
     return f1_scores, clf_cms, cnn_cms
+
+def _generate_classification_results_raw_data(readout: Union[Readouts, BaselineReadouts],
+                                              output_dir: str,
+                                              proj: Projections,
+                                              hyperparameter_dir: str,
+                                              experiment_dir: str,
+                                              morphometrics_dir: str,
+                                              raw_data_dir: str,
+                                              baseline: bool = False):
+    experiments = cfg.EXPERIMENTS
+
+    clf_f1s = []
+    cnn_f1s = []
+    eval_sets: Sequence[EvaluationSets] = ["test", "val"]
+
+    if baseline:
+        nn_eval_func = neural_net_evaluation_baseline_raw_data
+        clf_eval_func = classifier_evaluation_baseline_raw_data
+    else:
+        nn_eval_func = neural_net_evaluation_raw_data
+        clf_eval_func = classifier_evaluation_raw_data
+
+    for experiment in experiments:
+        for eval_set in eval_sets:
+            if not baseline:
+                weights = calculate_f1_weights(classification_dir = experiment_dir,
+                                               readout = readout,
+                                               experiment = experiment,
+                                               proj = proj,
+                                               eval_set = eval_set,
+                                               output_dir = output_dir)
+            else:
+                weights = None
+
+            cnn_f1 = nn_eval_func(
+                val_dataset_id = experiment,
+                val_experiment_id = experiment,
+                eval_set = eval_set,
+                readout = readout,
+                experiment_dir = experiment_dir,
+                output_dir = output_dir,
+                proj = PROJECTION_TO_PROJECTION_ID_MAP[proj],
+                weights = weights,
+                raw_data_dir = raw_data_dir,
+            )
+            cnn_f1s.append(cnn_f1)
+
+            clf_f1 = clf_eval_func(
+                val_experiment_id = experiment,
+                readout = readout,
+                eval_set = eval_set,
+                morphometrics_dir = morphometrics_dir,
+                hyperparameter_dir = hyperparameter_dir,
+                proj = proj,
+                output_dir = output_dir
+            )
+            clf_f1s.append(clf_f1)
+
+    cnn_f1s_df = pd.concat([*cnn_f1s], axis = 0)
+    clf_f1s_df = pd.concat([*clf_f1s], axis = 0)
+
+    return cnn_f1s_df, clf_f1s_df

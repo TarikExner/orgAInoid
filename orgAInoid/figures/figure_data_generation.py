@@ -27,6 +27,7 @@ from .figure_data_utils import (
     f1_scores,
     convert_cnn_output_to_float,
     _generate_classification_results,
+    _generate_classification_results_raw_data,
     _generate_classification_results_external_experiment,
     get_morphometrics_frame,
 
@@ -622,6 +623,17 @@ def generate_classification_results(readout: Readouts,
                                     baseline: bool = False):
     return _generate_classification_results(**locals())
 
+def generate_classification_results_raw_data(readout: Readouts,
+                                             output_dir: str,
+                                             proj: Projections,
+                                             hyperparameter_dir: str,
+                                             experiment_dir: str,
+                                             morphometrics_dir: str,
+                                             raw_data_dir: str,
+                                             baseline: bool = False):
+    return _generate_classification_results_raw_data(**locals())
+
+
 def generate_baseline_results(readout: BaselineReadouts,
                               output_dir: str,
                               proj: Projections,
@@ -631,6 +643,16 @@ def generate_baseline_results(readout: BaselineReadouts,
                               raw_data_dir: str,
                               baseline: bool = True):
     return _generate_classification_results(**locals())
+
+def generate_baseline_results_raw_data(readout: BaselineReadouts,
+                                       output_dir: str,
+                                       proj: Projections,
+                                       hyperparameter_dir: str,
+                                       experiment_dir: str,
+                                       morphometrics_dir: str,
+                                       raw_data_dir: str,
+                                       baseline: bool = True):
+    return _generate_classification_results_raw_data(**locals())
 
 def generate_classification_results_external_experiment(external_experiment_id: str,
                                                         readout: BaselineReadouts,
@@ -690,6 +712,44 @@ def get_classification_f1_data_external_experiment(external_experiment_id: str,
 
     return pd.concat([classifier_f1s, baseline_f1s], axis = 0)
 
+def get_classification_f1_data_raw(readout: Readouts,
+                                   output_dir: str,
+                                   proj: Projections,
+                                   hyperparameter_dir: str,
+                                   classification_dir: str,
+                                   baseline_dir: Optional[str],
+                                   morphometrics_dir: str,
+                                   raw_data_dir: str,
+                                   evaluator_results_dir: str) -> pd.DataFrame:
+
+    cnn_f1s, clf_f1s = generate_classification_results_raw_data(
+        readout = readout,
+        output_dir = output_dir,
+        proj = proj,
+        hyperparameter_dir = hyperparameter_dir,
+        experiment_dir = classification_dir,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir
+    )
+    if baseline_dir is not None:
+        baseline_cnn_f1s, baseline_clf_f1s = generate_baseline_results_raw_data(
+            readout = READOUT_BASELINE_READOUT_MAP[readout],
+            output_dir = output_dir,
+            proj = proj,
+            hyperparameter_dir = hyperparameter_dir,
+            experiment_dir = baseline_dir,
+            morphometrics_dir = morphometrics_dir,
+            raw_data_dir = raw_data_dir
+        )
+    else:
+        baseline_cnn_f1s, baseline_clf_f1s = pd.DataFrame(), pd.DataFrame()
+
+
+    return (
+        pd.concat([cnn_f1s, baseline_cnn_f1s], axis = 0),
+        pd.concat([clf_f1s, baseline_clf_f1s], axis = 0)
+    )
+    
 def get_classification_f1_data(readout: Readouts,
                                output_dir: str,
                                proj: Projections,
