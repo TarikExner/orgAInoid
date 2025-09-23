@@ -135,7 +135,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
     gs = GridSpec(ncols = 6,
                   nrows = 4,
                   figure = fig,
-                  height_ratios = [0.6,1,1])
+                  height_ratios = [1,1,1,1])
     a_coords = gs[0,:]
     b_coords = gs[1,:]
     c_coords = gs[2,:]
