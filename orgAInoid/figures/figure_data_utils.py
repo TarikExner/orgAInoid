@@ -923,7 +923,7 @@ def neural_net_evaluation_baseline_raw_data(val_dataset_id: str,
                                             output_dir: str,
                                             proj: ProjectionIDs = "SL3",
                                             weights: Optional[dict] = None,
-                                            baseline: bool = True) -> tuple:
+                                            baseline: bool = True) -> pd.DataFrame:
     return __neural_net_evaluation(**locals())
 
 def neural_net_evaluation(val_dataset_id: str,
@@ -970,7 +970,7 @@ def classifier_evaluation_raw_data(val_experiment_id: str,
                                    proj: Projections = "",
                                    output_dir: str = "./figure_data",
                                    baseline: bool = False,
-                                   external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
+                                   external_experiment_id: Optional[str] = None) -> pd.DataFrame:
     return __classifier_evaluation(**locals())
 
 def classifier_evaluation_baseline(val_experiment_id: str,
@@ -992,7 +992,7 @@ def classifier_evaluation_baseline_raw_data(val_experiment_id: str,
                                             proj: Projections = "",
                                             output_dir: str = "./figure_data",
                                             baseline: bool = True,
-                                            external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
+                                            external_experiment_id: Optional[str] = None) -> pd.DataFrame:
     return __classifier_evaluation(**locals())
 
 def calculate_f1_weights(classification_dir: str,
@@ -1194,6 +1194,9 @@ def _generate_classification_results_raw_data(readout: Union[Readouts, BaselineR
                 weights = weights,
                 raw_data_dir = raw_data_dir,
             )
+            cnn_f1["classifier"] = "CNN"
+            cnn_f1["experiment"] = experiment
+            cnn_f1["set"] = eval_set
             cnn_f1s.append(cnn_f1)
 
             clf_f1 = clf_eval_func(
@@ -1205,6 +1208,9 @@ def _generate_classification_results_raw_data(readout: Union[Readouts, BaselineR
                 proj = proj,
                 output_dir = output_dir
             )
+            clf_f1["classifier"] = "CNN"
+            clf_f1["experiment"] = experiment
+            clf_f1["set"] = eval_set
             clf_f1s.append(clf_f1)
 
     cnn_f1s_df = pd.concat([*cnn_f1s], axis = 0)
