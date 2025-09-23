@@ -1171,7 +1171,7 @@ def _generate_classification_results_raw_data(readout: Union[Readouts, BaselineR
         nn_eval_func = neural_net_evaluation_raw_data
         clf_eval_func = classifier_evaluation_raw_data
 
-    for experiment in experiments[:2]:
+    for experiment in experiments:
         for eval_set in eval_sets:
             if not baseline:
                 weights = calculate_f1_weights(classification_dir = experiment_dir,
