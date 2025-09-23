@@ -203,7 +203,7 @@ def generate_bin_dist_figure(sketch_dir: str,
 
     f1d_rpe_classes_val = f1_vs_distance_plot(subset_for_classifier(rpe_classes, "CNN"),
                                               bin_edges = BIN_EDGES_RPE,
-                                              set_name = "val",
+                                              set_name = "validation",
                                               n_distance_bins = 15)
     f1d_rpe_classes_test = f1_vs_distance_plot(subset_for_classifier(rpe_classes, "CNN"),
                                                bin_edges = BIN_EDGES_RPE,
@@ -211,7 +211,7 @@ def generate_bin_dist_figure(sketch_dir: str,
                                                n_distance_bins = 15)
     f1d_lens_classes_val = f1_vs_distance_plot(subset_for_classifier(lens_classes, "CNN"),
                                                bin_edges = BIN_EDGES_LENS,
-                                               set_name = "val",
+                                               set_name = "validation",
                                                n_distance_bins = 15)
     f1d_lens_classes_test = f1_vs_distance_plot(subset_for_classifier(lens_classes, "CNN"),
                                                 bin_edges = BIN_EDGES_LENS,
@@ -230,7 +230,7 @@ def generate_bin_dist_figure(sketch_dir: str,
                                               n_distance_bins = 15)
     f1d_rpe_classes_test = f1_vs_distance_plot(subset_for_classifier(rpe_classes, "CLF"),
                                                bin_edges = BIN_EDGES_RPE,
-                                               set_name = "validation",
+                                               set_name = "test",
                                                n_distance_bins = 15)
     f1d_lens_classes_val = f1_vs_distance_plot(subset_for_classifier(lens_classes, "CLF"),
                                                bin_edges = BIN_EDGES_LENS,
@@ -238,7 +238,7 @@ def generate_bin_dist_figure(sketch_dir: str,
                                                n_distance_bins = 15)
     f1d_lens_classes_test = f1_vs_distance_plot(subset_for_classifier(lens_classes, "CLF"),
                                                 bin_edges = BIN_EDGES_LENS,
-                                                set_name = "validation",
+                                                set_name = "test",
                                                 n_distance_bins = 15)
 
     _generate_main_figure(rpe_classes_test = f1d_rpe_classes_test,
