@@ -768,7 +768,7 @@ def f1_vs_distance_plot(
     pred_col: str = "pred",
     group_col: str = "val_experiment",
     set_col: str = "set",
-    set_name: str = "both",          # "test", "validation", or "both"
+    set_name: str = "both",          # "test", "val", or "both"
     n_distance_bins: int = 10,
     min_samples_per_bin: int = 10,
 ):
@@ -780,7 +780,7 @@ def f1_vs_distance_plot(
     ----------
     df : DataFrame with columns [value_col, truth_col, pred_col, group_col, set_col].
     bin_edges : sequence of floats (length K+1). The exact edges used for the 4-class binning.
-    set_filter : filter rows by set ("test" or "validation"); None keeps all.
+    set_filter : filter rows by set ("test" or "val"); None keeps all.
     n_distance_bins : number of bins for distance in [0, 1].
     set_name: specifies wether to perform this on test, val or both.
     min_samples_per_bin : skip a distance bin for a group if it has fewer samples than this.
@@ -790,8 +790,8 @@ def f1_vs_distance_plot(
     summary_df : DataFrame with columns [group_col, 'dist_center', 'n', 'macro_f1'].
     Also shows a matplotlib line plot (one line per val_experiment).
     """
-    if set_name not in {"test", "validation", "both"}:
-        raise ValueError("set_name must be 'test', 'validation', or 'both'.")
+    if set_name not in {"test", "val", "both"}:
+        raise ValueError("set_name must be 'test', 'val', or 'both'.")
 
     def macro_f1_present(y_true, y_pred):
         y_true = np.asarray(y_true)
@@ -811,7 +811,7 @@ def f1_vs_distance_plot(
         return float(np.mean(f1s)) if f1s else np.nan
 
     work = df.copy()
-    if set_name in {"test", "validation"}:
+    if set_name in {"test", "val"}:
         work = work[work[set_col] == set_name].copy()
 
     edges = np.asarray(bin_edges, dtype=float)
