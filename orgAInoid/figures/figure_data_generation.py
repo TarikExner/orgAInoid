@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
+from sklearn.metrics import f1_score
 
 
 from sklearn.manifold import TSNE
@@ -773,51 +774,22 @@ def f1_vs_distance_plot(
     min_samples_per_bin: int = 10,
 ):
     """
-    Plot macro-F1 as a function of distance from bin center (normalized to bin half-width),
-    grouped by `val_experiment`. Returns the summary DataFrame used for plotting.
-
-    Parameters
-    ----------
-    df : DataFrame with columns [value_col, truth_col, pred_col, group_col, set_col].
-    bin_edges : sequence of floats (length K+1). The exact edges used for the 4-class binning.
-    set_filter : filter rows by set ("test" or "val"); None keeps all.
-    n_distance_bins : number of bins for distance in [0, 1].
-    set_name: specifies wether to perform this on test, val or both.
-    min_samples_per_bin : skip a distance bin for a group if it has fewer samples than this.
-
-    Returns
-    -------
-    summary_df : DataFrame with columns [group_col, 'dist_center', 'n', 'macro_f1'].
-    Also shows a matplotlib line plot (one line per val_experiment).
+    Compute weighted F1 as a function of distance from the bin center (normalized to bin half-width),
+    grouped by `val_experiment`. Returns a summary DataFrame for plotting elsewhere.
     """
     if set_name not in {"test", "val", "both"}:
         raise ValueError("set_name must be 'test', 'val', or 'both'.")
-
-    def macro_f1_present(y_true, y_pred):
-        y_true = np.asarray(y_true)
-        y_pred = np.asarray(y_pred)
-        labels = np.unique(y_true)
-        if labels.size == 0:
-            return np.nan
-        f1s = []
-        for c in labels:
-            tp = np.sum((y_true == c) & (y_pred == c))
-            fp = np.sum((y_true != c) & (y_pred == c))
-            fn = np.sum((y_true == c) & (y_pred != c))
-            prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-            rec  = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            f1   = (2 * prec * rec / (prec + rec)) if (prec + rec) > 0 else 0.0
-            f1s.append(f1)
-        return float(np.mean(f1s)) if f1s else np.nan
 
     work = df.copy()
     if set_name in {"test", "val"}:
         work = work[work[set_col] == set_name].copy()
 
+    # edges checks
     edges = np.asarray(bin_edges, dtype=float)
     if edges.ndim != 1 or edges.size < 2 or not np.all(np.diff(edges) > 0):
         raise ValueError("bin_edges must be a strictly increasing 1D array-like.")
 
+    # compute normalized distance to each sample's bin center
     vals = work[value_col].astype(float).to_numpy()
     bin_idx = np.searchsorted(edges, vals, side="right") - 1
     bin_idx = np.clip(bin_idx, 0, len(edges) - 2)
@@ -828,18 +800,26 @@ def f1_vs_distance_plot(
     half_width = (right - left) / 2.0
     work["_dist_norm"] = np.clip(np.abs(vals - centers) / np.maximum(half_width, 1e-12), 0.0, 1.0)
 
+    # distance bins on [0, 1]
     dist_bin_edges = np.linspace(0.0, 1.0, n_distance_bins + 1)
     dist_bin_centers = (dist_bin_edges[:-1] + dist_bin_edges[1:]) / 2.0
     dist_bin_idx = np.digitize(work["_dist_norm"].to_numpy(), dist_bin_edges, right=False) - 1
     dist_bin_idx = np.where(dist_bin_idx == n_distance_bins, n_distance_bins - 1, dist_bin_idx)
     work["_dist_bin"] = dist_bin_idx
 
-    # group keys: val_experiment; if showing both sets, split by set too
+    # label set for sklearn (union of truth/pred present in the filtered data)
+    all_labels = pd.unique(pd.concat([work[truth_col], work[pred_col]], ignore_index=True))
+    # keep stable order for reproducibility
+    try:
+        all_labels = np.sort(all_labels)
+    except Exception:
+        all_labels = list(all_labels)
+
+    # group keys
     group_keys = [group_col] if set_name != "both" else [group_col, set_col]
 
     rows = []
     for keys, subg in work.groupby(group_keys, dropna=False):
-        # normalize keys to tuple (exp, maybe set)
         if set_name != "both":
             exp = keys
             set_lbl = set_name
@@ -851,13 +831,21 @@ def f1_vs_distance_plot(
             n = len(sub_bin)
             if n < min_samples_per_bin:
                 continue
-            f1 = macro_f1_present(sub_bin[truth_col], sub_bin[pred_col])
+
+            f1_w = f1_score(
+                sub_bin[truth_col],
+                sub_bin[pred_col],
+                average="weighted",
+                labels=all_labels,
+                zero_division=0,
+            )
+
             rows.append({
                 group_col: exp,
                 "set": set_lbl,
                 "dist_center": float(dist_bin_centers[b]),
                 "n": int(n),
-                "macro_f1": float(f1),
+                "f1_weighted": float(f1_w),
             })
 
     summary_df = pd.DataFrame(rows)

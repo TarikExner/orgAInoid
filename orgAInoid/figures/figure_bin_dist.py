@@ -22,6 +22,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
                           rpe_classes_val: pd.DataFrame,
                           lens_classes_test: pd.DataFrame,
                           lens_classes_val: pd.DataFrame,
+                          classifier: Literal["CNN", "CLF"],
                           figure_output_dir: str = "",
                           figure_name: str = ""):
 
@@ -54,7 +55,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
         )
 
         accuracy_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"F1 distribution over bin center distance for {readout} in {eval_set} organoids", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"{classifier} F1 distribution over bin center distance for\n{readout} in {eval_set} organoids", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_xlabel("bin center distance [0=center, 1=edge]", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylabel("F1-score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -90,7 +91,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
         )
 
         accuracy_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"F1 distribution over bin center distance for {readout} in {eval_set} organoids", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"{classifier} F1 distribution over bin center distance for\n{readout} in {eval_set} organoids", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_xlabel("bin center distance [0=center, 1=edge]", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylabel("F1-score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -126,7 +127,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
         )
 
         accuracy_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"F1 distribution over bin center distance for {readout} in {eval_set} organoids", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"{classifier} F1 distribution over bin center distance for\n{readout} in {eval_set} organoids", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_xlabel("bin center distance [0=center, 1=edge]", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylabel("F1-score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -161,7 +162,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
         )
 
         accuracy_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        accuracy_plot.set_title(f"F1 distribution over bin center distance for {readout} in {eval_set} organoids", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot.set_title(f"{classifier} F1 distribution over bin center distance for\n{readout} in {eval_set} organoids", fontsize = cfg.TITLE_SIZE)
         accuracy_plot.set_xlabel("bin center distance [0=center, 1=edge]", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.set_ylabel("F1-score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
