@@ -22,6 +22,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
                           rpe_classes_val: pd.DataFrame,
                           lens_classes_test: pd.DataFrame,
                           lens_classes_val: pd.DataFrame,
+                          figure_output_dir: str = "",
                           figure_name: str = ""):
 
     def generate_subfigure_a(fig: Figure,
@@ -263,6 +264,7 @@ def generate_bin_dist_figure(sketch_dir: str,
                           rpe_classes_val = f1d_rpe_classes_val,
                           lens_classes_test = f1d_lens_classes_test,
                           lens_classes_val = f1d_lens_classes_val,
+                          figure_output_dir = figure_output_dir,
                           figure_name = "Supplementary_Figure_30")
 
     f1d_rpe_classes_val = f1_vs_distance_plot(subset_for_classifier(rpe_classes, "CLF"),
@@ -286,5 +288,6 @@ def generate_bin_dist_figure(sketch_dir: str,
                           rpe_classes_val = f1d_rpe_classes_val,
                           lens_classes_test = f1d_lens_classes_test,
                           lens_classes_val = f1d_lens_classes_val,
+                          figure_output_dir = figure_output_dir,
                           figure_name = "Supplementary_Figure_31")
 
