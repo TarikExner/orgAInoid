@@ -861,7 +861,6 @@ def f1_vs_distance_plot(
             })
 
     summary_df = pd.DataFrame(rows)
-    summary_df["val_experiment"] = [exp_id[0] for exp_id in summary_df["val_experiment"].tolist()]
 
     return summary_df
 
