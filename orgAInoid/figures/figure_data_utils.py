@@ -1195,7 +1195,7 @@ def _generate_classification_results_raw_data(readout: Union[Readouts, BaselineR
                 raw_data_dir = raw_data_dir,
             )
             cnn_f1["classifier"] = "CNN"
-            cnn_f1["experiment"] = experiment
+            cnn_f1["val_experiment"] = experiment
             cnn_f1["set"] = eval_set
             cnn_f1s.append(cnn_f1)
 
@@ -1208,8 +1208,8 @@ def _generate_classification_results_raw_data(readout: Union[Readouts, BaselineR
                 proj = proj,
                 output_dir = output_dir
             )
-            clf_f1["classifier"] = "CNN"
-            clf_f1["experiment"] = experiment
+            clf_f1["classifier"] = "CLF"
+            clf_f1["val_experiment"] = experiment
             clf_f1["set"] = eval_set
             clf_f1s.append(clf_f1)
 
