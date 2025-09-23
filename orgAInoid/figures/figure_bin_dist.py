@@ -202,7 +202,7 @@ def generate_bin_dist_figure(sketch_dir: str,
 
     def subset_for_classifier(df: pd.DataFrame,
                               classifier: Literal["CNN", "CLF"]) -> pd.DataFrame:
-        return df[df["classifier"] == classifier]
+        return df[df["classifier"] == classifier].copy()
 
 
     f1d_rpe_classes_val = f1_vs_distance_plot(subset_for_classifier(rpe_classes, "CNN"),
