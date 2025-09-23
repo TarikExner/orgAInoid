@@ -630,7 +630,7 @@ def generate_classification_results_raw_data(readout: Readouts,
                                              experiment_dir: str,
                                              morphometrics_dir: str,
                                              raw_data_dir: str,
-                                             baseline: bool = False) -> tuple[pd.DataFrame]:
+                                             baseline: bool = False) -> tuple[pd.DataFrame, ...]:
     return _generate_classification_results_raw_data(**locals())
 
 
@@ -720,7 +720,14 @@ def get_classification_f1_data_raw(readout: Readouts,
                                    baseline_dir: Optional[str],
                                    morphometrics_dir: str,
                                    raw_data_dir: str,
-                                   evaluator_results_dir: str) -> tuple[pd.DataFrame, ...]:
+                                   evaluator_results_dir: str,
+                                   output_filename: str = "") -> pd.DataFrame:
+    if not output_filename:
+        output_filename = f"raw_results_cnn_and_clf_{readout}.csv"
+    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
 
     cnn_f1s, clf_f1s = generate_classification_results_raw_data(
         readout = readout,
@@ -744,11 +751,119 @@ def get_classification_f1_data_raw(readout: Readouts,
     else:
         baseline_cnn_f1s, baseline_clf_f1s = pd.DataFrame(), pd.DataFrame()
 
-
-    return (
-        pd.concat([cnn_f1s, baseline_cnn_f1s], axis = 0),
-        pd.concat([clf_f1s, baseline_clf_f1s], axis = 0)
+    results = pd.concat(
+        [cnn_f1s, baseline_cnn_f1s, clf_f1s, baseline_clf_f1s],
+        axis = 0
     )
+    results.to_csv(output_file, index = False)
+
+    return results
+
+def f1_vs_distance_plot(
+    df: pd.DataFrame,
+    bin_edges,
+    *,
+    value_col: str = "Total_RPE_amount",
+    truth_col: str = "truth",
+    pred_col: str = "pred",
+    group_col: str = "val_experiment",
+    set_col: str = "set",
+    set_name: str = "both",          # "test", "validation", or "both"
+    n_distance_bins: int = 10,
+    min_samples_per_bin: int = 10,
+):
+    """
+    Plot macro-F1 as a function of distance from bin center (normalized to bin half-width),
+    grouped by `val_experiment`. Returns the summary DataFrame used for plotting.
+
+    Parameters
+    ----------
+    df : DataFrame with columns [value_col, truth_col, pred_col, group_col, set_col].
+    bin_edges : sequence of floats (length K+1). The exact edges used for the 4-class binning.
+    set_filter : filter rows by set ("test" or "validation"); None keeps all.
+    n_distance_bins : number of bins for distance in [0, 1].
+    set_name: specifies wether to perform this on test, val or both.
+    min_samples_per_bin : skip a distance bin for a group if it has fewer samples than this.
+
+    Returns
+    -------
+    summary_df : DataFrame with columns [group_col, 'dist_center', 'n', 'macro_f1'].
+    Also shows a matplotlib line plot (one line per val_experiment).
+    """
+    if set_name not in {"test", "validation", "both"}:
+        raise ValueError("set_name must be 'test', 'validation', or 'both'.")
+
+    def macro_f1_present(y_true, y_pred):
+        y_true = np.asarray(y_true)
+        y_pred = np.asarray(y_pred)
+        labels = np.unique(y_true)
+        if labels.size == 0:
+            return np.nan
+        f1s = []
+        for c in labels:
+            tp = np.sum((y_true == c) & (y_pred == c))
+            fp = np.sum((y_true != c) & (y_pred == c))
+            fn = np.sum((y_true == c) & (y_pred != c))
+            prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+            rec  = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            f1   = (2 * prec * rec / (prec + rec)) if (prec + rec) > 0 else 0.0
+            f1s.append(f1)
+        return float(np.mean(f1s)) if f1s else np.nan
+
+    work = df.copy()
+    if set_name in {"test", "validation"}:
+        work = work[work[set_col] == set_name].copy()
+
+    edges = np.asarray(bin_edges, dtype=float)
+    if edges.ndim != 1 or edges.size < 2 or not np.all(np.diff(edges) > 0):
+        raise ValueError("bin_edges must be a strictly increasing 1D array-like.")
+
+    vals = work[value_col].astype(float).to_numpy()
+    bin_idx = np.searchsorted(edges, vals, side="right") - 1
+    bin_idx = np.clip(bin_idx, 0, len(edges) - 2)
+
+    left = edges[bin_idx]
+    right = edges[bin_idx + 1]
+    centers = (left + right) / 2.0
+    half_width = (right - left) / 2.0
+    work["_dist_norm"] = np.clip(np.abs(vals - centers) / np.maximum(half_width, 1e-12), 0.0, 1.0)
+
+    dist_bin_edges = np.linspace(0.0, 1.0, n_distance_bins + 1)
+    dist_bin_centers = (dist_bin_edges[:-1] + dist_bin_edges[1:]) / 2.0
+    dist_bin_idx = np.digitize(work["_dist_norm"].to_numpy(), dist_bin_edges, right=False) - 1
+    dist_bin_idx = np.where(dist_bin_idx == n_distance_bins, n_distance_bins - 1, dist_bin_idx)
+    work["_dist_bin"] = dist_bin_idx
+
+    # group keys: val_experiment; if showing both sets, split by set too
+    group_keys = [group_col] if set_name != "both" else [group_col, set_col]
+
+    rows = []
+    for keys, subg in work.groupby(group_keys, dropna=False):
+        # normalize keys to tuple (exp, maybe set)
+        if set_name != "both":
+            exp = keys
+            set_lbl = set_name
+        else:
+            exp, set_lbl = keys
+
+        for b in range(n_distance_bins):
+            sub_bin = subg[subg["_dist_bin"] == b]
+            n = len(sub_bin)
+            if n < min_samples_per_bin:
+                continue
+            f1 = macro_f1_present(sub_bin[truth_col], sub_bin[pred_col])
+            rows.append({
+                group_col: exp,
+                "set": set_lbl,
+                "dist_center": float(dist_bin_centers[b]),
+                "n": int(n),
+                "macro_f1": float(f1),
+            })
+
+    summary_df = pd.DataFrame(rows)
+
+    return summary_df
+
     
 def get_classification_f1_data(readout: Readouts,
                                output_dir: str,
