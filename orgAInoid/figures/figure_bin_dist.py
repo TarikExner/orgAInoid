@@ -48,7 +48,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
         sns.lineplot(
             data = data,
             x = "dist_center",
-            y = "macro_f1",
+            y = "f1_weighted",
             hue = "val_experiment",
             palette = "tab20",
             ax = accuracy_plot
@@ -84,7 +84,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
         sns.lineplot(
             data = data,
             x = "dist_center",
-            y = "macro_f1",
+            y = "f1_weighted",
             hue = "val_experiment",
             palette = "tab20",
             ax = accuracy_plot
@@ -120,7 +120,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
         sns.lineplot(
             data = data,
             x = "dist_center",
-            y = "macro_f1",
+            y = "f1_weighted",
             hue = "val_experiment",
             palette = "tab20",
             ax = accuracy_plot
@@ -155,7 +155,7 @@ def _generate_main_figure(rpe_classes_test: pd.DataFrame,
         sns.lineplot(
             data = data,
             x = "dist_center",
-            y = "macro_f1",
+            y = "f1_weighted",
             hue = "val_experiment",
             palette = "tab20",
             ax = accuracy_plot
