@@ -266,6 +266,7 @@ def generate_bin_dist_figure(sketch_dir: str,
                           lens_classes_test = f1d_lens_classes_test,
                           lens_classes_val = f1d_lens_classes_val,
                           figure_output_dir = figure_output_dir,
+                          classifier = "CNN",
                           figure_name = "Supplementary_Figure_30")
 
     f1d_rpe_classes_val = f1_vs_distance_plot(subset_for_classifier(rpe_classes, "CLF"),
@@ -290,5 +291,6 @@ def generate_bin_dist_figure(sketch_dir: str,
                           lens_classes_test = f1d_lens_classes_test,
                           lens_classes_val = f1d_lens_classes_val,
                           figure_output_dir = figure_output_dir,
+                          classifier = "CLF",
                           figure_name = "Supplementary_Figure_31")
 
