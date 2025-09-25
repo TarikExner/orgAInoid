@@ -1047,6 +1047,8 @@ def flatten_for_plotting(df: pd.DataFrame, classes: int) -> pd.DataFrame:
     sample_mat = df['percentage_matrix'].iloc[0]
     n_classes = sample_mat.shape[0]
 
+    df = df.sort_index()
+
     # numeric loop index (e.g., "LO072" -> 36.0 for 30-min steps)
     loops_num = df.index.to_series().str.replace('LO', '', regex=False).astype(int) / 2.0
     loops_num.index = df.index  # align
