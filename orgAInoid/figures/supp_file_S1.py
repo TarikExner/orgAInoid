@@ -73,7 +73,7 @@ def supplementary_file_S1_generation(figure_output_dir: str,
 
     res = []
     for readout, df in raw_data.items():
-        _, stats = auc_per_experiment(df, readout, paired_test = "ttest")
+        _, stats = auc_per_experiment(df, readout, paired_test = "wilcoxon")
         res.append(stats)
 
     res = pd.concat(res, axis = 0)

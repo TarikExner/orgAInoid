@@ -57,3 +57,41 @@ contains code in order to try to replicate the DISCOVER method (Nature Communica
 contains the code for the neural networks, the training loops and the dataset assemblies. Also included is the code for the
 classifier experiments with algorithms of "classical" machine learning.
 
+## Use the classification datasets
+
+The datasets have been deposited at Zenodo [links pending].
+
+In order to use it, you will have to clone the repository.
+
+```python
+from orgAInoid.classification import OrganoidDataset
+data = OrganoidDataset.read_classification_dataset("./path/to/file.cds")
+# metadata are stored at the .metadata attribute
+data.metadata # contains a pd.DataFrame that links image information to the array index
+
+# scaled and segmented images are stored under .X
+X = data.X # returns a np.ndarray of shape (n_images, 1, 224, 224)
+
+# class annotations are stored in a dictionary under .y[readout]
+# where readout is one of ['RPE_Final', 'Lens_Final', 'RPE_classes',
+# 'Lens_classes', 'Total_RPE_amount', 'Lens_area', 'morph_classes']
+y = data.y["RPE_Final"]
+
+# dataset metadata are stored under .dataset_metadata, containing some information
+# about class distribution and the presence/absence of readouts
+ds_metadata = data.dataset_metadata
+
+# image metadata are stored under .image_metadata, containing information about
+# the image dimensions and segmentation settings
+img_metadata = data.image_metadata
+
+# in order to merge data, use the .merge() method
+scnd_ds = OrganoidDataset.read_classification_dataset("./path/to/other/file.cds")
+data = data.merge(scnd_ds)
+# change the dataset ID as you created a new one
+data.dataset_metadata.dataset_id = "E001-6_full_SL3_fixed"
+# save under a different name, the dataset_id will be used as a file name
+data.save("./save/path", overwrite = True)
+
+``` 
+
