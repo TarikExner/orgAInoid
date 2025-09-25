@@ -24,42 +24,42 @@ def _stacked_area(ax: Axes,
     """
     Plot one stacked area (columns must be ['tn','tp','fn','fp'] in that order).
     """
+    """
+    data4 columns must be ['tn','tp','fn','fp'].
+    Scales to percent if needed and fills NaNs->0 to avoid gaps.
+    """
     cols = ['tn', 'tp', 'fn', 'fp']
-    X = data4.index.values
-    Y = data4[cols].values.astype(float)
+    df = data4[cols].astype(float).copy()
+
+    # fix NaNs
+    df = df.fillna(0.0)
+
+    # if totals look like fractions, scale to %
+    totals = df.sum(axis=1).values
+    if np.nanmax(totals) <= 1.5:   # 1.0 (± rounding) -> convert to %
+        df *= 100.0
+
+    X = df.index.values
+    Y = df.values
 
     cumulative_base = np.zeros_like(Y)
     for i in range(1, Y.shape[1]):
         cumulative_base[:, i] = cumulative_base[:, i - 1] + Y[:, i - 1]
 
-    for i, component in enumerate(cols):
+    for i, comp in enumerate(cols):
         ax.fill_between(
             X,
             cumulative_base[:, i],
             cumulative_base[:, i] + Y[:, i],
             color=colors[i],
-            label=component,
+            label=comp,
             alpha=0.8,
         )
 
     handles, labels = ax.get_legend_handles_labels()
     handles, labels = handles[::-1], labels[::-1]
-    labels = [label_dict.get(label, label) for label in labels]
-    ax.legend(handles, labels, fontsize=cfg.AXIS_LABEL_SIZE,
-              bbox_to_anchor=(1.01, 0.5), loc="center left")
-
-    if xlabel:
-        ax.set_xlabel(xlabel, fontsize=cfg.AXIS_LABEL_SIZE)
-    if ylabel:
-        ax.set_ylabel(ylabel, fontsize=cfg.AXIS_LABEL_SIZE)
-    if title:
-        ax.set_title(title, fontsize=cfg.TITLE_SIZE)
-
-    ax.set_ylim(0, 100)
-    ax.set_xlim(0, 72)
-    ax.tick_params(**cfg.TICKPARAMS_PARAMS)
-
-    return
+    labels = [label_dict.get(l, l) for l in labels]
+    return handles, labels
 
 def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
                           lens_classes_f1_data: pd.DataFrame,
@@ -130,7 +130,9 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x=-0.4)
 
-        test_wide = rpe_classes_clf_test_cm   # MultiIndex columns: (classX, tn/tp/fn/fp)
+        # These must be your new wide DataFrames with MultiIndex columns:
+        # level 0: class0..class3, level 1: tn,tp,fn,fp
+        test_wide = rpe_classes_clf_test_cm
         val_wide  = rpe_classes_clf_val_cm
 
         colors = cfg.CONF_MATRIX_COLORS
@@ -144,21 +146,27 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
             cls = f'class{i}'
             df_cls = test_wide.xs(cls, axis=1, level=0)[['tn','tp','fn','fp']]
 
-            _stacked_area(
-                sub_ax, df_cls, colors, label_dict,
-                xlabel="hours" if i == 3 else None,
-                ylabel=cls,
-                title="Confusion matrices: RPE area\nin test organoids by deep learning" if i == 0 else None,
-            )
+            handles, labels = _stacked_area(sub_ax, df_cls, colors, label_dict)
 
-            # hide repeated tick labels to match your old layout
-            if i < 3:
+            if i == 0:
+                sub_ax.set_title("Confusion matrices: RPE area\nin test organoids by deep learning",
+                                 fontsize=cfg.TITLE_SIZE)
+            sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
+            sub_ax.set_ylim(0, 100)
+            sub_ax.set_xlim(0, 72)
+
+            if i != 3:
                 sub_ax.set_xticklabels([])
                 sub_ax.set_yticklabels([])
                 sub_ax.tick_params(bottom=False, left=False)
             else:
+                sub_ax.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+                sub_ax.tick_params(**cfg.TICKPARAMS_PARAMS)
                 sub_ax.set_yticklabels([])
                 sub_ax.tick_params(left=False)
+
+            sub_ax.legend(handles, labels, fontsize=cfg.AXIS_LABEL_SIZE,
+                          bbox_to_anchor=(1.01, 0.5), loc="center left")
 
         # right column: validation
         for i in range(4):
@@ -166,20 +174,27 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
             cls = f'class{i}'
             df_cls = val_wide.xs(cls, axis=1, level=0)[['tn','tp','fn','fp']]
 
-            _stacked_area(
-                sub_ax, df_cls, colors, label_dict,
-                xlabel="hours" if i == 3 else None,
-                ylabel=cls,
-                title="Confusion matrices: RPE area\nin validation organoids by deep learning" if i == 0 else None,
-            )
+            handles, labels = _stacked_area_percent(sub_ax, df_cls, colors, label_dict)
 
-            if i < 3:
+            if i == 0:
+                sub_ax.set_title("Confusion matrices: RPE area\nin validation organoids by deep learning",
+                                 fontsize=cfg.TITLE_SIZE)
+            sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
+            sub_ax.set_ylim(0, 100)
+            sub_ax.set_xlim(0, 72)
+
+            if i != 3:
                 sub_ax.set_xticklabels([])
                 sub_ax.set_yticklabels([])
                 sub_ax.tick_params(bottom=False, left=False)
             else:
+                sub_ax.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+                sub_ax.tick_params(**cfg.TICKPARAMS_PARAMS)
                 sub_ax.set_yticklabels([])
                 sub_ax.tick_params(left=False)
+
+            sub_ax.legend(handles, labels, fontsize=cfg.AXIS_LABEL_SIZE,
+                          bbox_to_anchor=(1.01, 0.5), loc="center left")
 
         return
 
