@@ -264,8 +264,8 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
 
         # These must be your new wide DataFrames with MultiIndex columns:
         # level 0: class0..class3, level 1: tn,tp,fn,fp
-        test_wide = rpe_classes_clf_test_cm
-        val_wide  = rpe_classes_clf_val_cm
+        test_wide = lens_classes_clf_test_cm
+        val_wide  = lens_classes_clf_val_cm
 
         colors = cfg.CONF_MATRIX_COLORS
         label_dict = cfg.CONF_MATRIX_LABEL_DICT
