@@ -1098,8 +1098,8 @@ def create_confusion_matrix_frame(readout: Readouts,
                                   morphometrics_dir: str) -> pd.DataFrame:
     """
     High-level function returning a DataFrame ready for plotting:
-    - Binary readouts (RPE_classification, Lens_classification): 2 classes.
-    - Multi-class readouts (RPE_classes_classification, Lens_classes_classification): 4 classes.
+    - Binary readouts (RPE_Final, Lens_Final): 2 classes.
+    - Multi-class readouts (RPE_classes, Lens_classes): 4 classes.
     Columns reflect confusion matrix components, rows are loop hours.
     """
     output_dir = os.path.join(figure_data_dir, f"classification_{readout}")
@@ -1117,7 +1117,7 @@ def create_confusion_matrix_frame(readout: Readouts,
         morphometrics_dir = morphometrics_dir
     )
     pct_df = convert_to_percentages(base_df)
-    _cls = 2 if 'classification' in readout and 'classes' not in readout else 4
+    _cls = 2 if 'classes' not in readout else 4
     plot_df = flatten_for_plotting(pct_df, classes=_cls)
     plot_df.to_pickle(output_filename)
     return plot_df
