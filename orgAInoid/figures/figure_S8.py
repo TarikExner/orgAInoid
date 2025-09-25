@@ -14,6 +14,52 @@ from . import figure_utils as utils
 
 from .figure_data_generation import (get_classification_f1_data,
                                      create_confusion_matrix_frame)
+def _stacked_area(ax: Axes,
+                  data4: pd.DataFrame,
+                  colors,
+                  label_dict,
+                  xlabel: str | None = None,
+                  ylabel: str | None = None,
+                  title: str | None = None):
+    """
+    Plot one stacked area (columns must be ['tn','tp','fn','fp'] in that order).
+    """
+    cols = ['tn', 'tp', 'fn', 'fp']
+    X = data4.index.values
+    Y = data4[cols].values.astype(float)
+
+    cumulative_base = np.zeros_like(Y)
+    for i in range(1, Y.shape[1]):
+        cumulative_base[:, i] = cumulative_base[:, i - 1] + Y[:, i - 1]
+
+    for i, component in enumerate(cols):
+        ax.fill_between(
+            X,
+            cumulative_base[:, i],
+            cumulative_base[:, i] + Y[:, i],
+            color=colors[i],
+            label=component,
+            alpha=0.8,
+        )
+
+    handles, labels = ax.get_legend_handles_labels()
+    handles, labels = handles[::-1], labels[::-1]
+    labels = [label_dict.get(label, label) for label in labels]
+    ax.legend(handles, labels, fontsize=cfg.AXIS_LABEL_SIZE,
+              bbox_to_anchor=(1.01, 0.5), loc="center left")
+
+    if xlabel:
+        ax.set_xlabel(xlabel, fontsize=cfg.AXIS_LABEL_SIZE)
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=cfg.AXIS_LABEL_SIZE)
+    if title:
+        ax.set_title(title, fontsize=cfg.TITLE_SIZE)
+
+    ax.set_ylim(0, 100)
+    ax.set_xlim(0, 72)
+    ax.tick_params(**cfg.TICKPARAMS_PARAMS)
+
+    return
 
 def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
                           lens_classes_f1_data: pd.DataFrame,
@@ -82,93 +128,58 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
         ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.4)
+        utils._figure_label(ax, subfigure_label, x=-0.4)
 
-        fig_sgs = gs.subgridspec(4,2, hspace = 0, wspace = 0)
+        test_wide = rpe_classes_clf_test_cm   # MultiIndex columns: (classX, tn/tp/fn/fp)
+        val_wide  = rpe_classes_clf_val_cm
 
-        test_data = rpe_classes_clf_test_cm
-        val_data = rpe_classes_clf_val_cm
-       
         colors = cfg.CONF_MATRIX_COLORS
+        label_dict = cfg.CONF_MATRIX_LABEL_DICT
 
-        for i, class_label in enumerate(["class0", "class1", "class2", "class3"]):
-            c = i
-            test_conf_matrix = fig.add_subplot(fig_sgs[i, 0])
-            test_data = utils._preprocess_four_class_results(test, class_label)
-            cumulative_base = np.zeros_like(test_data.values)
-            
-            for i in range(1, len(test_data.columns)):
-                cumulative_base[:, i] = cumulative_base[:, i - 1] + test_data.iloc[:, i - 1].values
-        
-            for i, component in enumerate(test_data.columns):
-                test_conf_matrix.fill_between(
-                    test_data.index,
-                    cumulative_base[:, i],
-                    cumulative_base[:, i] + test_data.iloc[:, i],
-                    color=colors[i],
-                    label=component,
-                    alpha=0.8,
-                )
-            
-            handles, labels = test_conf_matrix.get_legend_handles_labels()
-            handles, labels = handles[::-1], labels[::-1]
-            labels = [cfg.CONF_MATRIX_LABEL_DICT[label] for label in labels]
-            
-            #test_conf_matrix.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
-            test_conf_matrix.set_ylabel(class_label, fontsize=cfg.AXIS_LABEL_SIZE)
-            test_conf_matrix.legend(handles, labels, fontsize=cfg.AXIS_LABEL_SIZE-1, bbox_to_anchor=(1.01, 0.5), loc="center left")
-            test_conf_matrix.set_ylim(0, 100)
-            test_conf_matrix.set_xlim(0, 72)
-            if c != 3:
-                test_conf_matrix.set_xticklabels([])
-                test_conf_matrix.set_yticklabels([])
-                test_conf_matrix.tick_params(bottom = False, left = False)
+        fig_sgs = gs.subgridspec(4, 2, hspace=0, wspace=0)
+
+        # left column: test
+        for i in range(4):
+            sub_ax = fig.add_subplot(fig_sgs[i, 0])
+            cls = f'class{i}'
+            df_cls = test_wide.xs(cls, axis=1, level=0)[['tn','tp','fn','fp']]
+
+            _stacked_area(
+                sub_ax, df_cls, colors, label_dict,
+                xlabel="hours" if i == 3 else None,
+                ylabel=cls,
+                title="Confusion matrices: RPE area\nin test organoids by deep learning" if i == 0 else None,
+            )
+
+            # hide repeated tick labels to match your old layout
+            if i < 3:
+                sub_ax.set_xticklabels([])
+                sub_ax.set_yticklabels([])
+                sub_ax.tick_params(bottom=False, left=False)
             else:
-                test_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
-                test_conf_matrix.set_yticklabels([])
-                test_conf_matrix.tick_params(left = False)
+                sub_ax.set_yticklabels([])
+                sub_ax.tick_params(left=False)
 
-            if c == 0:
-                test_conf_matrix.set_title("Confusion matrices: RPE area\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
-        
-        for i, class_label in enumerate(["class0", "class1", "class2", "class3"]):
-            c = i
-            val_conf_matrix = fig.add_subplot(fig_sgs[i, 1])
-            val_data = utils._preprocess_four_class_results(validation, class_label)
-            cumulative_base = np.zeros_like(val_data.values)
-            
-            for i in range(1, len(val_data.columns)):
-                cumulative_base[:, i] = cumulative_base[:, i - 1] + val_data.iloc[:, i - 1].values
-        
-            for i, component in enumerate(val_data.columns):
-                val_conf_matrix.fill_between(
-                    val_data.index,
-                    cumulative_base[:, i],
-                    cumulative_base[:, i] + val_data.iloc[:, i],
-                    color=colors[i],
-                    label=component,
-                    alpha=0.8,
-                )
-            
-            handles, labels = val_conf_matrix.get_legend_handles_labels()
-            handles, labels = handles[::-1], labels[::-1]
-            labels = [cfg.CONF_MATRIX_LABEL_DICT[label] for label in labels]
-            
-            val_conf_matrix.set_ylabel(class_label, fontsize=cfg.AXIS_LABEL_SIZE)
-            val_conf_matrix.legend(handles, labels, fontsize=cfg.AXIS_LABEL_SIZE-1, bbox_to_anchor=(1.01, 0.5), loc="center left")
-            val_conf_matrix.set_ylim(0, 100)
-            val_conf_matrix.set_xlim(0, 72)
-            if c != 3:
-                val_conf_matrix.set_xticklabels([])
-                val_conf_matrix.set_yticklabels([])
-                val_conf_matrix.tick_params(bottom = False, left = False)
+        # right column: validation
+        for i in range(4):
+            sub_ax = fig.add_subplot(fig_sgs[i, 1])
+            cls = f'class{i}'
+            df_cls = val_wide.xs(cls, axis=1, level=0)[['tn','tp','fn','fp']]
+
+            _stacked_area(
+                sub_ax, df_cls, colors, label_dict,
+                xlabel="hours" if i == 3 else None,
+                ylabel=cls,
+                title="Confusion matrices: RPE area\nin validation organoids by deep learning" if i == 0 else None,
+            )
+
+            if i < 3:
+                sub_ax.set_xticklabels([])
+                sub_ax.set_yticklabels([])
+                sub_ax.tick_params(bottom=False, left=False)
             else:
-                val_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
-                val_conf_matrix.set_yticklabels([])
-                val_conf_matrix.tick_params(left = False)
-
-            if c == 0:
-                val_conf_matrix.set_title("Confusion matrices: RPE area\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+                sub_ax.set_yticklabels([])
+                sub_ax.tick_params(left=False)
 
         return
 
@@ -232,6 +243,8 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
                              ax: Axes,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
+
+        return
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
@@ -418,4 +431,5 @@ def figure_S8_generation(sketch_dir: str,
                           lens_classes_clf_val_cm = lens_classes_clf_val_cm,
                           figure_output_dir = figure_output_dir,
                           figure_name = "Supplementary_Figure_S7")
+
 

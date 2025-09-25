@@ -410,7 +410,7 @@ def figure_S4_generation(sketch_dir: str,
                           lens_clf_test_cm = lens_clf_test_cm,
                           lens_clf_val_cm = lens_clf_val_cm,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S8")
+                          figure_name = "Supplementary_Figure_S9")
 
     rpe_final_f1s = get_classification_f1_data(
         readout = "RPE_Final",
@@ -468,6 +468,6 @@ def figure_S4_generation(sketch_dir: str,
                           lens_clf_test_cm = lens_clf_test_cm,
                           lens_clf_val_cm = lens_clf_val_cm,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S9")
+                          figure_name = "Supplementary_Figure_S10")
 
 

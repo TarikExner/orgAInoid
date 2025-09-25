@@ -1032,63 +1032,76 @@ def convert_to_percentages(df: pd.DataFrame,
     df['percentage_matrix'] = df[matrix_col].apply(lambda m: (m / m.sum()) * 100)
     return df
 
-def flatten_for_plotting(df: pd.DataFrame,
-                         classes: int) -> pd.DataFrame:
+def flatten_for_plotting(df: pd.DataFrame, classes: int) -> pd.DataFrame:
     """
     Flatten percentage_matrix for plotting.
-    - For 2 classes: return DataFrame with columns ['tn','tp','fn','fp'].
-    - For N>2 classes: return dict mapping 'class0'..'class{N-1}' to DataFrames
-      each with ['tn','tp','fn','fp'].
-    Index is loop divided by 2 (float).
+
+    Output:
+    - If 2 classes: DataFrame with columns ['tn','tp','fn','fp'] indexed by numeric loop hours.
+    - If >2 classes (e.g., 4): ONE DataFrame with a 2-level column index:
+        top level: 'class0'..'class{N-1}'
+        second level: ['tn','tp','fn','fp']
+      Index is numeric loop hours (float), derived from 'LO###' / 2.
     """
-    """
-    Flatten percentage_matrix for plotting.
-    - For 2 classes: return DataFrame with columns ['tn','tp','fn','fp'].
-    - For N>2 classes: return dict mapping 'class0'..'class{N-1}' to DataFrames
-      each with ['tn','tp','fn','fp'].
-    Index is loop divided by 2 (float).
-    """
-    # dynamic class count from matrix shape
+    # infer class count from the matrices
     sample_mat = df['percentage_matrix'].iloc[0]
     n_classes = sample_mat.shape[0]
-    # compute numeric loop index
-    loops = df.index.to_series().str.replace('LO','').astype(int) / 2
+
+    # numeric loop index (e.g., "LO072" -> 36.0 for 30-min steps)
+    loops_num = df.index.to_series().str.replace('LO', '', regex=False).astype(int) / 2.0
+    loops_num.index = df.index  # align
 
     if n_classes == 2:
-        labels = ['tn','fp','fn','tp']
-        records: list[pd.DataFrame] = []
-        for lo, pct in df['percentage_matrix'].items():
-            values = pct.reshape(4).astype(float)
-            rec = pd.DataFrame({
-                'loop': loops.loc[lo],
-                'component': labels,
-                'value': values
-            })
-            records.append(rec)
-        long = pd.concat(records, ignore_index=True)
-        plot_df = long.pivot(index='loop', columns='component', values='value')
-        # order: tn, tp, fn, fp
-        return plot_df[['tn','tp','fn','fp']]
-    else:
-        # multiclass: build per-class 2x2 frames
-        cmaps = df['percentage_matrix'].apply(classwise_confusion_matrix)
-        out: dict[str, list[pd.DataFrame]] = {f'class{i}': [] for i in range(n_classes)}
-        for lo, tups in cmaps.items():
-            for i, cm2 in enumerate(tups):
-                values = cm2.reshape(4).astype(float)
-                labels = ['tn','fp','fn','tp']
-                rec = pd.DataFrame({
-                    'loop': loops.loc[lo],
-                    'component': labels,
-                    'value': values
-                })
-                out[f'class{i}'].append(rec)
-        result: dict[str, pd.DataFrame] = {}
-        for _cls, recs in out.items():
-            long = pd.concat(recs, ignore_index=True)
-            df_cls = long.pivot(index='loop', columns='component', values='value')
-            result[_cls] = df_cls[['tn','tp','fn','fp']]
-        return result
+        # expecting a 2x2 matrix already; ensure order ['tn','tp','fn','fp']
+        records = []
+        for lo, mat in df['percentage_matrix'].items():
+            # mat is 2x2 with rows=true class, cols=pred class
+            # components from full confusion matrix:
+            tn = mat[0, 0]
+            tp = mat[1, 1]
+            fn = mat[1, 0]
+            fp = mat[0, 1]
+            records.append(pd.Series(
+                {'tn': tn, 'tp': tp, 'fn': fn, 'fp': fp},
+                name=loops_num.loc[lo]
+            ))
+        out = pd.DataFrame(records)
+        out.index.name = 'loop'
+        # enforce column order
+        return out[['tn', 'tp', 'fn', 'fp']]
+
+    # multi-class branch
+    # build per-loop, per-class components into a single wide DataFrame
+    # we reuse the classwise 2x2 definition: [[tn, fp],[fn, tp]]
+    cmaps = df['percentage_matrix'].apply(classwise_confusion_matrix)
+
+    rows = []
+    for lo, class_tuples in cmaps.items():
+        loop_val = loops_num.loc[lo]
+        # collect values for all classes at this loop into a single Series with MultiIndex keys
+        pieces = {}
+        for ci, cm2 in enumerate(class_tuples):
+            # cm2 layout is [[tn, fp], [fn, tp]]
+            tn = float(cm2[0, 0])
+            tp = float(cm2[1, 1])
+            fn = float(cm2[1, 0])
+            fp = float(cm2[0, 1])
+            cls = f'class{ci}'
+            pieces[(cls, 'tn')] = tn
+            pieces[(cls, 'tp')] = tp
+            pieces[(cls, 'fn')] = fn
+            pieces[(cls, 'fp')] = fp
+        s = pd.Series(pieces, name=loop_val)
+        rows.append(s)
+
+    out = pd.DataFrame(rows)
+    out.index.name = 'loop'
+    # sort columns: class0..classN, within each class ['tn','tp','fn','fp']
+    out = out.sort_index(axis=1, level=[0, 1])
+    # enforce per-class inner order
+    inner_order = ['tn', 'tp', 'fn', 'fp']
+    out = out.loc[:, out.columns.set_levels(inner_order, level=1)]
+    return out
 
 def create_confusion_matrix_frame(readout: Readouts,
                                   classifier: Literal["neural_net", "classifier"],
