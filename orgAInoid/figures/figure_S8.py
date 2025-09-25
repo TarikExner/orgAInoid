@@ -94,7 +94,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
         )
         accuracy_plot_test.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot_test.text(x = 40, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-        accuracy_plot_test.set_title("Prediction accuracy: RPE area\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_test.set_title("Prediction accuracy: RPE area\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
         accuracy_plot_test.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot_test.set_ylim(-0.1, 1.1)
         accuracy_plot_test.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -113,7 +113,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
         )
         accuracy_plot_val.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot_val.text(x = 40, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-        accuracy_plot_val.set_title("Prediction accuracy: RPE area\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_val.set_title("Prediction accuracy: RPE area\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
         accuracy_plot_val.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot_val.set_ylim(-0.1, 1.1)
         accuracy_plot_val.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -149,7 +149,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
             handles, labels = _stacked_area(sub_ax, df_cls, colors, label_dict)
 
             if i == 0:
-                sub_ax.set_title("Confusion matrices: RPE area\nin test organoids by morphometrics",
+                sub_ax.set_title("Confusion matrices: RPE area\nin validation organoids by morphometrics",
                                  fontsize=cfg.TITLE_SIZE)
             sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
             sub_ax.set_ylim(0, 100)
@@ -177,7 +177,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
             handles, labels = _stacked_area(sub_ax, df_cls, colors, label_dict)
 
             if i == 0:
-                sub_ax.set_title("Confusion matrices: RPE area\nin validation organoids by morphometrics",
+                sub_ax.set_title("Confusion matrices: RPE area\nin test organoids by morphometrics",
                                  fontsize=cfg.TITLE_SIZE)
             sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
             sub_ax.set_ylim(0, 100)
@@ -225,7 +225,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
 
         accuracy_plot_test.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot_test.text(x = 40, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-        accuracy_plot_test.set_title("Prediction accuracy: Lens sizes\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_test.set_title("Prediction accuracy: Lens sizes\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
         accuracy_plot_test.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot_test.set_ylim(-0.1, 1.1)
         accuracy_plot_test.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -245,7 +245,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
 
         accuracy_plot_val.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot_val.text(x = 40, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-        accuracy_plot_val.set_title("Prediction accuracy: Lens sizes\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_val.set_title("Prediction accuracy: Lens sizes\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
         accuracy_plot_val.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot_val.set_ylim(-0.1, 1.1)
         accuracy_plot_val.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -281,7 +281,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
             handles, labels = _stacked_area(sub_ax, df_cls, colors, label_dict)
 
             if i == 0:
-                sub_ax.set_title("Confusion matrices: Lens sizes\nin test organoids by morphometrics",
+                sub_ax.set_title("Confusion matrices: Lens sizes\nin validation organoids by morphometrics",
                                  fontsize=cfg.TITLE_SIZE)
             sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
             sub_ax.set_ylim(0, 100)
@@ -309,7 +309,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
             handles, labels = _stacked_area(sub_ax, df_cls, colors, label_dict)
 
             if i == 0:
-                sub_ax.set_title("Confusion matrices: Lens sizes\nin validation organoids by morphometrics",
+                sub_ax.set_title("Confusion matrices: Lens sizes\nin test organoids by morphometrics",
                                  fontsize=cfg.TITLE_SIZE)
             sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
             sub_ax.set_ylim(0, 100)
@@ -425,6 +425,123 @@ def figure_S8_generation(sketch_dir: str,
                           lens_classes_clf_test_cm = lens_classes_clf_test_cm,
                           lens_classes_clf_val_cm = lens_classes_clf_val_cm,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S7")
+                          figure_name = "Supplementary_Figure_S18")
+
+    rpe_classes_f1s = get_classification_f1_data(
+        readout = "RPE_classes",
+        output_dir = figure_data_dir,
+        proj = "sum",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = rpe_classes_classification_dir,
+        baseline_dir = None,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    rpe_classes_clf_test_cm = create_confusion_matrix_frame(readout = "RPE_classes",
+                                                            classifier = "classifier",
+                                                            eval_set = "test",
+                                                            proj = "sum",
+                                                            figure_data_dir = figure_data_dir,
+                                                            morphometrics_dir = morphometrics_dir)
+    rpe_classes_clf_val_cm = create_confusion_matrix_frame(readout = "RPE_classes",
+                                                           classifier = "classifier",
+                                                           eval_set = "val",
+                                                           proj = "sum",
+                                                           figure_data_dir = figure_data_dir,
+                                                           morphometrics_dir = morphometrics_dir)
+
+    lens_classes_f1s = get_classification_f1_data(
+        readout = "Lens_classes",
+        output_dir = figure_data_dir,
+        proj = "sum",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = lens_classes_classification_dir,
+        baseline_dir = None,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    lens_classes_clf_test_cm = create_confusion_matrix_frame(readout = "Lens_classes",
+                                                             classifier = "classifier",
+                                                             eval_set = "test",
+                                                             proj = "sum",
+                                                             figure_data_dir = figure_data_dir,
+                                                             morphometrics_dir = morphometrics_dir)
+    lens_classes_clf_val_cm = create_confusion_matrix_frame(readout = "Lens_classes",
+                                                            classifier = "classifier",
+                                                            eval_set = "val",
+                                                            proj = "sum",
+                                                            figure_data_dir = figure_data_dir,
+                                                            morphometrics_dir = morphometrics_dir)
+
+    _generate_main_figure(rpe_classes_f1_data = rpe_classes_f1s,
+                          lens_classes_f1_data = lens_classes_f1s,
+                          rpe_classes_clf_test_cm = rpe_classes_clf_test_cm,
+                          rpe_classes_clf_val_cm = rpe_classes_clf_val_cm,
+                          lens_classes_clf_test_cm = lens_classes_clf_test_cm,
+                          lens_classes_clf_val_cm = lens_classes_clf_val_cm,
+                          figure_output_dir = figure_output_dir,
+                          figure_name = "Supplementary_Figure_S20")
+
+
+
+    rpe_classes_f1s = get_classification_f1_data(
+        readout = "RPE_classes",
+        output_dir = figure_data_dir,
+        proj = "max",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = rpe_classes_classification_dir,
+        baseline_dir = None,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    rpe_classes_clf_test_cm = create_confusion_matrix_frame(readout = "RPE_classes",
+                                                            classifier = "classifier",
+                                                            eval_set = "test",
+                                                            proj = "max",
+                                                            figure_data_dir = figure_data_dir,
+                                                            morphometrics_dir = morphometrics_dir)
+    rpe_classes_clf_val_cm = create_confusion_matrix_frame(readout = "RPE_classes",
+                                                           classifier = "classifier",
+                                                           eval_set = "val",
+                                                           proj = "max",
+                                                           figure_data_dir = figure_data_dir,
+                                                           morphometrics_dir = morphometrics_dir)
+
+    lens_classes_f1s = get_classification_f1_data(
+        readout = "Lens_classes",
+        output_dir = figure_data_dir,
+        proj = "max",
+        hyperparameter_dir = hyperparameter_dir,
+        classification_dir = lens_classes_classification_dir,
+        baseline_dir = None,
+        morphometrics_dir = morphometrics_dir,
+        raw_data_dir = raw_data_dir,
+        evaluator_results_dir = evaluator_results_dir
+    )
+    lens_classes_clf_test_cm = create_confusion_matrix_frame(readout = "Lens_classes",
+                                                             classifier = "classifier",
+                                                             eval_set = "test",
+                                                             proj = "max",
+                                                             figure_data_dir = figure_data_dir,
+                                                             morphometrics_dir = morphometrics_dir)
+    lens_classes_clf_val_cm = create_confusion_matrix_frame(readout = "Lens_classes",
+                                                            classifier = "classifier",
+                                                            eval_set = "val",
+                                                            proj = "max",
+                                                            figure_data_dir = figure_data_dir,
+                                                            morphometrics_dir = morphometrics_dir)
+
+    _generate_main_figure(rpe_classes_f1_data = rpe_classes_f1s,
+                          lens_classes_f1_data = lens_classes_f1s,
+                          rpe_classes_clf_test_cm = rpe_classes_clf_test_cm,
+                          rpe_classes_clf_val_cm = rpe_classes_clf_val_cm,
+                          lens_classes_clf_test_cm = lens_classes_clf_test_cm,
+                          lens_classes_clf_val_cm = lens_classes_clf_val_cm,
+                          figure_output_dir = figure_output_dir,
+                          figure_name = "Supplementary_Figure_S21")
+
 
 
