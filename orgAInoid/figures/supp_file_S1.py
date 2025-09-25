@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from .figure_data_generation import run_f1_statistics, get_classification_f1_data
+from .figure_data_generation import auc_per_experiment, get_classification_f1_data
 
 
 def supplementary_file_S1_generation(figure_output_dir: str,
@@ -72,7 +72,7 @@ def supplementary_file_S1_generation(figure_output_dir: str,
     }
 
     res = pd.concat(
-        [run_f1_statistics(df, readout) for readout, df in raw_data.items()],
+        [auc_per_experiment(df, readout) for readout, df in raw_data.items()],
         axis = 0
     )
     classifier_dict = {
@@ -85,8 +85,8 @@ def supplementary_file_S1_generation(figure_output_dir: str,
         "Baseline_Morphometrics": "Baseline_Morphometrics",
         "Baseline_Ensemble": "Baseline_Ensemble"
     }
-    res["group1"] = res["group1"].map(classifier_dict)
-    res["group2"] = res["group2"].map(classifier_dict)
+    res["method_1"] = res["method_1"].map(classifier_dict)
+    res["method_2"] = res["method_2"].map(classifier_dict)
 
     res.to_csv(
         os.path.join(figure_output_dir, "Supplementary_File_1.csv"),

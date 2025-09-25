@@ -1138,7 +1138,6 @@ def create_confusion_matrix_frame(readout: Readouts,
     plot_df.to_pickle(output_filename)
     return plot_df
 
-
 def run_f1_statistics(df: pd.DataFrame,
                       readout: Readouts,
                       p_adjust: str = "bonferroni") -> pd.DataFrame:
@@ -1215,3 +1214,82 @@ def run_f1_statistics(df: pd.DataFrame,
     res = pd.DataFrame.from_records(records)
     res["readout"] = readout
     return res
+
+def auc_per_experiment(
+    df: pd.DataFrame,
+    readout: Readouts,
+    *,
+    time_col: str = "loop",
+    score_col: str = "F1",
+    exp_col: str = "experiment",
+    method_col: str = "classifier",
+    paired_test: str = "wilcoxon",   # or "ttest"
+    normalize_time: bool = True,     # divide AUC by time span -> mean F1 over time
+    plot: bool = True
+):
+    """
+    Compute AUC of F1-vs-time per (experiment, classifier), then do paired
+    tests across classifiers. Expects columns: loop, F1, experiment, classifier.
+    """
+    import numpy as np
+    from itertools import combinations
+    from scipy.integrate import trapezoid
+    from scipy.stats import wilcoxon, ttest_rel
+    # --- AUC per (experiment, method) ---
+    rows = []
+    for (exp, meth), sub in df.groupby([exp_col, method_col], dropna=False):
+        sub = sub.sort_values(time_col)
+        t = sub[time_col].to_numpy(dtype=float)
+        y = sub[score_col].to_numpy(dtype=float)
+        if len(t) < 2:
+            continue
+        auc = trapezoid(y=y, x=t)
+        if normalize_time:
+            span = (t.max() - t.min())
+            if span > 0:
+                auc = auc / span  # equals average F1 over time window
+        rows.append({exp_col: exp, method_col: meth, "AUC": float(auc), "n_timepts": len(t)})
+    auc_df = pd.DataFrame(rows)
+
+    # --- paired tests (per pair of methods, paired by experiment) ---
+    piv = auc_df.pivot(index=exp_col, columns=method_col, values="AUC")
+    methods = list(piv.columns)
+    stats_rows = []
+    for m1, m2 in combinations(methods, 2):
+        pair = piv[[m1, m2]].dropna()
+        if pair.shape[0] < 2:
+            continue
+        x, y = pair[m1].to_numpy(), pair[m2].to_numpy()
+        if paired_test == "wilcoxon":
+            stat, p = wilcoxon(x, y, zero_method="wilcox", alternative="two-sided")
+            test_name = "Wilcoxon signed-rank"
+        elif paired_test == "ttest":
+            stat, p = ttest_rel(x, y)
+            test_name = "Paired t-test"
+        else:
+            raise ValueError("paired_test must be 'wilcoxon' or 'ttest'")
+        diff_mean = float(np.mean(x - y))
+        stats_rows.append({
+            "method_1": m1,
+            "method_2": m2,
+            "n_experiments": int(pair.shape[0]),
+            "test": test_name,
+            "statistic": float(stat),
+            "p_value": float(p),
+            "mean_auc_diff_(m1-m2)": diff_mean
+        })
+    stats_df = pd.DataFrame(stats_rows)
+
+    # Holm-Bonferroni correction (optional but helpful)
+    if not stats_df.empty:
+        m = len(stats_df)
+        stats_df = stats_df.sort_values("p_value").reset_index(drop=True)
+        adj = []
+        for i, p in enumerate(stats_df["p_value"], start=1):
+            adj.append(min((m - i + 1) * p, 1.0))
+        stats_df["p_holm"] = adj
+        stats_df = stats_df.sort_values("p_value")
+
+    stats_df["readout"] = readout
+
+    return auc_df, stats_df
