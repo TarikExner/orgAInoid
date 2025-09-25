@@ -1132,6 +1132,7 @@ def create_confusion_matrix_frame(readout: Readouts,
     pct_df = convert_to_percentages(base_df)
     _cls = 2 if 'classes' not in readout else 4
     plot_df = flatten_for_plotting(pct_df, classes=_cls)
+    plot_df = plot_df.sort_index()
     plot_df.to_pickle(output_filename)
     return plot_df
 
