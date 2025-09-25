@@ -71,10 +71,13 @@ def supplementary_file_S1_generation(figure_output_dir: str,
         "Lens_classes": lens_classes_f1s
     }
 
-    res = pd.concat(
-        [auc_per_experiment(df, readout) for readout, df in raw_data.items()],
-        axis = 0
-    )
+    res = []
+    for readout, df in raw_data.items():
+        _, stats = auc_per_experiment(df, readout)
+        res.append(stats)
+
+    res = pd.concat(res, axis = 0)
+
     classifier_dict = {
         # we switch nomenclature for test and val sets
         "Morphometrics_test": "Morphometrics_val",
