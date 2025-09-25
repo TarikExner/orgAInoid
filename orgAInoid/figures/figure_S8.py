@@ -174,7 +174,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
             cls = f'class{i}'
             df_cls = val_wide.xs(cls, axis=1, level=0)[['tn','tp','fn','fp']]
 
-            handles, labels = _stacked_area_percent(sub_ax, df_cls, colors, label_dict)
+            handles, labels = _stacked_area(sub_ax, df_cls, colors, label_dict)
 
             if i == 0:
                 sub_ax.set_title("Confusion matrices: RPE area\nin validation organoids by deep learning",
