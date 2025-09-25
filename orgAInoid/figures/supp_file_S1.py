@@ -78,18 +78,18 @@ def supplementary_file_S1_generation(figure_output_dir: str,
 
     res = pd.concat(res, axis = 0)
 
-    classifier_dict = {
-        # we switch nomenclature for test and val sets
-        "Morphometrics_test": "Morphometrics_val",
-        "Morphometrics_val": "Morphometrics_test",
-        "Ensemble_test": "Ensemble_val",
-        "Ensemble_val": "Ensemble_test",
-        "human": "Expert_prediction",
-        "Baseline_Morphometrics": "Baseline_Morphometrics",
-        "Baseline_Ensemble": "Baseline_Ensemble"
-    }
-    res["method_1"] = res["method_1"].map(classifier_dict)
-    res["method_2"] = res["method_2"].map(classifier_dict)
+    # classifier_dict = {
+    #     # we switch nomenclature for test and val sets
+    #     "Morphometrics_test": "Morphometrics_val",
+    #     "Morphometrics_val": "Morphometrics_test",
+    #     "Ensemble_test": "Ensemble_val",
+    #     "Ensemble_val": "Ensemble_test",
+    #     "human": "Expert_prediction",
+    #     "Baseline_Morphometrics": "Baseline_Morphometrics",
+    #     "Baseline_Ensemble": "Baseline_Ensemble"
+    # }
+    # res["method_1"] = res["method_1"].map(classifier_dict)
+    # res["method_2"] = res["method_2"].map(classifier_dict)
 
     res.to_csv(
         os.path.join(figure_output_dir, "Supplementary_File_1.csv"),
