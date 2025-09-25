@@ -250,7 +250,7 @@ def _generate_main_figure(rpe_classes_f1_data: pd.DataFrame,
         accuracy_plot_val.set_ylim(-0.1, 1.1)
         accuracy_plot_val.tick_params(**cfg.TICKPARAMS_PARAMS)
         accuracy_plot_val.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)    
-        accuracy_plot_val.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.TITLE_SIZE, **cfg.TWO_COL_LEGEND)
+        accuracy_plot_val.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.TITLE_SIZE)
 
         return
 
