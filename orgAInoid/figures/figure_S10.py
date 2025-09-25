@@ -522,13 +522,13 @@ def figure_S10_generation(sketch_dir: str,
         evaluator_results_dir = evaluator_results_dir
     )
     lens_classes_clf_test_cm = create_confusion_matrix_frame(readout = "Lens_classes",
-                                                             classifier = "classifier",
+                                                             classifier = "neural_net",
                                                              eval_set = "test",
                                                              proj = "max",
                                                              figure_data_dir = figure_data_dir,
                                                              morphometrics_dir = morphometrics_dir)
     lens_classes_clf_val_cm = create_confusion_matrix_frame(readout = "Lens_classes",
-                                                            classifier = "classifier",
+                                                            classifier = "neural_net",
                                                             eval_set = "val",
                                                             proj = "max",
                                                             figure_data_dir = figure_data_dir,
