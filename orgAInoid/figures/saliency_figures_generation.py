@@ -13,8 +13,9 @@ from scipy.ndimage import zoom, center_of_mass
 
 from .figure_data_utils import Readouts
 from .figure_data_generation import get_classification_f1_data, get_dataset_annotations
+from .figure_data_utils import check_for_file
 
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Literal
 
 METHOD_FAMILIES = {
     "grad_based": {"IG_NT", "SAL_NT", "DLS"},
@@ -724,7 +725,7 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
     if all_method_pairs:
         all_method_pairs_df = pd.DataFrame(all_method_pairs)
         all_method_pairs_df = attach_readout_metadata(all_method_pairs_df, metadata, readout_col = readout)
-        all_method_pairs.to_csv(
+        all_method_pairs_df.to_csv(
             os.path.join(figure_data_dir, "metrics", f"agreement_method_pairwise_{readout}.csv"),
             index=False,
         )
@@ -756,6 +757,50 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
         )
 
     return
+
+SaliencyResults = Literal["agreement_methods", "cross_model_correlations",
+                          "dice_to_peak_timeseries", "entropy_drift_timeseries",
+                          "region_votes_summary"]
+
+def get_saliency_results(result: SaliencyResults,
+                         readout: Readouts,
+                         saliency_input_dir: str,
+                         raw_data_dir: str,
+                         morphometrics_dir: str,
+                         hyperparameter_dir: str,
+                         rpe_classification_dir: str,
+                         lens_classification_dir: str,
+                         rpe_classes_classification_dir: str,
+                         lens_classes_classification_dir: str,
+                         annotations_dir: str,
+                         figure_data_dir: str,
+                         evaluator_results_dir: str,
+                         loops: list[int] | None = None,
+                         n_segments: int = 100,
+                         compactness: float = 0.01,
+                         topk_pct: float = 5.0,
+                         max_workers: int = 6,
+                         **kwargs) -> Optional[pd.DataFrame]:
+    saliency_kwargs = locals()
+    saliency_kwargs.pop("result")
+    output_dir = os.path.join(figure_data_dir, "metrics")
+    output_filename = f"{result}_{readout}"
+    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+
+    run_saliency_analysis_parallel(**saliency_kwargs)
+
+    existing_file = check_for_file(output_file)
+    if existing_file is not None:
+        return existing_file
+
+    raise ValueError("This shouldnt happen!")
+
+    
+
+
 
 
 
