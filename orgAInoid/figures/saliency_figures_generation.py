@@ -758,7 +758,7 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
 
     return
 
-SaliencyResults = Literal["agreement_methods_pairwise", "cross_model_correlations",
+SaliencyResults = Literal["agreement_method_pairwise", "cross_model_correlations",
                           "dice_to_peak_timeseries", "entropy_drift_timeseries",
                           "region_votes_summary"]
 
@@ -787,7 +787,6 @@ def get_saliency_results(result: SaliencyResults,
     output_filename = f"{result}_{readout}"
     output_file = os.path.join(output_dir, f"{output_filename}.csv")
 
-    print(output_file)
     existing_file = check_for_file(output_file)
     if existing_file is not None:
         return existing_file
