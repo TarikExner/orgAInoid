@@ -34,16 +34,23 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
-        # aggregate mean across experiments + wells
+        # mean across experiments + wells
         agg = (data.groupby(["model", "hours", "method"], as_index=False)["entropy"]
                      .mean())
 
         models = sorted(agg["model"].unique())
-        sub = gs.subgridspec(1, 3, wspace=0)
+
+        sub = gs.subgridspec(1, 4, wspace=0)
+
+        n_methods = agg["method"].nunique()
         palette = "tab10"
 
         axes = []
+        handles, labels = None, None
+
         for i, m in enumerate(models):
+            if i >= 3:
+                break  # only first 3 models shown here
             axm = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
             dat = agg[agg["model"] == m]
             sns.lineplot(
@@ -51,23 +58,39 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
                 x="hours",
                 y="entropy",
                 hue="method",
-                errorbar=None,
+                errorbar="se",
                 marker="",
                 linewidth=0.9,
                 palette=palette,
                 ax=axm,
             )
-            axm.set_title(f"Entropy Diffusion for {readout}: {m}", fontsize=cfg.TITLE_SIZE)
+            axm.set_title(f"Entropy Diffusion\nRPE emergence: {m}", fontsize=cfg.TITLE_SIZE)
             axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
-            axm.set_ylabel("Entropy (lower = more focused)" if i == 0 else "", fontsize=cfg.AXIS_LABEL_SIZE)
             axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
 
-            if i > 0:
-                axm.get_legend().remove()
+            if i == 0:
+                axm.set_ylabel("Entropy (lower = more focused)", fontsize=cfg.AXIS_LABEL_SIZE)
+                handles, labels = axm.get_legend_handles_labels()
             else:
-                axm.legend(title="Method", fontsize=cfg.AXIS_LABEL_SIZE, frameon=False)
+                axm.set_ylabel("")
 
+            axm.get_legend().remove()
             axes.append(axm)
+
+        ax_leg = fig.add_subplot(sub[0, 3])
+        ax_leg.axis("off")
+        if handles and labels:
+            leg = ax_leg.legend(
+                handles, labels,
+                loc="center",
+                frameon=False,
+                ncol=1,
+                title="Method",
+                fontsize=cfg.AXIS_LABEL_SIZE,
+                markerscale=4
+            )
+            for line in leg.get_lines():
+                line.set_linewidth(2.5)
 
     def generate_subfigure_b(fig: Figure,
                              ax: Axes,
@@ -210,10 +233,10 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
             axm.set_ylabel("Entropy (lower = more focused)" if i == 0 else "", fontsize=cfg.AXIS_LABEL_SIZE)
             axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
 
-            if i > 0:
+            if i != 2:
                 axm.get_legend().remove()
             else:
-                axm.legend(title="Method", fontsize=cfg.AXIS_LABEL_SIZE, frameon=False)
+                axm.legend(bbox_to_anchor = (1.05, 0.5), loc = "center left", title="Method", fontsize=cfg.AXIS_LABEL_SIZE, frameon=False)
 
             axes.append(axm)
 
