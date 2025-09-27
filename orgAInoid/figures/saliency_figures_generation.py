@@ -758,7 +758,7 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
 
     return
 
-SaliencyResults = Literal["agreement_methods", "cross_model_correlations",
+SaliencyResults = Literal["agreement_methods_pairwise", "cross_model_correlations",
                           "dice_to_peak_timeseries", "entropy_drift_timeseries",
                           "region_votes_summary"]
 
