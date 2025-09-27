@@ -10,7 +10,7 @@ from scipy.ndimage import zoom, center_of_mass
 
 from .figure_data_utils import Readouts
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 METHOD_FAMILIES = {
     "grad_based": {"IG_NT", "SAL_NT", "DLS"},
@@ -146,28 +146,78 @@ class samplekey:
 def extract_loop_int(loop: str):
     return int(loop.split("LO")[1])
 
-def iter_h5_samples(h5_path: str):
-    """Yield (well, loop, sample_dict) where sample_dict mirrors `save_saliency_h5` content."""
+def iter_h5_samples(
+    h5_path: str,
+    loops: list[int] | None = None,
+    models: list[str] | None = None,
+    methods: list[str] | None = None,
+    load_trained: bool = True,
+    load_baseline: bool = True,
+):
+    """
+    Yield (well, loop_int, sample_dict) where sample_dict mirrors `save_saliency_h5`,
+    but only loads requested subsets to speed things up.
+
+    Parameters
+    ----------
+    h5_path : str
+        Path to a single {experiment}_{well}_{readout}.h5 file.
+    loops : list[int] | None
+        If given, only these loop IDs are read; else read all.
+    models : list[str] | None
+        If given, only these model groups are read.
+    methods : list[str] | None
+        If given, only these attribution function groups are read.
+    load_trained / load_baseline : bool
+        Toggle reading the corresponding datasets.
+    """
+    loops_set = None if loops is None else {int(x) for x in loops}
+
     with h5py.File(h5_path, "r") as h5f:
         for well in h5f.keys():
             grp_well = h5f[well]
-            for loop in grp_well.keys():
-                grp_loop = grp_well[loop]
+
+            # Pick loop keys (fast, no scanning beyond the needed ones)
+            loop_keys = list(grp_well.keys())
+            if loops_set is not None:
+                loop_keys = [lk for lk in loop_keys if extract_loop_int(lk) in loops_set]
+            loop_keys.sort(key=extract_loop_int)
+
+            for loop_key in loop_keys:
+                grp_loop = grp_well[loop_key]
                 sample = {}
+
+                # Always read image + mask
                 sample["image"] = grp_loop["input_image"][...]
-                sample["mask"] = grp_loop["mask"][...]
-                for model in grp_loop.keys():
-                    if model in ("input_image", "mask"):
-                        continue
+                sample["mask"]  = grp_loop["mask"][...]
+
+                # Restrict model groups
+                model_keys = [k for k in grp_loop.keys() if k not in ("input_image", "mask")]
+                if models is not None:
+                    allowed_models = set(models)
+                    model_keys = [m for m in model_keys if m in allowed_models]
+
+                for model in model_keys:
                     grp_model = grp_loop[model]
                     sample[model] = {}
-                    for fn in grp_model.keys():
+
+                    # Restrict attribution methods
+                    fn_keys = list(grp_model.keys())
+                    if methods is not None:
+                        allowed_methods = set(methods)
+                        fn_keys = [fn for fn in fn_keys if fn in allowed_methods]
+
+                    for fn in fn_keys:
                         grp_fn = grp_model[fn]
-                        sample[model][fn] = {
-                            "trained": grp_fn["trained"][...],
-                            "baseline": grp_fn["baseline"][...],
-                        }
-                yield well, extract_loop_int(loop), sample
+                        entry = {}
+                        if load_trained and "trained" in grp_fn:
+                            entry["trained"] = grp_fn["trained"][...]
+                        if load_baseline and "baseline" in grp_fn:
+                            entry["baseline"] = grp_fn["baseline"][...]
+                        if entry:
+                            sample[model][fn] = entry
+
+                yield well, extract_loop_int(loop_key), sample
 
 
 def collect_maps(sample: dict, use_trained: bool = True) -> Tuple[Dict[str, Dict[str, np.ndarray]], np.ndarray, np.ndarray]:
@@ -321,13 +371,16 @@ def run_saliency_analysis(h5_glob: str,
                           readout: Readouts,
                           f1_csv: pd.DataFrame,
                           output_dir: str,
-                          timepoints: list[int] = [0, 12, 24, 36, 48, 60, 72],
+                          loops: Optional[list[int]] = None,
                           n_segments: int = 500,
                           compactness: float = 0.1,
                           topk_pct: float = 5.0):
 
     h5_files = sorted(glob.glob(h5_glob))
     h5_files = [file for file in h5_files if readout in file]
+
+    if loops is None:
+        loops = np.arange(0,145,6)
 
     h5_files = ["../classification/saliencies/results/E001_A001_RPE_Final.h5"]
 
