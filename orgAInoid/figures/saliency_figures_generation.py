@@ -352,6 +352,7 @@ def run_saliency_analysis(h5_glob: str,
 
         # Per-loop aggregation for this file
         for well_key, loop, sample in iter_h5_samples(h5_path):
+            print(f"... Calculating metrics for well {well_key} in loop {loop} in sample {sample}")
             maps_by_model, img2d, mask2d = collect_maps(sample, use_trained=True)
             norm_by_model = normalize_maps(maps_by_model, mask2d)
 
@@ -381,6 +382,7 @@ def run_saliency_analysis(h5_glob: str,
 
         # After iterating loops of this file: temporal metrics need consensus per loop
         # Re-open to build consensus maps per loop (across methods, averaged across models)
+        print("... Calculating consensus by loop")
         consensus_by_loop: Dict[int, np.ndarray] = {}
         with h5py.File(h5_path, "r") as h5f:
             for well_key in h5f.keys():
@@ -407,6 +409,7 @@ def run_saliency_analysis(h5_glob: str,
                     consensus = build_consensus(method_maps, mask2d, weights=None)
                     consensus_by_loop[loop] = consensus
 
+        print("... Calculating peak maps")
         if series_peak_loop is not None and len(consensus_by_loop) > 0:
             # Align to desired timepoints if given
             # For plotting, we will just use available loops present in H5; user can filter upstream.
@@ -423,6 +426,8 @@ def run_saliency_analysis(h5_glob: str,
                 ed["experiment"] = exp
                 ed["well"] = well
                 ent_drift_rows.append(ed)
+
+    print("... Saving data")
 
     # Concatenate and save metrics
     if all_method_pairs:
