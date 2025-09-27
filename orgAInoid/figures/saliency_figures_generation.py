@@ -532,7 +532,8 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
                                    n_segments: int = 100,
                                    compactness: float = 0.01,
                                    topk_pct: float = 5.0,
-                                   max_workers: int = 6) -> None:
+                                   max_workers: int = 6,
+                                   **kwargs) -> None:
     """Parallel version: one process per H5 file."""
 
     # keep BLAS threads in check inside workers
