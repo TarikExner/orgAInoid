@@ -733,6 +733,8 @@ def _neural_net_evaluation(val_dataset_id: str,
                            weights: Optional[dict] = None,
                            baseline: bool = False) -> tuple:
 
+    kwargs_to_pass = locals()
+
     f1_scores, confusion_matrices = _read_neural_net_results(
         output_dir = output_dir,
         readout = readout,
@@ -745,7 +747,7 @@ def _neural_net_evaluation(val_dataset_id: str,
         return f1_scores, confusion_matrices
     
     # df contains the metadata, the truth values and the pred values
-    df = __neural_net_evaluation(**locals())
+    df = __neural_net_evaluation(**kwargs_to_pass)
 
     f1_dfs = []
 
@@ -857,6 +859,8 @@ def _classifier_evaluation(val_experiment_id: str,
                            baseline: bool = False,
                            external_experiment_id: Optional[str] = None) -> tuple[pd.DataFrame, np.ndarray]:
 
+    kwargs_to_pass = locals()
+
     val_dataset_id = val_experiment_id
 
     if baseline:
@@ -875,11 +879,10 @@ def _classifier_evaluation(val_experiment_id: str,
     )
     if f1_scores is not None and confusion_matrices is not None:
         return f1_scores, confusion_matrices
-
     labels = _get_labels(readout)
 
     # result_df contains the metadata, truth values and pred values
-    result_df = __classifier_evaluation(**locals())
+    result_df = __classifier_evaluation(**kwargs_to_pass)
 
     f1_scores = calculate_f1_scores(result_df)
     f1_scores["experiment"] = val_dataset_id

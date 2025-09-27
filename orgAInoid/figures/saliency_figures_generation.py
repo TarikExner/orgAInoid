@@ -340,7 +340,7 @@ def run_saliency_analysis(h5_glob: str,
     f1 = f1_csv
 
     # Get global peak loop across all wells (since F1 is aggregated)
-    idxmax = f1["ValF1"].idxmax()
+    idxmax = f1["F1"].idxmax()
     series_peak_loop = int(f1.loc[idxmax, "loop"]) if pd.notna(idxmax) else None
     for h5_path in h5_files:
         # parse experiment, well from filename for joins
