@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 from skimage.measure import regionprops
+from skimage.segmentation import slic
 from scipy.ndimage import zoom, center_of_mass
 
 from .figure_data_utils import Readouts
