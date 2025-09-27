@@ -23,6 +23,7 @@ from .figure_S10 import figure_S10_generation
 
 from .figure_S31 import figure_S31_generation
 from .figure_S32 import figure_S32_generation
+from .figure_S33 import figure_S33_generation
 
 from .supp_file_S1 import supplementary_file_S1_generation
 
@@ -53,6 +54,7 @@ __all__ = [
 
     "figure_S31_generation",
     "figure_S32_generation",
+    "figure_S33_generation",
 
     "supplementary_file_S1_generation"
 ]
@@ -156,6 +158,7 @@ def generate_final_figures():
 
     figure_S31_generation(**DIRECTORIES)
     figure_S32_generation(**DIRECTORIES)
+    figure_S33_generation(**DIRECTORIES)
 
     supplementary_file_S1_generation(**DIRECTORIES)
 
