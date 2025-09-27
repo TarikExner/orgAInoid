@@ -234,7 +234,7 @@ def figure_S32_generation(sketch_dir: str,
                           evaluator_results_dir: str,
                           **kwargs) -> None:
     rpe_saliency_results = get_saliency_results(
-        result = "cross_model_correlations",
+        result = "cross_model_correlation",
         readout = "RPE_Final",
         saliency_input_dir = saliency_input_dir,
         raw_data_dir = raw_data_dir,
@@ -249,7 +249,7 @@ def figure_S32_generation(sketch_dir: str,
         evaluator_results_dir = evaluator_results_dir
     )
     lens_saliency_results = get_saliency_results(
-        result = "cross_model_correlations",
+        result = "cross_model_correlation",
         readout = "Lens_Final",
         saliency_input_dir = saliency_input_dir,
         raw_data_dir = raw_data_dir,
@@ -264,7 +264,7 @@ def figure_S32_generation(sketch_dir: str,
         evaluator_results_dir = evaluator_results_dir
     )
     rpe_classes_saliency_results = get_saliency_results(
-        result = "cross_model_correlations",
+        result = "cross_model_correlation",
         readout = "RPE_classes",
         saliency_input_dir = saliency_input_dir,
         raw_data_dir = raw_data_dir,
@@ -279,7 +279,7 @@ def figure_S32_generation(sketch_dir: str,
         evaluator_results_dir = evaluator_results_dir
     )
     lens_classes_saliency_results = get_saliency_results(
-        result = "cross_model_correlations",
+        result = "cross_model_correlation",
         readout = "Lens_classes",
         saliency_input_dir = saliency_input_dir,
         raw_data_dir = raw_data_dir,
