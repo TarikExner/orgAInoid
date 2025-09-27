@@ -50,7 +50,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
             ax=axm
         )
 
-        axm.set_title(readout, fontsize=cfg.TITLE_SIZE)
+        axm.set_title(f"{readout}: Cross-model consistency per saliency method", fontsize=cfg.TITLE_SIZE)
         axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
         axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
         axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
@@ -86,7 +86,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
             ax=axm
         )
 
-        axm.set_title(readout, fontsize=cfg.TITLE_SIZE)
+        axm.set_title(f"{readout}: Cross-model consistency per saliency method", fontsize=cfg.TITLE_SIZE)
         axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
         axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
         axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
@@ -123,7 +123,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
             ax=axm
         )
 
-        axm.set_title(readout, fontsize=cfg.TITLE_SIZE)
+        axm.set_title(f"{readout}: Cross-model consistency per saliency method", fontsize=cfg.TITLE_SIZE)
         axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
         axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
         axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
@@ -160,30 +160,13 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
             ax=axm
         )
 
-        axm.set_title(readout, fontsize=cfg.TITLE_SIZE)
+        axm.set_title(f"{readout}: Cross-model consistency per saliency method", fontsize=cfg.TITLE_SIZE)
         axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
         axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
         axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
         axm.legend(bbox_to_anchor = (1.05, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE)
     
    
-        return
-
-    def generate_subfigure_e(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             handels,
-                             labels,
-                             subfigure_label) -> None:
-
-        ax.axis("off")
-
-        ax = fig.add_subplot(gs)
-        ax.axis("off")
-        leg = ax.legend(handles, labels, loc="center", frameon=False, ncol=6, title="Method pair", fontsize = cfg.AXIS_LABEL_SIZE, markerscale = 4)
-        for line in leg.get_lines():
-            line.set_linewidth(2.5)
-
         return
 
 
