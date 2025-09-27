@@ -573,7 +573,7 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
     h5_files = [p for p in h5_files if str(readout) in os.path.basename(p)]
 
     if loops is None:
-        loops = list(np.arange(0, 145, 6))
+        loops = list(np.arange(0, 145, 1))
 
     # parallel map over files
     results = []
