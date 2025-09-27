@@ -369,7 +369,7 @@ def run_saliency_analysis(h5_glob: str,
             all_cross_model.append(df_cm)
 
             # (3) Region votes (one set of labels per loop)
-            labels = slic_regions(img2d, (mask2d > 0).astype(np.uint8), n_segments=args.n_segments, compactness=args.compactness)
+            labels = slic_regions(img2d, (mask2d > 0).astype(np.uint8), n_segments=n_segments, compactness=compactness)
             # use absolute z-maps averaged per method across models for stability
             merged = {fn: np.mean(np.stack([md[fn] for md in norm_by_model.values() if fn in md], axis=0), axis=0) for fn in sorted({fn for md in norm_by_model.values() for fn in md.keys()})}
             votes_df = region_vote(merged, labels, top_quantile=0.9)
