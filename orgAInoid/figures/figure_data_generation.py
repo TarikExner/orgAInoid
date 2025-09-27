@@ -1224,7 +1224,7 @@ def auc_per_experiment(
     exp_col: str = "experiment",
     method_col: str = "classifier",
     paired_test: str = "wilcoxon",   # or "ttest"
-    normalize_time: bool = True,     # divide AUC by time span -> mean F1 over time
+    normalize_time: bool = True,
     plot: bool = True
 ):
     """
@@ -1251,7 +1251,6 @@ def auc_per_experiment(
         rows.append({exp_col: exp, method_col: meth, "AUC": float(auc), "n_timepts": len(t)})
     auc_df = pd.DataFrame(rows)
 
-    # --- paired tests (per pair of methods, paired by experiment) ---
     piv = auc_df.pivot(index=exp_col, columns=method_col, values="AUC")
     methods = list(piv.columns)
     stats_rows = []
@@ -1280,7 +1279,7 @@ def auc_per_experiment(
         })
     stats_df = pd.DataFrame(stats_rows)
 
-    # Holm-Bonferroni correction (optional but helpful)
+    # Holm-Bonferroni correction
     if not stats_df.empty:
         m = len(stats_df)
         stats_df = stats_df.sort_values("p_value").reset_index(drop=True)
