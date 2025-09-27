@@ -328,6 +328,8 @@ def run_saliency_analysis(h5_glob: str,
     h5_files = sorted(glob.glob(h5_glob))
     h5_files = [file for file in h5_files if readout in file]
 
+    h5_files = ["../classification/saliencies/results/E001_A001_RPE_Final.h5"]
+
     # Collect per-sample outputs
     all_method_pairs = []
     all_cross_model = []
