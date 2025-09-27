@@ -380,7 +380,7 @@ def run_saliency_analysis(h5_glob: str,
     h5_files = [file for file in h5_files if readout in file]
 
     if loops is None:
-        loops = np.arange(0,145,6)
+        loops = list(np.arange(0,145,6))
 
     h5_files = ["../classification/saliencies/results/E001_A001_RPE_Final.h5"]
 
@@ -404,7 +404,7 @@ def run_saliency_analysis(h5_glob: str,
         _readout = "_".join([readout1, readout2])
 
         # Per-loop aggregation for this file
-        for well_key, loop, sample in iter_h5_samples(h5_path):
+        for well_key, loop, sample in iter_h5_samples(h5_path, loops = loops):
             print(f"... Calculating metrics for well {well_key} in loop {loop}")
             maps_by_model, img2d, mask2d = collect_maps(sample, use_trained=True)
             norm_by_model = normalize_maps(maps_by_model, mask2d)
