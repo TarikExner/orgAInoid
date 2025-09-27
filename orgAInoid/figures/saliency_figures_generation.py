@@ -1,3 +1,5 @@
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import itertools
 import os
 import glob
 import h5py
@@ -9,6 +11,7 @@ from skimage.segmentation import slic
 from scipy.ndimage import zoom, center_of_mass
 
 from .figure_data_utils import Readouts
+from .figure_data_generation import get_classification_f1_data
 
 from typing import Dict, Tuple, Optional
 
@@ -367,144 +370,268 @@ def dice_to_peak_timeseries(consensus_by_time: Dict[int, np.ndarray], mask2d: np
     return pd.DataFrame(rows)
 
 
-def run_saliency_analysis(h5_glob: str,
-                          readout: Readouts,
-                          f1_csv: pd.DataFrame,
-                          output_dir: str,
-                          loops: Optional[list[int]] = None,
-                          n_segments: int = 500,
-                          compactness: float = 0.1,
-                          topk_pct: float = 5.0):
 
-    h5_files = sorted(glob.glob(h5_glob))
-    h5_files = [file for file in h5_files if readout in file]
+
+def _worker_process_file(h5_path: str,
+                         loops: list[int],
+                         n_segments: int,
+                         compactness: float,
+                         topk_pct: float,
+                         series_peak_loop: int | None):
+    """Runs all metrics for one H5 file. Returns plain Python data (lists/dfs)."""
+    # Containers for this file
+    method_pairs_rows = []
+    cross_model_rows = []
+    region_votes_frames = []
+    dice_to_peak_rows = []
+    ent_drift_frames = []
+
+    base = os.path.basename(h5_path)
+    try:
+        # adapt to your file naming
+        file_stem = base.split(".h5")[0]
+        parts = file_stem.split("_")
+        if len(parts) == 4:
+            exp, well_from_name, r1, r2 = parts
+            readout_in_path = f"{r1}_{r2}"
+        elif len(parts) == 3:
+            exp, well_from_name, readout_in_path = parts
+        else:
+            exp, well_from_name, readout_in_path = "unknown", "unknown", file_stem
+    except Exception:
+        exp, well_from_name, readout_in_path = "unknown", "unknown", base
+
+    with h5py.File(h5_path, "r", swmr=True) as h5f:
+        for well_key in h5f.keys():
+            grp_well = h5f[well_key]
+
+            # choose loops
+            loop_keys = sorted(grp_well.keys(), key=extract_loop_int)
+            if loops is not None:
+                want = set(int(x) for x in loops)
+                loop_keys = [lk for lk in loop_keys if extract_loop_int(lk) in want]
+            if not loop_keys:
+                continue
+
+            consensus_by_loop: dict[int, np.ndarray] = {}
+            mask_for_series = None
+
+            for loop_str in loop_keys:
+                loop = extract_loop_int(loop_str)
+                grp_loop = grp_well[loop_str]
+
+                img = grp_loop["input_image"][...]
+                img2d = np.mean(img[0], axis=0) if img.ndim == 4 else np.mean(img, axis=0)
+                mask2d = grp_loop["mask"][...].squeeze().astype(np.float32)
+                mask_for_series = mask2d
+
+                # collect maps (trained only) and normalize in-mask
+                maps_by_model = {}
+                maps_per_method = {}
+                for model in grp_loop.keys():
+                    if model in ("input_image", "mask"):
+                        continue
+                    gmodel = grp_loop[model]
+                    model_maps = {}
+                    for fn in gmodel.keys():
+                        atr = gmodel[fn]["trained"][...].squeeze().astype(np.float32)
+                        atr = zscore_in_mask(atr, mask2d)
+                        model_maps[fn] = atr
+                        maps_per_method.setdefault(fn, []).append(atr)
+                    maps_by_model[model] = model_maps
+
+                methods = sorted(maps_per_method.keys())
+                merged_per_method = {fn: np.mean(np.stack(lst, axis=0), axis=0)
+                                     for fn, lst in maps_per_method.items()}
+
+                # (1) method agreement (pairwise Dice over top-k)
+                for i, a in enumerate(methods):
+                    for j in range(i + 1, len(methods)):
+                        b = methods[j]
+                        scores = []
+                        for k in (1, 5, 10):
+                            Ma = topk_mask_from_abs(merged_per_method[a], k, mask2d)
+                            Mb = topk_mask_from_abs(merged_per_method[b], k, mask2d)
+                            scores.append(dice(Ma, Mb))
+                        method_pairs_rows.append({
+                            "experiment": exp, "well": well_key, "loop": loop,
+                            "method_a": a, "method_b": b, "dice_avg": float(np.mean(scores))
+                        })
+
+                # (2) cross-model consistency (rank corr per method)
+                rank_maps = {m: {fn: to_rank(amap, mask2d) for fn, amap in md.items()}
+                             for m, md in maps_by_model.items()}
+                model_list = sorted(rank_maps.keys())
+                for fn in methods:
+                    for i in range(len(model_list)):
+                        for j in range(i + 1, len(model_list)):
+                            m1, m2 = model_list[i], model_list[j]
+                            if fn not in rank_maps[m1] or fn not in rank_maps[m2]:
+                                continue
+                            r1 = rank_maps[m1][fn]
+                            r2 = rank_maps[m2][fn]
+                            corr = kendall_tau_like(r1, r2)
+                            cross_model_rows.append({
+                                "experiment": exp, "well": well_key, "loop": loop,
+                                "method": fn, "model_a": m1, "model_b": m2, "rank_corr": float(corr)
+                            })
+
+                # (3) region votes (SLIC once per loop)
+                labels = slic_regions(img2d, (mask2d > 0).astype(np.uint8),
+                                      n_segments=n_segments, compactness=compactness)
+                votes_df = region_vote(merged_per_method, labels, top_quantile=0.9)
+                if not votes_df.empty:
+                    votes_df["experiment"] = exp
+                    votes_df["well"] = well_key
+                    votes_df["loop"] = loop
+                    region_votes_frames.append(votes_df)
+
+                # consensus for temporal metrics
+                consensus = build_consensus(merged_per_method, mask2d, weights=None)
+                consensus_by_loop[loop] = consensus
+
+            # temporal metrics vs global peak
+            if series_peak_loop is not None and consensus_by_loop:
+                peak_map = consensus_by_loop.get(series_peak_loop)
+                if peak_map is not None and mask_for_series is not None:
+                    peak_mask = topk_mask_from_abs(peak_map, topk_pct, mask_for_series)
+                    for t, cmap in sorted(consensus_by_loop.items()):
+                        Mt = topk_mask_from_abs(cmap, topk_pct, mask_for_series)
+                        dice_val = dice(Mt, peak_mask)
+                        dice_to_peak_rows.append({
+                            "experiment": exp, "well": well_key, "loop": t, "dice_to_peak": dice_val
+                        })
+                    ed = entropy_and_drift(consensus_by_loop, mask_for_series)
+                    ed["experiment"] = exp
+                    ed["well"] = well_key
+                    ent_drift_frames.append(ed)
+
+    return {
+        "pairs": method_pairs_rows,
+        "cross": cross_model_rows,
+        "votes": (pd.concat(region_votes_frames, ignore_index=True)
+                  if region_votes_frames else pd.DataFrame()),
+        "d2p": dice_to_peak_rows,
+        "ed": (pd.concat(ent_drift_frames, ignore_index=True)
+               if ent_drift_frames else pd.DataFrame()),
+    }
+
+
+def run_saliency_analysis_parallel(saliency_input_dir: str,
+                                   readout: Readouts,
+                                   raw_data_dir: str,
+                                   morphometrics_dir: str,
+                                   hyperparameter_dir: str,
+                                   rpe_classification_dir: str,
+                                   lens_classification_dir: str,
+                                   rpe_classes_classification_dir: str,
+                                   lens_classes_classification_dir: str,
+                                   figure_data_dir: str,
+                                   evaluator_results_dir: str,
+                                   loops: list[int] | None = None,
+                                   n_segments: int = 100,
+                                   compactness: float = 0.01,
+                                   topk_pct: float = 5.0,
+                                   max_workers: int = 6) -> None:
+    """Parallel version: one process per H5 file."""
+
+    # keep BLAS threads in check inside workers
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    os.environ.setdefault("MKL_NUM_THREADS", "1")
+    os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+    os.environ.setdefault("NUMEXPR_MAX_THREADS", "1")
+
+    path_map = {
+        "RPE_Final": rpe_classification_dir,
+        "Lens_Final": lens_classification_dir,
+        "RPE_classes": rpe_classes_classification_dir,
+        "Lens_classes": lens_classes_classification_dir,
+    }
+
+    f1_scores = get_classification_f1_data(
+        readout=readout,
+        output_dir=figure_data_dir,
+        proj="",
+        hyperparameter_dir=hyperparameter_dir,
+        classification_dir=path_map[readout],
+        baseline_dir=None,
+        morphometrics_dir=morphometrics_dir,
+        raw_data_dir=raw_data_dir,
+        evaluator_results_dir=evaluator_results_dir,
+    )
+    f1_scores: pd.DataFrame = (f1_scores[f1_scores["classifier"] == "Ensemble_val"]
+                               .copy().reset_index(drop=True))
+
+    # global peak loop from aggregated F1
+    idxmax = f1_scores["F1"].idxmax()
+    series_peak_loop = int(f1_scores.loc[idxmax, "loop"]) if pd.notna(idxmax) else None
+
+    # files to process
+    h5_files = sorted(glob.glob(os.path.join(saliency_input_dir, "*")))
+    # keep only files for this readout
+    h5_files = [p for p in h5_files if str(readout) in os.path.basename(p)]
 
     if loops is None:
-        loops = list(np.arange(0,145,6))
+        loops = list(np.arange(0, 145, 6))
 
-    h5_files = ["../classification/saliencies/results/E001_A001_RPE_Final.h5"]
+    # parallel map over files
+    results = []
+    with ProcessPoolExecutor(max_workers=max_workers) as ex:
+        futs = [
+            ex.submit(
+                _worker_process_file,
+                h5_path=p,
+                loops=loops,
+                n_segments=n_segments,
+                compactness=compactness,
+                topk_pct=topk_pct,
+                series_peak_loop=series_peak_loop,
+            )
+            for p in h5_files
+        ]
+        for fut in as_completed(futs):
+            results.append(fut.result())
 
-    # Collect per-sample outputs
-    all_method_pairs = []
-    all_cross_model = []
-    all_region_votes = []
-    dice_to_peak_rows = []
-    ent_drift_rows = []
+    # merge outputs
+    all_method_pairs = list(itertools.chain.from_iterable(r["pairs"] for r in results))
+    all_cross_model = list(itertools.chain.from_iterable(r["cross"] for r in results))
+    all_d2p = list(itertools.chain.from_iterable(r["d2p"] for r in results))
 
-    f1 = f1_csv
+    votes_list = [r["votes"] for r in results if isinstance(r["votes"], pd.DataFrame) and not r["votes"].empty]
+    ed_list = [r["ed"] for r in results if isinstance(r["ed"], pd.DataFrame) and not r["ed"].empty]
+    votes_df = pd.concat(votes_list, ignore_index=True) if votes_list else pd.DataFrame()
+    ed_df = pd.concat(ed_list, ignore_index=True) if ed_list else pd.DataFrame()
 
-    # Get global peak loop across all wells (since F1 is aggregated)
-    idxmax = f1["F1"].idxmax()
-    series_peak_loop = int(f1.loc[idxmax, "loop"]) if pd.notna(idxmax) else None
-    for h5_path in h5_files:
-        # parse experiment, well from filename for joins
-        base = os.path.basename(h5_path)
-        file_name = base.split(".h5")[0]
-        exp, well, readout1, readout2 = file_name.split("_")
-        _readout = "_".join([readout1, readout2])
+    # save
+    os.makedirs(os.path.join(figure_data_dir, "metrics"), exist_ok=True)
 
-        # Per-loop aggregation for this file
-        for well_key, loop, sample in iter_h5_samples(h5_path, loops = loops):
-            print(f"... Calculating metrics for well {well_key} in loop {loop}")
-            maps_by_model, img2d, mask2d = collect_maps(sample, use_trained=True)
-            norm_by_model = normalize_maps(maps_by_model, mask2d)
-
-            # (1) Method agreement
-            df_pairs = method_agreement_for_sample(norm_by_model, mask2d)
-            df_pairs["experiment"] = exp
-            df_pairs["well"] = well_key
-            df_pairs["loop"] = loop
-            all_method_pairs.append(df_pairs)
-
-            # (2) Cross-model consistency
-            df_cm = cross_model_consistency(norm_by_model, mask2d)
-            df_cm["experiment"] = exp
-            df_cm["well"] = well_key
-            df_cm["loop"] = loop
-            all_cross_model.append(df_cm)
-
-            # (3) Region votes (one set of labels per loop)
-            labels = slic_regions(img2d, (mask2d > 0).astype(np.uint8), n_segments=n_segments, compactness=compactness)
-            # use absolute z-maps averaged per method across models for stability
-            merged = {fn: np.mean(np.stack([md[fn] for md in norm_by_model.values() if fn in md], axis=0), axis=0) for fn in sorted({fn for md in norm_by_model.values() for fn in md.keys()})}
-            votes_df = region_vote(merged, labels, top_quantile=0.9)
-            votes_df["experiment"] = exp
-            votes_df["well"] = well_key
-            votes_df["loop"] = loop
-            all_region_votes.append(votes_df)
-
-        # After iterating loops of this file: temporal metrics need consensus per loop
-        # Re-open to build consensus maps per loop (across methods, averaged across models)
-        print("... Calculating consensus by loop")
-        consensus_by_loop: Dict[int, np.ndarray] = {}
-        with h5py.File(h5_path, "r") as h5f:
-            for well_key in h5f.keys():
-                grp_well = h5f[well_key]
-                for loop_str in grp_well.keys():
-                    loop = extract_loop_int(loop_str)
-                    grp_loop = grp_well[loop_str]
-                    img = grp_loop["input_image"][...]
-                    img2d = np.mean(img[0], axis=0) if img.ndim == 4 else np.mean(img, axis=0)
-                    mask2d = grp_loop["mask"][...].squeeze().astype(np.float32)
-
-                    # gather maps per method across models
-                    maps_per_method: Dict[str, List[np.ndarray]] = {}
-                    for model in grp_loop.keys():
-                        if model in ("input_image", "mask"):
-                            continue
-                        for fn in grp_loop[model].keys():
-                            arr = grp_loop[model][fn]["trained"][...].squeeze().astype(np.float32)
-                            arr = zscore_in_mask(arr, mask2d)
-                            maps_per_method.setdefault(fn, []).append(arr)
-                    # average per method across models
-                    method_maps = {fn: np.mean(np.stack(lst, axis=0), axis=0) for fn, lst in maps_per_method.items()}
-                    # consensus across methods (equal weights or supply custom weights here)
-                    consensus = build_consensus(method_maps, mask2d, weights=None)
-                    consensus_by_loop[loop] = consensus
-
-        print("... Calculating peak maps")
-        if series_peak_loop is not None and len(consensus_by_loop) > 0:
-            # Align to desired timepoints if given
-            # For plotting, we will just use available loops present in H5; user can filter upstream.
-            # Compute Dice vs peak using peak loop as pseudo-ROI
-            peak_map = consensus_by_loop.get(series_peak_loop, None)
-            if peak_map is not None:
-                peak_mask = topk_mask_from_abs(peak_map, topk_pct, mask2d)
-                for t, cmap in sorted(consensus_by_loop.items()):
-                    Mt = topk_mask_from_abs(cmap, topk_pct, mask2d)
-                    dice_val = dice(Mt, peak_mask)
-                    dice_to_peak_rows.append({"experiment": exp, "well": well, "time": t, "dice_to_peak": dice_val})
-                # entropy and drift
-                ed = entropy_and_drift(consensus_by_loop, mask2d)
-                ed["experiment"] = exp
-                ed["well"] = well
-                ent_drift_rows.append(ed)
-
-    print("... Saving data")
-
-    # Concatenate and save metrics
     if all_method_pairs:
-        df_pairs_all = pd.concat(all_method_pairs, ignore_index=True)
-        df_pairs_all.to_csv(os.path.join(output_dir, "metrics", "agreement_method_pairwise.csv"), index=False)
-
+        pd.DataFrame(all_method_pairs).to_csv(
+            os.path.join(figure_data_dir, "metrics", f"agreement_method_pairwise_{readout}.csv"),
+            index=False,
+        )
     if all_cross_model:
-        df_cm_all = pd.concat(all_cross_model, ignore_index=True)
-        df_cm_all.to_csv(os.path.join(output_dir, "metrics", "cross_model_correlation.csv"), index=False)
+        pd.DataFrame(all_cross_model).to_csv(
+            os.path.join(figure_data_dir, "metrics", f"cross_model_correlation_{readout}.csv"),
+            index=False,
+        )
+    if not votes_df.empty:
+        votes_df.to_csv(
+            os.path.join(figure_data_dir, "metrics", f"region_votes_summary_{readout}.csv"),
+            index=False,
+        )
+    if all_d2p:
+        pd.DataFrame(all_d2p).to_csv(
+            os.path.join(figure_data_dir, "metrics", f"dice_to_peak_timeseries_{readout}.csv"),
+            index=False,
+        )
+    if not ed_df.empty:
+        ed_df.to_csv(
+            os.path.join(figure_data_dir, "metrics", f"entropy_drift_timeseries_{readout}.csv"),
+            index=False,
+        )
 
-    if all_region_votes:
-        votes_all = pd.concat(all_region_votes, ignore_index=True)
-        votes_all.to_csv(os.path.join(output_dir, "metrics", "region_votes_summary.csv"), index=False)
-
-    if dice_to_peak_rows:
-        d2p = pd.DataFrame(dice_to_peak_rows)
-        d2p.to_csv(os.path.join(output_dir, "metrics", "dice_to_peak_timeseries.csv"), index=False)
-
-    if ent_drift_rows:
-        ed_all = pd.concat(ent_drift_rows, ignore_index=True)
-        ed_all.to_csv(os.path.join(output_dir, "metrics", "entropy_drift_timeseries.csv"), index=False)
-
-
-
+    return
 
 
 
