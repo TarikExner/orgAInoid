@@ -190,26 +190,23 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
     fig = plt.figure(layout = "constrained",
                      figsize = (cfg.FIGURE_WIDTH_FULL, cfg.FIGURE_HEIGHT_FULL))
     gs = GridSpec(ncols = 6,
-                  nrows = 5,
+                  nrows = 4,
                   figure = fig,
-                  height_ratios = [1,1,1,1,1])
+                  height_ratios = [1,1,1,1])
     a_coords = gs[0,:]
     b_coords = gs[1,:]
     c_coords = gs[2,:]
     d_coords = gs[3,:]
-    e_coords = gs[4,:]
 
     fig_a = fig.add_subplot(a_coords)
     fig_b = fig.add_subplot(b_coords)
     fig_c = fig.add_subplot(c_coords)
     fig_d = fig.add_subplot(d_coords)
-    fig_e = fig.add_subplot(e_coords)
 
-    handles, labels = generate_subfigure_a(fig, fig_a, a_coords, "A")
+    generate_subfigure_a(fig, fig_a, a_coords, "A")
     generate_subfigure_b(fig, fig_b, b_coords, "B")
     generate_subfigure_c(fig, fig_c, c_coords, "C")
     generate_subfigure_d(fig, fig_d, d_coords, "D")
-    generate_subfigure_e(fig, fig_e,  e_coords, handles, labels, "")
 
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.pdf")
     plt.savefig(output_dir, dpi = 300, bbox_inches = "tight")
