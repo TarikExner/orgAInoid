@@ -24,55 +24,37 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
                              gs: SubplotSpec,
-                             subfigure_label) -> tuple:
+                             subfigure_label) -> None:
         ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.4)
+        utils._figure_label(ax, subfigure_label, x=-0.4)
 
         readout = "RPE emergence"
 
         data = rpe_sal.copy()
-        data["pair"] = [f"{a}::{b}" for a, b in zip(data["method_a"], data["method_b"])]
         data["loop"] = data["loop"].astype(int)
         data["hours"] = data["loop"] / 2
-    
-        # aggregate: mean across experiments+wells
-        agg = (data.groupby(["model", "hours", "pair"], as_index=False)["dice_avg"]
-               .mean())
-    
-        models = sorted(agg["model"].unique())
-    
-        # 1×4 grid, shared y-axis, no horizontal spacing
-        sub = gs.subgridspec(1, 3, wspace=0)
-        palette = sns.color_palette("husl", n_colors=agg["pair"].nunique())
-    
-        axes = []
-        for i, m in enumerate(models):
-            ax = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
-            dat = agg[agg["model"] == m]
-            sns.lineplot(
-                data=dat,
-                x="hours",
-                y="dice_avg",
-                hue="pair",
-                marker="",
-                palette=palette,
-                errorbar=None,
-                ax=ax,
-                linewidth = 0.5
-            )
-            ax.set_title(f"{readout}: {m}", fontsize = cfg.TITLE_SIZE)
-            ax.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
-            ax.set_ylim(-0.05, 1.05)
-            ax.tick_params(labelsize = cfg.AXIS_LABEL_SIZE)
-            if i == 0:
-                ax.set_ylabel("Dice coefficient", fontsize = cfg.AXIS_LABEL_SIZE)
-            else:
-                ax.set_ylabel("")
-            ax.get_legend().remove()
-            axes.append(ax)
 
-        handles, labels = axes[0].get_legend_handles_labels()
-        return handles, labels
+        agg = (data.groupby(["method", "hours"])["rank_corr"]
+                  .agg(["mean", "sem"])
+                  .reset_index())
+
+        sub = gs.subgridspec(1, 1)
+        axm = fig.add_subplot(sub[0, 0])
+        sns.lineplot(
+            data=agg,
+            x="hours",
+            y="mean",
+            hue="method",
+            marker="",
+            errorbar="se",
+            ax=axm
+        )
+
+        axm.set_title(readout, fontsize=cfg.TITLE_SIZE)
+        axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
+        axm.legend(bbox_to_anchor = (1.05, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE)
 
 
     def generate_subfigure_b(fig: Figure,
@@ -85,46 +67,30 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
         readout = "Lens emergence"
 
         data = lens_sal.copy()
-        data["pair"] = [f"{a}::{b}" for a, b in zip(data["method_a"], data["method_b"])]
         data["loop"] = data["loop"].astype(int)
         data["hours"] = data["loop"] / 2
-    
-        # aggregate: mean across experiments+wells
-        agg = (data.groupby(["model", "hours", "pair"], as_index=False)["dice_avg"]
-               .mean())
-    
-        models = sorted(agg["model"].unique())
-    
-        # 1×4 grid, shared y-axis, no horizontal spacing
-        sub = gs.subgridspec(1, 3, wspace=0)
-        palette = sns.color_palette("husl", n_colors=agg["pair"].nunique())
-    
-        axes = []
-        for i, m in enumerate(models):
-            ax = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
-            dat = agg[agg["model"] == m]
-            sns.lineplot(
-                data=dat,
-                x="hours",
-                y="dice_avg",
-                hue="pair",
-                marker="",
-                palette=palette,
-                errorbar=None,
-                ax=ax,
-                linewidth = 0.5
-            )
-            ax.set_title(f"{readout}: {m}", fontsize = cfg.TITLE_SIZE)
-            ax.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
-            ax.set_ylim(-0.05, 1.05)
-            ax.tick_params(labelsize = cfg.AXIS_LABEL_SIZE)
-            if i == 0:
-                ax.set_ylabel("Dice coefficient", fontsize = cfg.AXIS_LABEL_SIZE)
-            else:
-                ax.set_ylabel("")
-            ax.get_legend().remove()
-            axes.append(ax)
 
+        agg = (data.groupby(["method", "hours"])["rank_corr"]
+                  .agg(["mean", "sem"])
+                  .reset_index())
+
+        sub = gs.subgridspec(1, 1)
+        axm = fig.add_subplot(sub[0, 0])
+        sns.lineplot(
+            data=agg,
+            x="hours",
+            y="mean",
+            hue="method",
+            marker="",
+            errorbar="se",
+            ax=axm
+        )
+
+        axm.set_title(readout, fontsize=cfg.TITLE_SIZE)
+        axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
+        axm.legend(bbox_to_anchor = (1.05, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE)
         return
 
     def generate_subfigure_c(fig: Figure,
@@ -138,46 +104,30 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
         readout = "RPE area"
 
         data = rpe_classes_sal.copy()
-        data["pair"] = [f"{a}::{b}" for a, b in zip(data["method_a"], data["method_b"])]
         data["loop"] = data["loop"].astype(int)
         data["hours"] = data["loop"] / 2
-    
-        # aggregate: mean across experiments+wells
-        agg = (data.groupby(["model", "hours", "pair"], as_index=False)["dice_avg"]
-               .mean())
-    
-        models = sorted(agg["model"].unique())
-    
-        # 1×4 grid, shared y-axis, no horizontal spacing
-        sub = gs.subgridspec(1, 3, wspace=0)
-        palette = sns.color_palette("husl", n_colors=agg["pair"].nunique())
-    
-        axes = []
-        for i, m in enumerate(models):
-            ax = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
-            dat = agg[agg["model"] == m]
-            sns.lineplot(
-                data=dat,
-                x="hours",
-                y="dice_avg",
-                hue="pair",
-                marker="",
-                palette=palette,
-                errorbar=None,
-                ax=ax,
-                linewidth = 0.5
-            )
-            ax.set_title(f"{readout}: {m}", fontsize = cfg.TITLE_SIZE)
-            ax.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
-            ax.set_ylim(-0.05, 1.05)
-            ax.tick_params(labelsize = cfg.AXIS_LABEL_SIZE)
-            if i == 0:
-                ax.set_ylabel("Dice coefficient", fontsize = cfg.AXIS_LABEL_SIZE)
-            else:
-                ax.set_ylabel("")
-            ax.get_legend().remove()
-            axes.append(ax)
 
+        agg = (data.groupby(["method", "hours"])["rank_corr"]
+                  .agg(["mean", "sem"])
+                  .reset_index())
+
+        sub = gs.subgridspec(1, 1)
+        axm = fig.add_subplot(sub[0, 0])
+        sns.lineplot(
+            data=agg,
+            x="hours",
+            y="mean",
+            hue="method",
+            marker="",
+            errorbar="se",
+            ax=axm
+        )
+
+        axm.set_title(readout, fontsize=cfg.TITLE_SIZE)
+        axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
+        axm.legend(bbox_to_anchor = (1.05, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE)
     
         return
 
@@ -191,47 +141,32 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
         readout = "Lens sizes"
 
         data = lens_classes_sal.copy()
-        data["pair"] = [f"{a}::{b}" for a, b in zip(data["method_a"], data["method_b"])]
         data["loop"] = data["loop"].astype(int)
         data["hours"] = data["loop"] / 2
-    
-        # aggregate: mean across experiments+wells
-        agg = (data.groupby(["model", "hours", "pair"], as_index=False)["dice_avg"]
-               .mean())
-    
-        models = sorted(agg["model"].unique())
-    
-        # 1×4 grid, shared y-axis, no horizontal spacing
-        sub = gs.subgridspec(1, 3, wspace=0)
-        palette = sns.color_palette("husl", n_colors=agg["pair"].nunique())
-    
-        axes = []
-        for i, m in enumerate(models):
-            ax = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
-            dat = agg[agg["model"] == m]
-            sns.lineplot(
-                data=dat,
-                x="hours",
-                y="dice_avg",
-                hue="pair",
-                marker="",
-                palette=palette,
-                errorbar=None,
-                ax=ax,
-                linewidth = 0.5
-            )
-            ax.set_title(f"{readout}: {m}", fontsize = cfg.TITLE_SIZE)
-            ax.set_xlabel("hours", fontsize = cfg.AXIS_LABEL_SIZE)
-            ax.set_ylim(-0.05, 1.05)
-            ax.tick_params(labelsize = cfg.AXIS_LABEL_SIZE)
-            if i == 0:
-                ax.set_ylabel("Dice coefficient", fontsize = cfg.AXIS_LABEL_SIZE)
-            else:
-                ax.set_ylabel("")
-            ax.get_legend().remove()
-            axes.append(ax)
 
-     
+        agg = (data.groupby(["method", "hours"])["rank_corr"]
+                  .agg(["mean", "sem"])
+                  .reset_index())
+
+        sub = gs.subgridspec(1, 1)
+        axm = fig.add_subplot(sub[0, 0])
+        sns.lineplot(
+            data=agg,
+            x="hours",
+            y="mean",
+            hue="method",
+            marker="",
+            errorbar="se",
+            ax=axm
+        )
+
+        axm.set_title(readout, fontsize=cfg.TITLE_SIZE)
+        axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
+        axm.legend(bbox_to_anchor = (1.05, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE)
+    
+   
         return
 
     def generate_subfigure_e(fig: Figure,
@@ -284,7 +219,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
 
     return
 
-def figure_S31_generation(sketch_dir: str,
+def figure_S32_generation(sketch_dir: str,
                           figure_output_dir: str,
                           saliency_input_dir: str,
                           raw_data_dir: str,
@@ -299,7 +234,7 @@ def figure_S31_generation(sketch_dir: str,
                           evaluator_results_dir: str,
                           **kwargs) -> None:
     rpe_saliency_results = get_saliency_results(
-        result = "agreement_method_pairwise",
+        result = "cross_model_correlations",
         readout = "RPE_Final",
         saliency_input_dir = saliency_input_dir,
         raw_data_dir = raw_data_dir,
@@ -314,7 +249,7 @@ def figure_S31_generation(sketch_dir: str,
         evaluator_results_dir = evaluator_results_dir
     )
     lens_saliency_results = get_saliency_results(
-        result = "agreement_method_pairwise",
+        result = "cross_model_correlations",
         readout = "Lens_Final",
         saliency_input_dir = saliency_input_dir,
         raw_data_dir = raw_data_dir,
@@ -329,7 +264,7 @@ def figure_S31_generation(sketch_dir: str,
         evaluator_results_dir = evaluator_results_dir
     )
     rpe_classes_saliency_results = get_saliency_results(
-        result = "agreement_method_pairwise",
+        result = "cross_model_correlations",
         readout = "RPE_classes",
         saliency_input_dir = saliency_input_dir,
         raw_data_dir = raw_data_dir,
@@ -344,7 +279,7 @@ def figure_S31_generation(sketch_dir: str,
         evaluator_results_dir = evaluator_results_dir
     )
     lens_classes_saliency_results = get_saliency_results(
-        result = "agreement_method_pairwise",
+        result = "cross_model_correlations",
         readout = "Lens_classes",
         saliency_input_dir = saliency_input_dir,
         raw_data_dir = raw_data_dir,
@@ -363,4 +298,4 @@ def figure_S31_generation(sketch_dir: str,
                           rpe_classes_sal = rpe_classes_saliency_results,
                           lens_classes_sal = lens_classes_saliency_results,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S31")
+                          figure_name = "Supplementary_Figure_S32")
