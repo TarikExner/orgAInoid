@@ -365,4 +365,4 @@ def figure_S31_generation(sketch_dir: str,
                           rpe_classes_sal = rpe_classes_saliency_results,
                           lens_classes_sal = lens_classes_saliency_results,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Figure_3")
+                          figure_name = "Supplementary_Figure_S31")
