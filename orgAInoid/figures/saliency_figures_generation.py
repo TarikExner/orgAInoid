@@ -352,7 +352,7 @@ def run_saliency_analysis(h5_glob: str,
 
         # Per-loop aggregation for this file
         for well_key, loop, sample in iter_h5_samples(h5_path):
-            print(f"... Calculating metrics for well {well_key} in loop {loop} in sample {sample}")
+            print(f"... Calculating metrics for well {well_key} in loop {loop}")
             maps_by_model, img2d, mask2d = collect_maps(sample, use_trained=True)
             norm_by_model = normalize_maps(maps_by_model, mask2d)
 
