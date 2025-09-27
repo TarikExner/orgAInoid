@@ -1,4 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from collections import defaultdict
 import itertools
 import os
 import glob
@@ -11,7 +12,7 @@ from skimage.segmentation import slic
 from scipy.ndimage import zoom, center_of_mass
 
 from .figure_data_utils import Readouts
-from .figure_data_generation import get_classification_f1_data
+from .figure_data_generation import get_classification_f1_data, get_dataset_annotations
 
 from typing import Dict, Tuple, Optional
 
@@ -369,9 +370,6 @@ def dice_to_peak_timeseries(consensus_by_time: Dict[int, np.ndarray], mask2d: np
         rows.append({"time": t, "dice_to_peak": dice(Mt, peak_mask)})
     return pd.DataFrame(rows)
 
-
-
-
 def _worker_process_file(h5_path: str,
                          loops: list[int],
                          n_segments: int,
@@ -415,6 +413,7 @@ def _worker_process_file(h5_path: str,
 
             consensus_by_loop: dict[int, np.ndarray] = {}
             mask_for_series = None
+            mm_series: dict[tuple[str, str], dict[int, np.ndarray]] = defaultdict(dict)
 
             for loop_str in loop_keys:
                 loop = extract_loop_int(loop_str)
@@ -441,26 +440,37 @@ def _worker_process_file(h5_path: str,
                     maps_by_model[model] = model_maps
 
                 methods = sorted(maps_per_method.keys())
-                merged_per_method = {fn: np.mean(np.stack(lst, axis=0), axis=0)
-                                     for fn, lst in maps_per_method.items()}
+                merged_per_method = {
+                    fn: np.mean(np.stack(lst, axis=0), axis=0)
+                    for fn, lst in maps_per_method.items()
+                }
 
-                # (1) method agreement (pairwise Dice over top-k)
-                for i, a in enumerate(methods):
-                    for j in range(i + 1, len(methods)):
-                        b = methods[j]
-                        scores = []
-                        for k in (1, 5, 10):
-                            Ma = topk_mask_from_abs(merged_per_method[a], k, mask2d)
-                            Mb = topk_mask_from_abs(merged_per_method[b], k, mask2d)
-                            scores.append(dice(Ma, Mb))
-                        method_pairs_rows.append({
-                            "experiment": exp, "well": well_key, "loop": loop,
-                            "method_a": a, "method_b": b, "dice_avg": float(np.mean(scores))
-                        })
+                # (1) method agreement (pairwise Dice over top-k) — per model
+                for model, md in maps_by_model.items():
+                    m_methods = sorted(md.keys())
+                    for i, a in enumerate(m_methods):
+                        for j in range(i + 1, len(m_methods)):
+                            b = m_methods[j]
+                            scores = []
+                            for k in (1, 5, 10):
+                                Ma = topk_mask_from_abs(md[a], k, mask2d)
+                                Mb = topk_mask_from_abs(md[b], k, mask2d)
+                                scores.append(dice(Ma, Mb))
+                            method_pairs_rows.append({
+                                "experiment": exp,
+                                "well": well_key,
+                                "loop": loop,
+                                "model": model,
+                                "method_a": a,
+                                "method_b": b,
+                                "dice_avg": float(np.mean(scores)),
+                            })
 
                 # (2) cross-model consistency (rank corr per method)
-                rank_maps = {m: {fn: to_rank(amap, mask2d) for fn, amap in md.items()}
-                             for m, md in maps_by_model.items()}
+                rank_maps = {
+                    m: {fn: to_rank(amap, mask2d) for fn, amap in md.items()}
+                    for m, md in maps_by_model.items()
+                }
                 model_list = sorted(rank_maps.keys())
                 for fn in methods:
                     for i in range(len(model_list)):
@@ -472,39 +482,65 @@ def _worker_process_file(h5_path: str,
                             r2 = rank_maps[m2][fn]
                             corr = kendall_tau_like(r1, r2)
                             cross_model_rows.append({
-                                "experiment": exp, "well": well_key, "loop": loop,
-                                "method": fn, "model_a": m1, "model_b": m2, "rank_corr": float(corr)
+                                "experiment": exp,
+                                "well": well_key,
+                                "loop": loop,
+                                "method": fn,
+                                "model_a": m1,
+                                "model_b": m2,
+                                "rank_corr": float(corr),
                             })
 
-                # (3) region votes (SLIC once per loop)
+                # (3) region votes (per model, per loop)
                 labels = slic_regions(img2d, (mask2d > 0).astype(np.uint8),
                                       n_segments=n_segments, compactness=compactness)
-                votes_df = region_vote(merged_per_method, labels, top_quantile=0.9)
-                if not votes_df.empty:
-                    votes_df["experiment"] = exp
-                    votes_df["well"] = well_key
-                    votes_df["loop"] = loop
-                    region_votes_frames.append(votes_df)
+                for _model, _md in maps_by_model.items():
+                    rv_df = region_vote(_md, labels, top_quantile=0.9)  # {_method: map}
+                    if not rv_df.empty:
+                        rv_df["experiment"] = exp
+                        rv_df["well"] = well_key
+                        rv_df["loop"] = loop
+                        rv_df["model"] = _model
+                        region_votes_frames.append(rv_df)
 
-                # consensus for temporal metrics
+                # store maps for entropy/drift per (model, method)
+                for _model, _md in maps_by_model.items():
+                    for _method, _map in _md.items():
+                        mm_series[(_model, _method)][loop] = _map
+
+                # consensus for dice-to-peak (still averaged across models/methods)
                 consensus = build_consensus(merged_per_method, mask2d, weights=None)
                 consensus_by_loop[loop] = consensus
 
-            # temporal metrics vs global peak
-            if series_peak_loop is not None and consensus_by_loop:
-                peak_map = consensus_by_loop.get(series_peak_loop)
-                if peak_map is not None and mask_for_series is not None:
-                    peak_mask = topk_mask_from_abs(peak_map, topk_pct, mask_for_series)
-                    for t, cmap in sorted(consensus_by_loop.items()):
-                        Mt = topk_mask_from_abs(cmap, topk_pct, mask_for_series)
-                        dice_val = dice(Mt, peak_mask)
+            # temporal metrics
+            # (A) entropy & drift per (model, method)
+            for (_model, _method), series_dict in mm_series.items():
+                if not series_dict:
+                    continue
+                ed_mm = entropy_and_drift(series_dict, mask_for_series)  # expects {loop: map}
+                ed_mm["experiment"] = exp
+                ed_mm["well"] = well_key
+                ed_mm["model"] = _model
+                ed_mm["method"] = _method
+                ent_drift_frames.append(ed_mm)
+
+            # (B) dice-to-peak from consensus maps
+            if series_peak_loop is not None:
+                for (_model, _method), series_dict in mm_series.items():
+                    if series_peak_loop not in series_dict:
+                        continue
+                    peak_map_mm = series_dict[series_peak_loop]
+                    peak_mask_mm = topk_mask_from_abs(peak_map_mm, topk_pct, mask_for_series)
+                    for t, amap in sorted(series_dict.items()):
+                        Mt = topk_mask_from_abs(amap, topk_pct, mask_for_series)
                         dice_to_peak_rows.append({
-                            "experiment": exp, "well": well_key, "loop": t, "dice_to_peak": dice_val
+                            "experiment": exp,
+                            "well": well_key,
+                            "loop": t,
+                            "model": _model,
+                            "method": _method,
+                            "dice_to_peak": dice(Mt, peak_mask_mm),
                         })
-                    ed = entropy_and_drift(consensus_by_loop, mask_for_series)
-                    ed["experiment"] = exp
-                    ed["well"] = well_key
-                    ent_drift_frames.append(ed)
 
     return {
         "pairs": method_pairs_rows,
@@ -517,6 +553,82 @@ def _worker_process_file(h5_path: str,
     }
 
 
+def attach_readout_metadata(
+    results: pd.DataFrame,
+    metadata: pd.DataFrame,
+    on_cols=("experiment", "well"),
+    readout_col="readout",
+    suffixes=("", "_meta"),
+    strict=True,
+) -> pd.DataFrame:
+    """
+    Left-merge `readout` from `metadata` into `results` by (experiment, well).
+
+    Parameters
+    ----------
+    results : pd.DataFrame
+        Must contain the columns in `on_cols`.
+    metadata : pd.DataFrame
+        Must contain `on_cols` + `readout_col`. Should have exactly one row per (experiment, well).
+    on_cols : tuple[str, str]
+        Key columns to join on (default: ("experiment","well")).
+    readout_col : str
+        Name of the readout column in metadata (default: "readout").
+    suffixes : tuple[str, str]
+        Suffixes passed to pd.merge to resolve name clashes.
+    strict : bool
+        If True, raises if metadata has duplicate (experiment, well) rows.
+
+    Returns
+    -------
+    pd.DataFrame
+        `results` with a new `readout` column (or the name in `readout_col` if different).
+    """
+    # basic checks
+    for c in on_cols:
+        if c not in results.columns:
+            raise KeyError(f"`results` missing join key column: {c}")
+        if c not in metadata.columns:
+            raise KeyError(f"`metadata` missing join key column: {c}")
+    if readout_col not in metadata.columns:
+        raise KeyError(f"`metadata` missing `{readout_col}` column")
+
+    # ensure one row per (experiment, well) in metadata
+    meta_key_counts = (
+        metadata
+        .groupby(list(on_cols), as_index=False)
+        .size()
+        .rename(columns={"size": "_n"})
+    )
+    dups = meta_key_counts[meta_key_counts["_n"] > 1]
+    if strict and not dups.empty:
+        raise ValueError(
+            "Metadata has duplicate (experiment, well) rows:\n"
+            + dups.to_string(index=False)
+        )
+
+    # if not strict, keep first occurrence
+    if not strict:
+        metadata = metadata.drop_duplicates(subset=list(on_cols), keep="first")
+
+    # do the merge
+    merged = results.merge(
+        metadata[list(on_cols) + [readout_col]],
+        on=list(on_cols),
+        how="left",
+        suffixes=suffixes,
+    )
+
+    # optional: warn if any readout missing
+    if merged[readout_col].isna().any():
+        missing = merged[merged[readout_col].isna()][list(on_cols)].drop_duplicates()
+        print(
+            f"[attach_readout_metadata] Warning: {len(missing)} rows missing `{readout_col}` "
+            f"after merge. Example rows:\n{missing.head(5).to_string(index=False)}"
+        )
+
+    return merged
+
 def run_saliency_analysis_parallel(saliency_input_dir: str,
                                    readout: Readouts,
                                    raw_data_dir: str,
@@ -526,6 +638,7 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
                                    lens_classification_dir: str,
                                    rpe_classes_classification_dir: str,
                                    lens_classes_classification_dir: str,
+                                   annotations_dir: str,
                                    figure_data_dir: str,
                                    evaluator_results_dir: str,
                                    loops: list[int] | None = None,
@@ -562,6 +675,8 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
     )
     f1_scores: pd.DataFrame = (f1_scores[f1_scores["classifier"] == "Ensemble_val"]
                                .copy().reset_index(drop=True))
+
+    metadata = get_dataset_annotations(annotations_dir, figure_data_dir)
 
     # global peak loop from aggregated F1
     idxmax = f1_scores["F1"].idxmax()
@@ -607,26 +722,34 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
     os.makedirs(os.path.join(figure_data_dir, "metrics"), exist_ok=True)
 
     if all_method_pairs:
-        pd.DataFrame(all_method_pairs).to_csv(
+        all_method_pairs_df = pd.DataFrame(all_method_pairs)
+        all_method_pairs_df = attach_readout_metadata(all_method_pairs_df, metadata, readout_col = readout)
+        all_method_pairs.to_csv(
             os.path.join(figure_data_dir, "metrics", f"agreement_method_pairwise_{readout}.csv"),
             index=False,
         )
     if all_cross_model:
-        pd.DataFrame(all_cross_model).to_csv(
+        all_cross_model_df = pd.DataFrame(all_cross_model)
+        all_cross_model_df = attach_readout_metadata(all_cross_model_df, metadata, readout_col = readout)
+        all_cross_model_df.to_csv(
             os.path.join(figure_data_dir, "metrics", f"cross_model_correlation_{readout}.csv"),
             index=False,
         )
     if not votes_df.empty:
+        votes_df = attach_readout_metadata(votes_df, metadata, readout_col = readout)
         votes_df.to_csv(
             os.path.join(figure_data_dir, "metrics", f"region_votes_summary_{readout}.csv"),
             index=False,
         )
     if all_d2p:
-        pd.DataFrame(all_d2p).to_csv(
+        all_d2p_df = pd.DataFrame(all_d2p)
+        all_d2p_df = attach_readout_metadata(all_d2p_df, metadata, readout_col = readout)
+        all_d2p_df.to_csv(
             os.path.join(figure_data_dir, "metrics", f"dice_to_peak_timeseries_{readout}.csv"),
             index=False,
         )
     if not ed_df.empty:
+        ed_df = attach_readout_metadata(ed_df, metadata, readout_col = readout)
         ed_df.to_csv(
             os.path.join(figure_data_dir, "metrics", f"entropy_drift_timeseries_{readout}.csv"),
             index=False,
