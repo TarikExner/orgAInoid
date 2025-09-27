@@ -19,7 +19,8 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
                           lens_classes_sal: pd.DataFrame,
                           figure_output_dir: str = "",
                           figure_name: str = ""):
-
+    
+    thresholds = (2,3,4)
 
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
