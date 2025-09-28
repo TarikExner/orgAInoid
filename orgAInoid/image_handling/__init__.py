@@ -1,6 +1,11 @@
 from ._image_processing import ImageProcessor
 from ._images import OrganoidMaskImage, OrganoidImage, OrganoidMask
-from ._segmentators import DeepLabPredictor, UNetPredictor, HRNETPredictor, MaskPredictor
+from ._segmentators import (
+    DeepLabPredictor,
+    UNetPredictor,
+    HRNETPredictor,
+    MaskPredictor,
+)
 from ._image_handler import ImageHandler
 
 __all__ = [
@@ -12,5 +17,5 @@ __all__ = [
     "UNetPredictor",
     "HRNETPredictor",
     "MaskPredictor",
-    "ImageHandler"
+    "ImageHandler",
 ]

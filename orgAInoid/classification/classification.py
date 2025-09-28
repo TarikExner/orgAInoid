@@ -13,30 +13,36 @@ import itertools
 import random
 import copy
 
-from ._utils import (create_dataloader,
-                     find_ideal_learning_rate,
-                     exclude_batchnorm_weight_decay,
-                     AugmentationScheduler,
-                     RPE_ADJUSTED_CUTOFFS,
-                     LENS_ADJUSTED_CUTOFFS)
-from ._dataset import (OrganoidDataset,
-                       OrganoidTrainingDataset,
-                       OrganoidValidationDataset)
+from ._utils import (
+    create_dataloader,
+    find_ideal_learning_rate,
+    exclude_batchnorm_weight_decay,
+    AugmentationScheduler,
+    RPE_ADJUSTED_CUTOFFS,
+    LENS_ADJUSTED_CUTOFFS,
+)
+from ._dataset import (
+    OrganoidDataset,
+    OrganoidTrainingDataset,
+    OrganoidValidationDataset,
+)
 from .models import DenseNet121, ResNet50, MobileNetV3_Large
 
-def run_experiment_cross_validation_regression(model: str,
-                                               readout: str,
-                                               learning_rate: float,
-                                               batch_size: int,
-                                               n_epochs: int,
-                                               experiment_id: str,
-                                               output_dir = "./results",
-                                               model_output_dir = "./classifiers",
-                                               dataset_input_dir = "./raw_data",
-                                               calculate_learning_rate: bool = True,
-                                               num_classes: int = 2,
-                                               weighted_loss: bool = True) -> None:
 
+def run_experiment_cross_validation_regression(
+    model: str,
+    readout: str,
+    learning_rate: float,
+    batch_size: int,
+    n_epochs: int,
+    experiment_id: str,
+    output_dir="./results",
+    model_output_dir="./classifiers",
+    dataset_input_dir="./raw_data",
+    calculate_learning_rate: bool = True,
+    num_classes: int = 2,
+    weighted_loss: bool = True,
+) -> None:
     experiments = [
         "E001",
         "E002",
@@ -48,50 +54,54 @@ def run_experiment_cross_validation_regression(model: str,
         "E009",
         "E010",
         "E011",
-        "E012"
+        "E012",
     ]
 
     for experiment in experiments:
         if model == "DenseNet121":
-            _model = DenseNet121(num_classes = num_classes)
+            _model = DenseNet121(num_classes=num_classes)
         elif model == "ResNet50":
-            _model = ResNet50(num_classes = num_classes)
+            _model = ResNet50(num_classes=num_classes)
         elif model == "MobileNetV3_Large":
-            _model = MobileNetV3_Large(num_classes = num_classes)
+            _model = MobileNetV3_Large(num_classes=num_classes)
         else:
             raise ValueError("model not found")
-        _cross_validation_train_loop_regression(model = _model,
-                                                readout = readout,
-                                                learning_rate = learning_rate,
-                                                batch_size = batch_size,
-                                                n_epochs = n_epochs,
-                                                experiment_id = experiment_id,
-                                                dataset_id = f"M{experiment}_full_SL3_fixed",
-                                                validation_dataset_id = f"{experiment}_full_SL3_fixed",
-                                                output_dir = output_dir,
-                                                model_output_dir = model_output_dir,
-                                                dataset_input_dir = dataset_input_dir,
-                                                calculate_learning_rate = calculate_learning_rate,
-                                                weighted_loss = weighted_loss)
+        _cross_validation_train_loop_regression(
+            model=_model,
+            readout=readout,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            n_epochs=n_epochs,
+            experiment_id=experiment_id,
+            dataset_id=f"M{experiment}_full_SL3_fixed",
+            validation_dataset_id=f"{experiment}_full_SL3_fixed",
+            output_dir=output_dir,
+            model_output_dir=model_output_dir,
+            dataset_input_dir=dataset_input_dir,
+            calculate_learning_rate=calculate_learning_rate,
+            weighted_loss=weighted_loss,
+        )
 
         gc.collect()
 
 
-def _cross_validation_train_loop_regression(model,
-                                            readout: str,
-                                            learning_rate: float,
-                                            batch_size: int,
-                                            n_epochs: int,
-                                            experiment_id: str,
-                                            dataset_id: str,
-                                            validation_dataset_id: str,
-                                            subsample_frac: float = 0.0,
-                                            output_dir = "./results",
-                                            model_output_dir = "./classifiers",
-                                            dataset_input_dir = "./raw_data",
-                                            calculate_learning_rate: bool = True,
-                                            weighted_loss: bool = True,
-                                            weight_decay: float = 1e-4) -> None:
+def _cross_validation_train_loop_regression(
+    model,
+    readout: str,
+    learning_rate: float,
+    batch_size: int,
+    n_epochs: int,
+    experiment_id: str,
+    dataset_id: str,
+    validation_dataset_id: str,
+    subsample_frac: float = 0.0,
+    output_dir="./results",
+    model_output_dir="./classifiers",
+    dataset_input_dir="./raw_data",
+    calculate_learning_rate: bool = True,
+    weighted_loss: bool = True,
+    weight_decay: float = 1e-4,
+) -> None:
     """\
     Trains model on full dataset in order to find a good baseline model.
 
@@ -106,7 +116,7 @@ def _cross_validation_train_loop_regression(model,
         os.mkdir(model_output_dir)
 
     val_exp = validation_dataset_id[:4]
-    
+
     full_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{dataset_id}.cds")
     )
@@ -120,23 +130,21 @@ def _cross_validation_train_loop_regression(model,
     )
     full_validation_dataset._create_class_counts()
 
-    validation_set = OrganoidValidationDataset(
-        full_validation_dataset,
-        readout = readout
-    )
+    validation_set = OrganoidValidationDataset(full_validation_dataset, readout=readout)
 
     start_timepoint = full_dataset.dataset_metadata.start_timepoint
     stop_timepoint = full_dataset.dataset_metadata.stop_timepoint
     bbox_cropped = full_dataset.image_metadata.cropped_bbox
     bbox_rescaling = full_dataset.image_metadata.rescale_cropped_image
 
-    dataset = OrganoidTrainingDataset(
-        full_dataset,
-        readout = readout,
-        test_size = 0.1
+    dataset = OrganoidTrainingDataset(full_dataset, readout=readout, test_size=0.1)
+
+    X_train, y_train, X_test, y_test = (
+        dataset.X_train,
+        dataset.y_train,
+        dataset.X_test,
+        dataset.y_test,
     )
- 
-    X_train, y_train, X_test, y_test = dataset.X_train, dataset.y_train, dataset.X_test, dataset.y_test
     X_val = validation_set.X
     y_val = validation_set.y
     assert X_train is not None
@@ -170,29 +178,30 @@ def _cross_validation_train_loop_regression(model,
             "DatasetID,TimePoints,CroppedBbox,RescaledBBox\n"
         )
 
-
     # Print current configuration
-    print(f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
-          f"Learning Rate: {learning_rate}, Batch Size: {batch_size}")
-
+    print(
+        f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
+        f"Learning Rate: {learning_rate}, Batch Size: {batch_size}"
+    )
 
     # Initialize the dataloaders
     train_loader = create_dataloader(
-        X_train, y_train,
-        batch_size = batch_size, shuffle = True, train = True,
+        X_train,
+        y_train,
+        batch_size=batch_size,
+        shuffle=True,
+        train=True,
     )
     test_loader = create_dataloader(
-        X_test, y_test,
-        batch_size = batch_size, shuffle = False, train = False
+        X_test, y_test, batch_size=batch_size, shuffle=False, train=False
     )
     val_loader = create_dataloader(
-        X_val, y_val,
-        batch_size = batch_size, shuffle = False, train = False
+        X_val, y_val, batch_size=batch_size, shuffle=False, train=False
     )
 
     # Initialize the model, criterion, and optimizer
     model = model.to(device)
-    
+
     if weighted_loss is True:
         class_weights = 1 / (y_train.sum(axis=0) / y_train.shape[0])
         class_weights = torch.tensor(class_weights).float().to(device)
@@ -200,20 +209,20 @@ def _cross_validation_train_loop_regression(model,
         class_weights = None
 
     criterion = nn.MSELoss()
-    
+
     if calculate_learning_rate is True:
         try:
             optimizer = optim.Adam(
                 filter(lambda p: p.requires_grad, model.parameters()),
                 lr=learning_rate,
-                weight_decay = 1e-4
+                weight_decay=1e-4,
             )
             learning_rate = find_ideal_learning_rate(
-                model = model,
-                criterion = criterion,
-                optimizer = optimizer,
-                train_loader = train_loader,
-                n_tests = 5
+                model=model,
+                criterion=criterion,
+                optimizer=optimizer,
+                train_loader=train_loader,
+                n_tests=5,
             )
         except Exception as e:
             print(str(e))
@@ -228,14 +237,14 @@ def _cross_validation_train_loop_regression(model,
                 learning_rate = 0.0003
 
     optimizer = optim.Adam(
-        exclude_batchnorm_weight_decay(model, weight_decay = weight_decay),
-        lr=learning_rate
+        exclude_batchnorm_weight_decay(model, weight_decay=weight_decay),
+        lr=learning_rate,
     )
 
     print(f"Ideal learning rate at {round(learning_rate, 5)}")
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=10
+        optimizer, mode="max", factor=0.5, patience=10
     )
 
     best_val_f1 = 0
@@ -256,7 +265,6 @@ def _cross_validation_train_loop_regression(model,
 
     print(f"Cutoff 0 is {cutoff_0}")
 
-
     def assign_class(value):
         if value < cutoff_0:
             return 0
@@ -274,11 +282,10 @@ def _cross_validation_train_loop_regression(model,
         train_true = []
         train_preds = []
         train_loss_list = []
-        
+
         for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
             target = target.float()
-
 
             optimizer.zero_grad()
             output = model(data)
@@ -290,7 +297,7 @@ def _cross_validation_train_loop_regression(model,
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
             optimizer.step()
-            
+
             train_loss += loss.item()
             train_loss_list.append(loss.item())
 
@@ -301,7 +308,7 @@ def _cross_validation_train_loop_regression(model,
         loss_dict_train[epoch] = train_loss_list
 
         train_loss /= len(train_loader)
-        train_f1 = f1_score(train_true, train_preds, average='weighted')
+        train_f1 = f1_score(train_true, train_preds, average="weighted")
 
         # Test loop
         model.eval()
@@ -309,34 +316,33 @@ def _cross_validation_train_loop_regression(model,
         test_true = []
         test_preds = []
         test_loss_list = []
-        
+
         with torch.no_grad():
             for data, target in test_loader:
                 data, target = data.to(device), target.to(device)
                 target = target.float()
 
-
                 output = model(data)
                 loss = criterion(output, target)
-                
+
                 test_loss += loss.item()
                 test_loss_list.append(loss.item())
 
                 # Assign classes to predictions and true labels
                 test_preds += [assign_class(val.item()) for val in output.cpu()]
                 test_true += [assign_class(val.item()) for val in target.cpu()]
-        
+
         loss_dict_test[epoch] = test_loss_list
 
         test_loss /= len(test_loader)
-        test_f1 = f1_score(test_true, test_preds, average='weighted')
+        test_f1 = f1_score(test_true, test_preds, average="weighted")
 
         # Validation loop
         val_loss = 0
         val_true = []
         val_preds = []
         val_loss_list = []
-        
+
         with torch.no_grad():
             for data, target in val_loader:
                 data, target = data.to(device), target.to(device)
@@ -344,7 +350,7 @@ def _cross_validation_train_loop_regression(model,
 
                 output = model(data)
                 loss = criterion(output, target)
-                
+
                 val_loss += loss.item()
                 val_loss_list.append(loss.item())
 
@@ -355,89 +361,109 @@ def _cross_validation_train_loop_regression(model,
         loss_dict_val[epoch] = val_loss_list
 
         val_loss /= len(val_loader)
-        val_f1 = f1_score(val_true, val_preds, average='weighted')
+        val_f1 = f1_score(val_true, val_preds, average="weighted")
 
         # Step the learning rate scheduler based on the validation F1 score
         scheduler.step(val_f1)
-        
+
         stop = time.time()
 
         # Print metrics
         print(
-            f"[INFO] Epoch: {epoch+1}/{n_epochs}, "
+            f"[INFO] Epoch: {epoch + 1}/{n_epochs}, "
             f"Train loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Val loss: {val_loss:.4f}, "
             f"Train F1: {train_f1:.4f}, Test F1: {test_f1:.4f}, Val F1: {val_f1:.4f}, "
-            f"Time: {stop-start}"
+            f"Time: {stop - start}"
         )
 
         # Save the best model based on validation F1 score
         if val_f1 > best_val_f1:
             best_val_f1 = val_f1
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with val F1: {best_val_f1:.4f}')
+            print(f"Saved best model with val F1: {best_val_f1:.4f}")
 
         # Save the best model based on test F1 score
         if test_f1 > best_test_f1:
             best_test_f1 = test_f1
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with test F1: {best_test_f1:.4f}')
+            print(f"Saved best model with test F1: {best_test_f1:.4f}")
 
         # Save model checkpoint for every epoch
         torch.save(
-            model.state_dict(), 
+            model.state_dict(),
             os.path.join(
                 model_output_dir,
-                f'{model.__class__.__name__}_epoch_{epoch+1}_{val_exp}_{readout}.pth'
-            )
+                f"{model.__class__.__name__}_epoch_{epoch + 1}_{val_exp}_{readout}.pth",
+            ),
         )
-        
+
         # Write metrics to CSV file
         with open(output_file, "a") as file:
             file.write(
                 f"{experiment_id},{val_exp},{readout},"
                 f"{model.__class__.__name__},{learning_rate},"
-                f"{batch_size},{epoch+1},{train_loss},{test_loss},{val_loss},"
+                f"{batch_size},{epoch + 1},{train_loss},{test_loss},{val_loss},"
                 f"{train_f1},{test_f1},{val_f1},"
                 f"{dataset_id},{start_timepoint}-{stop_timepoint},"
                 f"{bbox_cropped},{bbox_rescaling}\n"
             )
 
-    with open(os.path.join(output_dir, f"train_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"train_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_train, file)
 
-    with open(os.path.join(output_dir, f"test_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"test_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_test, file)
 
-    with open(os.path.join(output_dir, f"val_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"val_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_val, file)
 
     return
 
-def run_experiment_cross_validation(model: str,
-                                    readout: str,
-                                    learning_rate: float,
-                                    batch_size: int,
-                                    n_epochs: int,
-                                    experiment_id: str,
-                                    output_dir = "./results",
-                                    model_output_dir = "./classifiers",
-                                    dataset_input_dir = "./raw_data",
-                                    calculate_learning_rate: bool = True,
-                                    num_classes: int = 2,
-                                    weighted_loss: bool = True) -> None:
 
+def run_experiment_cross_validation(
+    model: str,
+    readout: str,
+    learning_rate: float,
+    batch_size: int,
+    n_epochs: int,
+    experiment_id: str,
+    output_dir="./results",
+    model_output_dir="./classifiers",
+    dataset_input_dir="./raw_data",
+    calculate_learning_rate: bool = True,
+    num_classes: int = 2,
+    weighted_loss: bool = True,
+) -> None:
     experiments = [
         "E001",
         "E002",
@@ -449,55 +475,56 @@ def run_experiment_cross_validation(model: str,
         "E009",
         "E010",
         "E011",
-        "E012"
+        "E012",
     ]
 
     for experiment in experiments:
         if model == "DenseNet121":
-            _model = DenseNet121(num_classes = num_classes)
+            _model = DenseNet121(num_classes=num_classes)
         elif model == "ResNet50":
-            _model = ResNet50(num_classes = num_classes)
+            _model = ResNet50(num_classes=num_classes)
         elif model == "MobileNetV3_Large":
-            _model = MobileNetV3_Large(num_classes = num_classes)
+            _model = MobileNetV3_Large(num_classes=num_classes)
         else:
             raise ValueError("model not found")
-        _cross_validation_train_loop(model = _model,
-                                     readout = readout,
-                                     learning_rate = learning_rate,
-                                     batch_size = batch_size,
-                                     n_epochs = n_epochs,
-                                     experiment_id = experiment_id,
-                                     dataset_id = f"M{experiment}_full_SL3_fixed",
-                                     validation_dataset_id = f"{experiment}_full_SL3_fixed",
-                                     output_dir = output_dir,
-                                     model_output_dir = model_output_dir,
-                                     dataset_input_dir = dataset_input_dir,
-                                     calculate_learning_rate = calculate_learning_rate,
-                                     weighted_loss = weighted_loss)
+        _cross_validation_train_loop(
+            model=_model,
+            readout=readout,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            n_epochs=n_epochs,
+            experiment_id=experiment_id,
+            dataset_id=f"M{experiment}_full_SL3_fixed",
+            validation_dataset_id=f"{experiment}_full_SL3_fixed",
+            output_dir=output_dir,
+            model_output_dir=model_output_dir,
+            dataset_input_dir=dataset_input_dir,
+            calculate_learning_rate=calculate_learning_rate,
+            weighted_loss=weighted_loss,
+        )
 
         gc.collect()
-                                     
 
 
-def _cross_validation_n_experiments(model,
-                                    readout: str,
-                                    learning_rate: float,
-                                    batch_size: int,
-                                    n_epochs: int,
-                                    experiment_id: str,
-                                    dataset_id: str,
-                                    validation_dataset_id: str,
-                                    subsample_frac: float = 0.0,
-                                    subsample_n: int = 0,
-                                    n_permutations: int = 7,
-                                    output_dir = "./results",
-                                    model_output_dir = "./classifiers",
-                                    dataset_input_dir = "./raw_data",
-                                    weighted_loss: bool = True,
-                                    weight_decay: float = 1e-4) -> None:
-
+def _cross_validation_n_experiments(
+    model,
+    readout: str,
+    learning_rate: float,
+    batch_size: int,
+    n_epochs: int,
+    experiment_id: str,
+    dataset_id: str,
+    validation_dataset_id: str,
+    subsample_frac: float = 0.0,
+    subsample_n: int = 0,
+    n_permutations: int = 7,
+    output_dir="./results",
+    model_output_dir="./classifiers",
+    dataset_input_dir="./raw_data",
+    weighted_loss: bool = True,
+    weight_decay: float = 1e-4,
+) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
-
 
     all_experiments = [
         "E001",
@@ -510,7 +537,7 @@ def _cross_validation_n_experiments(model,
         "E009",
         "E010",
         "E011",
-        "E012"
+        "E012",
     ]
 
     if not os.path.exists(output_dir):
@@ -550,20 +577,19 @@ def _cross_validation_n_experiments(model,
     )
     full_validation_dataset._create_class_counts()
 
-    validation_set = OrganoidValidationDataset(
-        full_validation_dataset,
-        readout = readout
-    )
+    validation_set = OrganoidValidationDataset(full_validation_dataset, readout=readout)
     print(f"CURRENT VALIDATION EXPERIMENT: {val_exp}")
 
     untrained_model = copy.deepcopy(model)
 
     for n_exp in n_experiments_to_test:
-
         experiment_combinations = list(itertools.combinations(non_val_exp, n_exp))
         random.shuffle(experiment_combinations)
-        experiment_combinations = experiment_combinations[:n_permutations] \
-                if len(experiment_combinations) >= n_permutations else experiment_combinations
+        experiment_combinations = (
+            experiment_combinations[:n_permutations]
+            if len(experiment_combinations) >= n_permutations
+            else experiment_combinations
+        )
 
         for permutation, experiments_to_test in enumerate(experiment_combinations):
             print(f"     Calculating... {n_exp}: {experiments_to_test}")
@@ -596,59 +622,61 @@ def _cross_validation_n_experiments(model,
             print(f"N images after subsampling: {full_dataset.X.shape[0]}")
 
             dataset = OrganoidTrainingDataset(
-                full_dataset,
-                readout = readout,
-                test_size = 0.1
+                full_dataset, readout=readout, test_size=0.1
             )
-        
-            X_train, y_train, X_test, y_test = dataset.X_train, dataset.y_train, dataset.X_test, dataset.y_test
+
+            X_train, y_train, X_test, y_test = (
+                dataset.X_train,
+                dataset.y_train,
+                dataset.X_test,
+                dataset.y_test,
+            )
             X_val = validation_set.X
             y_val = validation_set.y
 
             train_loader = create_dataloader(
-                X_train, y_train,
-                batch_size = batch_size, shuffle = True, train = True
+                X_train, y_train, batch_size=batch_size, shuffle=True, train=True
             )
             test_loader = create_dataloader(
-                X_test, y_test,
-                batch_size = batch_size, shuffle = False, train = False
+                X_test, y_test, batch_size=batch_size, shuffle=False, train=False
             )
             val_loader = create_dataloader(
-                X_val, y_val,
-                batch_size = batch_size, shuffle = False, train = False
+                X_val, y_val, batch_size=batch_size, shuffle=False, train=False
             )
-
 
             # Initialize the model, criterion, and optimizer
             model = copy.deepcopy(untrained_model)
             model = model.to(device)
-            
+
             if weighted_loss is True:
                 class_weights = 1 / (y_train.sum(axis=0) / y_train.shape[0])
                 class_weights = torch.tensor(class_weights).float().to(device)
             else:
                 class_weights = None
 
-            criterion = nn.CrossEntropyLoss(weight = class_weights, label_smoothing = 0.1)
+            criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
 
             optimizer = optim.Adam(
-                exclude_batchnorm_weight_decay(model, weight_decay = weight_decay),
-                lr=learning_rate
+                exclude_batchnorm_weight_decay(model, weight_decay=weight_decay),
+                lr=learning_rate,
             )
 
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, mode='max', factor=0.5, patience=7
+                optimizer, mode="max", factor=0.5, patience=7
             )
 
-            augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: -1, 2: 0})
+            augmentation_scheduler = AugmentationScheduler(stage_epochs={1: -1, 2: 0})
 
             for epoch in range(n_epochs):
                 augmentations = augmentation_scheduler.get_transforms(epoch + 1)
 
                 train_loader = create_dataloader(
-                    X_train, y_train,
-                    batch_size = batch_size, shuffle = True, train = True,
-                    transformations = augmentations
+                    X_train,
+                    y_train,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    train=True,
+                    transformations=augmentations,
                 )
 
                 start = time.time()
@@ -657,10 +685,10 @@ def _cross_validation_n_experiments(model,
                 train_true = []
                 train_preds = []
                 train_loss_list = []
-                
+
                 for data, target in tqdm(train_loader):
                     data, target = data.to(device), target.to(device)
-                    target = torch.argmax(target, dim = 1)
+                    target = torch.argmax(target, dim=1)
 
                     optimizer.zero_grad()
                     output = model(data)
@@ -669,11 +697,12 @@ def _cross_validation_n_experiments(model,
                     loss.backward()
 
                     torch.nn.utils.clip_grad_norm_(
-                        filter(lambda p: p.requires_grad, model.parameters()), max_norm=1.0
+                        filter(lambda p: p.requires_grad, model.parameters()),
+                        max_norm=1.0,
                     )
 
                     optimizer.step()
-                    
+
                     train_loss += loss.item()
                     train_loss_list.append(loss.item())
 
@@ -682,7 +711,7 @@ def _cross_validation_n_experiments(model,
 
                 train_loss /= len(train_loader)
                 train_acc = accuracy_score(train_true, train_preds)
-                train_f1 = f1_score(train_true, train_preds, average='weighted')
+                train_f1 = f1_score(train_true, train_preds, average="weighted")
 
                 # Validation loop
                 model.eval()
@@ -690,49 +719,49 @@ def _cross_validation_n_experiments(model,
                 test_true = []
                 test_preds = []
                 test_loss_list = []
-                
+
                 with torch.no_grad():
                     for data, target in test_loader:
                         data, target = data.to(device), target.to(device)
-                        target = torch.argmax(target, dim = 1)
+                        target = torch.argmax(target, dim=1)
 
                         output = model(data)
                         loss = criterion(output, target)
-                        
+
                         test_loss += loss.item()
                         test_loss_list.append(loss.item())
 
-                        test_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                        test_preds += torch.argmax(output, dim=1).cpu().tolist()
                         test_true += target.cpu().tolist()
-                
+
                 test_loss /= len(test_loader)
                 test_acc = accuracy_score(test_true, test_preds)
-                test_f1 = f1_score(test_true, test_preds, average='weighted')
-                
+                test_f1 = f1_score(test_true, test_preds, average="weighted")
+
                 # Validation loop
                 model.eval()
                 val_loss = 0
                 val_true = []
                 val_preds = []
                 val_loss_list = []
-                
+
                 with torch.no_grad():
                     for data, target in val_loader:
                         data, target = data.to(device), target.to(device)
-                        target = torch.argmax(target, dim = 1)
+                        target = torch.argmax(target, dim=1)
 
                         output = model(data)
                         loss = criterion(output, target)
-                        
+
                         val_loss += loss.item()
                         val_loss_list.append(loss.item())
 
-                        val_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                        val_preds += torch.argmax(output, dim=1).cpu().tolist()
                         val_true += target.cpu().tolist()
 
                 val_loss /= len(val_loader)
                 val_acc = accuracy_score(val_true, val_preds)
-                val_f1 = f1_score(val_true, val_preds, average='weighted')
+                val_f1 = f1_score(val_true, val_preds, average="weighted")
 
                 # Step the learning rate scheduler based on the validation loss
                 current_lr = optimizer.param_groups[0]["lr"]
@@ -740,24 +769,24 @@ def _cross_validation_n_experiments(model,
                 new_lr = optimizer.param_groups[0]["lr"]
 
                 if new_lr < current_lr:
-                    print(f"Learning rate adjusted to {new_lr}.")       
+                    print(f"Learning rate adjusted to {new_lr}.")
 
                 stop = time.time()
 
                 # Print metrics
                 print(
-                    f"[INFO] Epoch: {epoch+1}/{n_epochs}, "
+                    f"[INFO] Epoch: {epoch + 1}/{n_epochs}, "
                     f"Train loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Val loss: {val_loss:.4f}, "
                     f"Train Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}, Val Accuracy: {val_acc:.4f}, "
                     f"Train F1: {train_f1:.4f}, Test F1: {test_f1:.4f}, Val F1: {val_f1:.4f}, "
-                    f"Time: {stop-start}"
+                    f"Time: {stop - start}"
                 )
 
                 with open(output_file, "a") as file:
                     file.write(
                         f"{experiment_id},{val_exp},{n_exp},{permutation},{readout},"
                         f"{model.__class__.__name__},{learning_rate},"
-                        f"{batch_size},{epoch+1},{train_loss},{test_loss},{val_loss},"
+                        f"{batch_size},{epoch + 1},{train_loss},{test_loss},{val_loss},"
                         f"{train_acc},{test_acc},{val_acc},{train_f1},{test_f1},{val_f1},"
                         f"{dataset_id},{start_timepoint}-{stop_timepoint},"
                         f"{bbox_cropped},{bbox_rescaling}\n"
@@ -770,21 +799,23 @@ def _cross_validation_n_experiments(model,
     return
 
 
-def _cross_validation_train_loop(model,
-                                 readout: str,
-                                 learning_rate: float,
-                                 batch_size: int,
-                                 n_epochs: int,
-                                 experiment_id: str,
-                                 dataset_id: str,
-                                 validation_dataset_id: str,
-                                 subsample_frac: float = 0.0,
-                                 output_dir = "./results",
-                                 model_output_dir = "./classifiers",
-                                 dataset_input_dir = "./raw_data",
-                                 calculate_learning_rate: bool = True,
-                                 weighted_loss: bool = True,
-                                 weight_decay = 1e-4) -> None:
+def _cross_validation_train_loop(
+    model,
+    readout: str,
+    learning_rate: float,
+    batch_size: int,
+    n_epochs: int,
+    experiment_id: str,
+    dataset_id: str,
+    validation_dataset_id: str,
+    subsample_frac: float = 0.0,
+    output_dir="./results",
+    model_output_dir="./classifiers",
+    dataset_input_dir="./raw_data",
+    calculate_learning_rate: bool = True,
+    weighted_loss: bool = True,
+    weight_decay=1e-4,
+) -> None:
     """\
     Trains model on full dataset in order to find a good baseline model.
 
@@ -799,7 +830,7 @@ def _cross_validation_train_loop(model,
         os.mkdir(model_output_dir)
 
     val_exp = validation_dataset_id[:4]
-    
+
     full_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{dataset_id}.cds")
     )
@@ -813,23 +844,21 @@ def _cross_validation_train_loop(model,
     )
     full_validation_dataset._create_class_counts()
 
-    validation_set = OrganoidValidationDataset(
-        full_validation_dataset,
-        readout = readout
-    )
+    validation_set = OrganoidValidationDataset(full_validation_dataset, readout=readout)
 
     start_timepoint = full_dataset.dataset_metadata.start_timepoint
     stop_timepoint = full_dataset.dataset_metadata.stop_timepoint
     bbox_cropped = full_dataset.image_metadata.cropped_bbox
     bbox_rescaling = full_dataset.image_metadata.rescale_cropped_image
 
-    dataset = OrganoidTrainingDataset(
-        full_dataset,
-        readout = readout,
-        test_size = 0.1
+    dataset = OrganoidTrainingDataset(full_dataset, readout=readout, test_size=0.1)
+
+    X_train, y_train, X_test, y_test = (
+        dataset.X_train,
+        dataset.y_train,
+        dataset.X_test,
+        dataset.y_test,
     )
- 
-    X_train, y_train, X_test, y_test = dataset.X_train, dataset.y_train, dataset.X_test, dataset.y_test
     X_val = validation_set.X
     y_val = validation_set.y
 
@@ -859,49 +888,46 @@ def _cross_validation_train_loop(model,
             "DatasetID,TimePoints,CroppedBbox,RescaledBBox\n"
         )
 
-
     # Print current configuration
-    print(f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
-          f"Learning Rate: {learning_rate}, Batch Size: {batch_size}")
+    print(
+        f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
+        f"Learning Rate: {learning_rate}, Batch Size: {batch_size}"
+    )
 
     train_loader = create_dataloader(
-        X_train, y_train,
-        batch_size = batch_size, shuffle = True, train = True
+        X_train, y_train, batch_size=batch_size, shuffle=True, train=True
     )
     test_loader = create_dataloader(
-        X_test, y_test,
-        batch_size = batch_size, shuffle = False, train = False
+        X_test, y_test, batch_size=batch_size, shuffle=False, train=False
     )
     val_loader = create_dataloader(
-        X_val, y_val,
-        batch_size = batch_size, shuffle = False, train = False
+        X_val, y_val, batch_size=batch_size, shuffle=False, train=False
     )
-
 
     # Initialize the model, criterion, and optimizer
     model = model.to(device)
-    
+
     if weighted_loss is True:
         class_weights = 1 / (y_train.sum(axis=0) / y_train.shape[0])
         class_weights = torch.tensor(class_weights).float().to(device)
     else:
         class_weights = None
 
-    criterion = nn.CrossEntropyLoss(weight = class_weights, label_smoothing = 0.1)
-    
+    criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
+
     if calculate_learning_rate is True:
         try:
             optimizer = optim.Adam(
                 filter(lambda p: p.requires_grad, model.parameters()),
                 lr=learning_rate,
-                weight_decay = 1e-4
+                weight_decay=1e-4,
             )
             learning_rate = find_ideal_learning_rate(
-                model = model,
-                criterion = criterion,
-                optimizer = optimizer,
-                train_loader = train_loader,
-                n_tests = 5
+                model=model,
+                criterion=criterion,
+                optimizer=optimizer,
+                train_loader=train_loader,
+                n_tests=5,
             )
         except Exception as e:
             print(str(e))
@@ -916,14 +942,14 @@ def _cross_validation_train_loop(model,
                 learning_rate = 0.0003
 
     optimizer = optim.Adam(
-        exclude_batchnorm_weight_decay(model, weight_decay = weight_decay),
-        lr=learning_rate
+        exclude_batchnorm_weight_decay(model, weight_decay=weight_decay),
+        lr=learning_rate,
     )
 
     print(f"Ideal learning rate at {round(learning_rate, 5)}")
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=7
+        optimizer, mode="max", factor=0.5, patience=7
     )
 
     best_test_loss = np.inf
@@ -936,16 +962,19 @@ def _cross_validation_train_loop(model,
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
-    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: -1, 2: 0})
+    augmentation_scheduler = AugmentationScheduler(stage_epochs={1: -1, 2: 0})
 
     # Training loop
     for epoch in range(n_epochs):
         augmentations = augmentation_scheduler.get_transforms(epoch + 1)
 
         train_loader = create_dataloader(
-            X_train, y_train,
-            batch_size = batch_size, shuffle = True, train = True,
-            transformations = augmentations
+            X_train,
+            y_train,
+            batch_size=batch_size,
+            shuffle=True,
+            train=True,
+            transformations=augmentations,
         )
 
         start = time.time()
@@ -954,10 +983,10 @@ def _cross_validation_train_loop(model,
         train_true = []
         train_preds = []
         train_loss_list = []
-        
+
         for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
-            target = torch.argmax(target, dim = 1)
+            target = torch.argmax(target, dim=1)
 
             optimizer.zero_grad()
             output = model(data)
@@ -970,7 +999,7 @@ def _cross_validation_train_loop(model,
             )
 
             optimizer.step()
-            
+
             train_loss += loss.item()
             train_loss_list.append(loss.item())
 
@@ -981,7 +1010,7 @@ def _cross_validation_train_loop(model,
 
         train_loss /= len(train_loader)
         train_acc = accuracy_score(train_true, train_preds)
-        train_f1 = f1_score(train_true, train_preds, average='weighted')
+        train_f1 = f1_score(train_true, train_preds, average="weighted")
 
         # Validation loop
         model.eval()
@@ -989,53 +1018,53 @@ def _cross_validation_train_loop(model,
         test_true = []
         test_preds = []
         test_loss_list = []
-        
+
         with torch.no_grad():
             for data, target in test_loader:
                 data, target = data.to(device), target.to(device)
-                target = torch.argmax(target, dim = 1)
+                target = torch.argmax(target, dim=1)
 
                 output = model(data)
                 loss = criterion(output, target)
-                
+
                 test_loss += loss.item()
                 test_loss_list.append(loss.item())
 
-                test_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                test_preds += torch.argmax(output, dim=1).cpu().tolist()
                 test_true += target.cpu().tolist()
-        
+
         loss_dict_test[epoch] = test_loss_list
 
         test_loss /= len(test_loader)
         test_acc = accuracy_score(test_true, test_preds)
-        test_f1 = f1_score(test_true, test_preds, average='weighted')
-        
+        test_f1 = f1_score(test_true, test_preds, average="weighted")
+
         # Validation loop
         model.eval()
         val_loss = 0
         val_true = []
         val_preds = []
         val_loss_list = []
-        
+
         with torch.no_grad():
             for data, target in val_loader:
                 data, target = data.to(device), target.to(device)
-                target = torch.argmax(target, dim = 1)
+                target = torch.argmax(target, dim=1)
 
                 output = model(data)
                 loss = criterion(output, target)
-                
+
                 val_loss += loss.item()
                 val_loss_list.append(loss.item())
 
-                val_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                val_preds += torch.argmax(output, dim=1).cpu().tolist()
                 val_true += target.cpu().tolist()
 
         loss_dict_val[epoch] = val_loss_list
 
         val_loss /= len(val_loader)
         val_acc = accuracy_score(val_true, val_preds)
-        val_f1 = f1_score(val_true, val_preds, average='weighted')
+        val_f1 = f1_score(val_true, val_preds, average="weighted")
 
         # Step the learning rate scheduler based on the validation loss
         current_lr = optimizer.param_groups[0]["lr"]
@@ -1043,108 +1072,129 @@ def _cross_validation_train_loop(model,
         new_lr = optimizer.param_groups[0]["lr"]
 
         if new_lr < current_lr:
-            print(f"Learning rate adjusted to {new_lr}.")       
+            print(f"Learning rate adjusted to {new_lr}.")
 
         stop = time.time()
 
         # Print metrics
         print(
-            f"[INFO] Epoch: {epoch+1}/{n_epochs}, "
+            f"[INFO] Epoch: {epoch + 1}/{n_epochs}, "
             f"Train loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Val loss: {val_loss:.4f}, "
             f"Train Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}, Val Accuracy: {val_acc:.4f}, "
             f"Train F1: {train_f1:.4f}, Test F1: {test_f1:.4f}, Val F1: {val_f1:.4f}, "
-            f"Time: {stop-start}"
+            f"Time: {stop - start}"
         )
 
         if test_f1 > best_test_f1:
             best_test_f1 = test_f1
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_test_f1_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_test_f1_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with test F1: {test_f1:.4f}')
+            print(f"Saved best model with test F1: {test_f1:.4f}")
 
         if val_f1 > best_val_f1:
             best_val_f1 = val_f1
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_val_f1_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_val_f1_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with val F1: {val_f1:.4f}')
+            print(f"Saved best model with val F1: {val_f1:.4f}")
 
         if test_loss < best_test_loss:
             best_test_loss = test_loss
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with test F1: {test_f1:.4f}')
+            print(f"Saved best model with test F1: {test_f1:.4f}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with val F1: {val_f1:.4f}')
+            print(f"Saved best model with val F1: {val_f1:.4f}")
 
         torch.save(
-            model.state_dict(), 
+            model.state_dict(),
             os.path.join(
                 model_output_dir,
-                f'{model.__class__.__name__}_epoch_{epoch+1}_{val_exp}_{readout}.pth'
-            )
+                f"{model.__class__.__name__}_epoch_{epoch + 1}_{val_exp}_{readout}.pth",
+            ),
         )
-    
+
         # Write metrics to CSV file
         with open(output_file, "a") as file:
             file.write(
                 f"{experiment_id},{val_exp},{readout},"
                 f"{model.__class__.__name__},{learning_rate},"
-                f"{batch_size},{epoch+1},{train_loss},{test_loss},{val_loss},"
+                f"{batch_size},{epoch + 1},{train_loss},{test_loss},{val_loss},"
                 f"{train_acc},{test_acc},{val_acc},{train_f1},{test_f1},{val_f1},"
                 f"{dataset_id},{start_timepoint}-{stop_timepoint},"
                 f"{bbox_cropped},{bbox_rescaling}\n"
             )
 
-    with open(os.path.join(output_dir, f"train_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"train_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_train, file)
 
-    with open(os.path.join(output_dir, f"test_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"test_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_test, file)
 
-    with open(os.path.join(output_dir, f"val_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"val_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_val, file)
 
     return
 
-def _cross_validation_train_loop_BASELINE(model,
-                                          readout: str,
-                                          learning_rate: float,
-                                          batch_size: int,
-                                          n_epochs: int,
-                                          experiment_id: str,
-                                          dataset_id: str,
-                                          validation_dataset_id: str,
-                                          subsample_frac: float = 0.0,
-                                          output_dir = "./results",
-                                          model_output_dir = "./classifiers",
-                                          dataset_input_dir = "./raw_data",
-                                          calculate_learning_rate: bool = True,
-                                          weighted_loss: bool = True,
-                                          weight_decay = 1e-4) -> None:
+
+def _cross_validation_train_loop_BASELINE(
+    model,
+    readout: str,
+    learning_rate: float,
+    batch_size: int,
+    n_epochs: int,
+    experiment_id: str,
+    dataset_id: str,
+    validation_dataset_id: str,
+    subsample_frac: float = 0.0,
+    output_dir="./results",
+    model_output_dir="./classifiers",
+    dataset_input_dir="./raw_data",
+    calculate_learning_rate: bool = True,
+    weighted_loss: bool = True,
+    weight_decay=1e-4,
+) -> None:
     """\
     Trains model on full dataset in order to find a good baseline model.
 
@@ -1159,7 +1209,7 @@ def _cross_validation_train_loop_BASELINE(model,
         os.mkdir(model_output_dir)
 
     val_exp = validation_dataset_id[:4]
-    
+
     full_dataset = OrganoidDataset.read_classification_dataset(
         os.path.join(dataset_input_dir, f"{dataset_id}.cds")
     )
@@ -1173,23 +1223,21 @@ def _cross_validation_train_loop_BASELINE(model,
     )
     full_validation_dataset._create_class_counts()
 
-    validation_set = OrganoidValidationDataset(
-        full_validation_dataset,
-        readout = readout
-    )
+    validation_set = OrganoidValidationDataset(full_validation_dataset, readout=readout)
 
     start_timepoint = full_dataset.dataset_metadata.start_timepoint
     stop_timepoint = full_dataset.dataset_metadata.stop_timepoint
     bbox_cropped = full_dataset.image_metadata.cropped_bbox
     bbox_rescaling = full_dataset.image_metadata.rescale_cropped_image
 
-    dataset = OrganoidTrainingDataset(
-        full_dataset,
-        readout = readout,
-        test_size = 0.1
+    dataset = OrganoidTrainingDataset(full_dataset, readout=readout, test_size=0.1)
+
+    X_train, y_train, X_test, y_test = (
+        dataset.X_train,
+        dataset.y_train,
+        dataset.X_test,
+        dataset.y_test,
     )
- 
-    X_train, y_train, X_test, y_test = dataset.X_train, dataset.y_train, dataset.X_test, dataset.y_test
     X_val = validation_set.X
     y_val = validation_set.y
 
@@ -1223,49 +1271,46 @@ def _cross_validation_train_loop_BASELINE(model,
             "DatasetID,TimePoints,CroppedBbox,RescaledBBox\n"
         )
 
-
     # Print current configuration
-    print(f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
-          f"Learning Rate: {learning_rate}, Batch Size: {batch_size}")
+    print(
+        f"[INFO] Starting experiment with Model: {model.__class__.__name__}, "
+        f"Learning Rate: {learning_rate}, Batch Size: {batch_size}"
+    )
 
     train_loader = create_dataloader(
-        X_train, y_train,
-        batch_size = batch_size, shuffle = True, train = True
+        X_train, y_train, batch_size=batch_size, shuffle=True, train=True
     )
     test_loader = create_dataloader(
-        X_test, y_test,
-        batch_size = batch_size, shuffle = False, train = False
+        X_test, y_test, batch_size=batch_size, shuffle=False, train=False
     )
     val_loader = create_dataloader(
-        X_val, y_val,
-        batch_size = batch_size, shuffle = False, train = False
+        X_val, y_val, batch_size=batch_size, shuffle=False, train=False
     )
-
 
     # Initialize the model, criterion, and optimizer
     model = model.to(device)
-    
+
     if weighted_loss is True:
         class_weights = 1 / (y_train.sum(axis=0) / y_train.shape[0])
         class_weights = torch.tensor(class_weights).float().to(device)
     else:
         class_weights = None
 
-    criterion = nn.CrossEntropyLoss(weight = class_weights, label_smoothing = 0.1)
-    
+    criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
+
     if calculate_learning_rate is True:
         try:
             optimizer = optim.Adam(
                 filter(lambda p: p.requires_grad, model.parameters()),
                 lr=learning_rate,
-                weight_decay = 1e-4
+                weight_decay=1e-4,
             )
             learning_rate = find_ideal_learning_rate(
-                model = model,
-                criterion = criterion,
-                optimizer = optimizer,
-                train_loader = train_loader,
-                n_tests = 5
+                model=model,
+                criterion=criterion,
+                optimizer=optimizer,
+                train_loader=train_loader,
+                n_tests=5,
             )
         except Exception as e:
             print(str(e))
@@ -1280,14 +1325,14 @@ def _cross_validation_train_loop_BASELINE(model,
                 learning_rate = 0.0003
 
     optimizer = optim.Adam(
-        exclude_batchnorm_weight_decay(model, weight_decay = weight_decay),
-        lr=learning_rate
+        exclude_batchnorm_weight_decay(model, weight_decay=weight_decay),
+        lr=learning_rate,
     )
 
     print(f"Ideal learning rate at {round(learning_rate, 5)}")
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=7
+        optimizer, mode="max", factor=0.5, patience=7
     )
 
     best_test_loss = np.inf
@@ -1300,16 +1345,19 @@ def _cross_validation_train_loop_BASELINE(model,
     loss_dict_test = {epoch: [] for epoch in range(n_epochs)}
     loss_dict_val = {epoch: [] for epoch in range(n_epochs)}
 
-    augmentation_scheduler = AugmentationScheduler(stage_epochs = {1: -1, 2: 0})
+    augmentation_scheduler = AugmentationScheduler(stage_epochs={1: -1, 2: 0})
 
     # Training loop
     for epoch in range(n_epochs):
         augmentations = augmentation_scheduler.get_transforms(epoch + 1)
 
         train_loader = create_dataloader(
-            X_train, y_train,
-            batch_size = batch_size, shuffle = True, train = True,
-            transformations = augmentations
+            X_train,
+            y_train,
+            batch_size=batch_size,
+            shuffle=True,
+            train=True,
+            transformations=augmentations,
         )
 
         start = time.time()
@@ -1318,10 +1366,10 @@ def _cross_validation_train_loop_BASELINE(model,
         train_true = []
         train_preds = []
         train_loss_list = []
-        
+
         for data, target in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
-            target = torch.argmax(target, dim = 1)
+            target = torch.argmax(target, dim=1)
 
             optimizer.zero_grad()
             output = model(data)
@@ -1334,7 +1382,7 @@ def _cross_validation_train_loop_BASELINE(model,
             )
 
             optimizer.step()
-            
+
             train_loss += loss.item()
             train_loss_list.append(loss.item())
 
@@ -1345,7 +1393,7 @@ def _cross_validation_train_loop_BASELINE(model,
 
         train_loss /= len(train_loader)
         train_acc = accuracy_score(train_true, train_preds)
-        train_f1 = f1_score(train_true, train_preds, average='weighted')
+        train_f1 = f1_score(train_true, train_preds, average="weighted")
 
         # Validation loop
         model.eval()
@@ -1353,53 +1401,53 @@ def _cross_validation_train_loop_BASELINE(model,
         test_true = []
         test_preds = []
         test_loss_list = []
-        
+
         with torch.no_grad():
             for data, target in test_loader:
                 data, target = data.to(device), target.to(device)
-                target = torch.argmax(target, dim = 1)
+                target = torch.argmax(target, dim=1)
 
                 output = model(data)
                 loss = criterion(output, target)
-                
+
                 test_loss += loss.item()
                 test_loss_list.append(loss.item())
 
-                test_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                test_preds += torch.argmax(output, dim=1).cpu().tolist()
                 test_true += target.cpu().tolist()
-        
+
         loss_dict_test[epoch] = test_loss_list
 
         test_loss /= len(test_loader)
         test_acc = accuracy_score(test_true, test_preds)
-        test_f1 = f1_score(test_true, test_preds, average='weighted')
-        
+        test_f1 = f1_score(test_true, test_preds, average="weighted")
+
         # Validation loop
         model.eval()
         val_loss = 0
         val_true = []
         val_preds = []
         val_loss_list = []
-        
+
         with torch.no_grad():
             for data, target in val_loader:
                 data, target = data.to(device), target.to(device)
-                target = torch.argmax(target, dim = 1)
+                target = torch.argmax(target, dim=1)
 
                 output = model(data)
                 loss = criterion(output, target)
-                
+
                 val_loss += loss.item()
                 val_loss_list.append(loss.item())
 
-                val_preds += torch.argmax(output, dim = 1).cpu().tolist()
+                val_preds += torch.argmax(output, dim=1).cpu().tolist()
                 val_true += target.cpu().tolist()
 
         loss_dict_val[epoch] = val_loss_list
 
         val_loss /= len(val_loader)
         val_acc = accuracy_score(val_true, val_preds)
-        val_f1 = f1_score(val_true, val_preds, average='weighted')
+        val_f1 = f1_score(val_true, val_preds, average="weighted")
 
         # Step the learning rate scheduler based on the validation loss
         current_lr = optimizer.param_groups[0]["lr"]
@@ -1407,89 +1455,107 @@ def _cross_validation_train_loop_BASELINE(model,
         new_lr = optimizer.param_groups[0]["lr"]
 
         if new_lr < current_lr:
-            print(f"Learning rate adjusted to {new_lr}.")       
+            print(f"Learning rate adjusted to {new_lr}.")
 
         stop = time.time()
 
         # Print metrics
         print(
-            f"[INFO] Epoch: {epoch+1}/{n_epochs}, "
+            f"[INFO] Epoch: {epoch + 1}/{n_epochs}, "
             f"Train loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}, Val loss: {val_loss:.4f}, "
             f"Train Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}, Val Accuracy: {val_acc:.4f}, "
             f"Train F1: {train_f1:.4f}, Test F1: {test_f1:.4f}, Val F1: {val_f1:.4f}, "
-            f"Time: {stop-start}"
+            f"Time: {stop - start}"
         )
 
         if test_f1 > best_test_f1:
             best_test_f1 = test_f1
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_test_f1_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_test_f1_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with test F1: {test_f1:.4f}')
+            print(f"Saved best model with test F1: {test_f1:.4f}")
 
         if val_f1 > best_val_f1:
             best_val_f1 = val_f1
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_val_f1_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_val_f1_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with val F1: {val_f1:.4f}')
+            print(f"Saved best model with val F1: {val_f1:.4f}")
 
         if test_loss < best_test_loss:
             best_test_loss = test_loss
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_test_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with test F1: {test_f1:.4f}')
+            print(f"Saved best model with test F1: {test_f1:.4f}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(
-                model.state_dict(), 
+                model.state_dict(),
                 os.path.join(
                     model_output_dir,
-                    f'{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth'
-                )
+                    f"{model.__class__.__name__}_val_{val_exp}_{readout}_base_model.pth",
+                ),
             )
-            print(f'Saved best model with val F1: {val_f1:.4f}')
+            print(f"Saved best model with val F1: {val_f1:.4f}")
 
         torch.save(
-            model.state_dict(), 
+            model.state_dict(),
             os.path.join(
                 model_output_dir,
-                f'{model.__class__.__name__}_epoch_{epoch+1}_{val_exp}_{readout}.pth'
-            )
+                f"{model.__class__.__name__}_epoch_{epoch + 1}_{val_exp}_{readout}.pth",
+            ),
         )
-    
+
         # Write metrics to CSV file
         with open(output_file, "a") as file:
             file.write(
                 f"{experiment_id},{val_exp},{readout},"
                 f"{model.__class__.__name__},{learning_rate},"
-                f"{batch_size},{epoch+1},{train_loss},{test_loss},{val_loss},"
+                f"{batch_size},{epoch + 1},{train_loss},{test_loss},{val_loss},"
                 f"{train_acc},{test_acc},{val_acc},{train_f1},{test_f1},{val_f1},"
                 f"{dataset_id},{start_timepoint}-{stop_timepoint},"
                 f"{bbox_cropped},{bbox_rescaling}\n"
             )
 
-    with open(os.path.join(output_dir, f"train_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"train_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_train, file)
 
-    with open(os.path.join(output_dir, f"test_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"test_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_test, file)
 
-    with open(os.path.join(output_dir, f"val_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict"), "wb") as file:
+    with open(
+        os.path.join(
+            output_dir,
+            f"val_losses_{val_exp}_{readout}_{model.__class__.__name__}.dict",
+        ),
+        "wb",
+    ) as file:
         pickle.dump(loss_dict_val, file)
 
     return

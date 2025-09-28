@@ -14,6 +14,7 @@ Key features
 The trainer is deliberately compact (≈150 LOC) so you can later move
 its pieces into a larger project.
 """
+
 from __future__ import annotations
 
 import itertools
@@ -33,7 +34,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from .models import build_models
-from .losses import GanLoss, build_loss_dict, sample_z_noise
+from .losses import build_loss_dict, sample_z_noise
 
 
 # ───────────────────────────── tfms ────────────────────────────────
@@ -49,6 +50,7 @@ DEFAULT_AUG = A.Compose(
 )
 
 # ─────────────────────── array‑based dataloader ────────────────────
+
 
 class _ArrayDataset(Dataset):
     """Dataset for in‑memory images (torch.Tensor or np.ndarray).
@@ -87,13 +89,15 @@ class _ArrayDataset(Dataset):
         img = self.transform(image=img)["image"]  # tensor CHW in [0–1] (float32)
         return img, 0
 
-def build_dataloader(images: Sequence,
-                     *,
-                     batch_size: int = 64,
-                     workers: int = 1,
-                     transform=DEFAULT_AUG) -> DataLoader:
+
+def build_dataloader(
+    images: Sequence, *, batch_size: int = 64, workers: int = 1, transform=DEFAULT_AUG
+) -> DataLoader:
     ds = _ArrayDataset(images, transform)
-    return DataLoader(ds, batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
+    return DataLoader(
+        ds, batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True
+    )
+
 
 class _AlbFolder(torchvision.datasets.ImageFolder):
     def __init__(self, root: str, transform):
@@ -106,23 +110,25 @@ class _AlbFolder(torchvision.datasets.ImageFolder):
         return img, 0
 
 
-def build_dataloader_from_dir(root: str,
-                              *,
-                              batch_size: int = 64,
-                              workers: int = 4,
-                              transform=DEFAULT_AUG) -> DataLoader:
+def build_dataloader_from_dir(
+    root: str, *, batch_size: int = 64, workers: int = 4, transform=DEFAULT_AUG
+) -> DataLoader:
     ds = _AlbFolder(root, transform)
-    return DataLoader(ds, batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True)
+    return DataLoader(
+        ds, batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory=True
+    )
 
-def train(*,
-          dataloader: DataLoader,
-          classifier: nn.Module,
-          out_dir: str,
-          epochs: int = 30,
-          lr: float = 2e-4,
-          latent_dim: int = 350,
-          img_size: int = 224,
-          ) -> None:
+
+def train(
+    *,
+    dataloader: DataLoader,
+    classifier: nn.Module,
+    out_dir: str,
+    epochs: int = 30,
+    lr: float = 2e-4,
+    latent_dim: int = 350,
+    img_size: int = 224,
+) -> None:
     """
     Full training loop for DISCOVER (all six losses), with TensorBoard logging
     and periodic checkpoints.  Assumes:
@@ -132,13 +138,12 @@ def train(*,
         for feature‐extraction in ClassificationPerceptualLoss and for true‐score extraction.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    imagenet_mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1,3,1,1)
-    imagenet_std  = torch.tensor([0.229, 0.224, 0.225], device=device).view(1,3,1,1)
+    imagenet_mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
+    imagenet_std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
 
     # ── Build models: encoder, decoder, discriminator (latent D), disentangler ──
     encoder, decoder, disc, disent = build_models(
-        img_size=img_size,
-        latent_dim=latent_dim
+        img_size=img_size, latent_dim=latent_dim
     )
     encoder = encoder.to(device)
     decoder = decoder.to(device)
@@ -152,30 +157,27 @@ def train(*,
 
     # ── Build all loss modules, moved to device ───────────────────────────────
     losses = build_loss_dict(classifier, disent, device=device)
-    vgg_loss_fn = losses["vgg"] # L_ImageNet-CLF
-    gan_loss_fn = losses["gan"] # GanLoss instance
-    cls_loss_fn = losses["cls"] # ClassificationPerceptualLoss
-    cov_loss_fn = losses["cov"] # WhiteningLoss
-    dis_loss_fn = losses["dis"] # DisentangleLoss
-    csl_loss_fn = losses["csl"] # ClassificationSubsetLoss
+    vgg_loss_fn = losses["vgg"]  # L_ImageNet-CLF
+    gan_loss_fn = losses["gan"]  # GanLoss instance
+    cls_loss_fn = losses["cls"]  # ClassificationPerceptualLoss
+    cov_loss_fn = losses["cov"]  # WhiteningLoss
+    dis_loss_fn = losses["dis"]  # DisentangleLoss
+    csl_loss_fn = losses["csl"]  # ClassificationSubsetLoss
 
     # ── Set up optimizers ─────────────────────────────────────────────────────
-    opt_g   = optim.Adam(
+    opt_g = optim.Adam(
         itertools.chain(encoder.parameters(), decoder.parameters()),
-        lr=lr, betas=(0.5, 0.999)
+        lr=lr,
+        betas=(0.5, 0.999),
     )
-    opt_d   = optim.Adam(
-        disc.parameters(),
-        lr=lr, betas=(0.5, 0.999)
-    )
+    opt_d = optim.Adam(disc.parameters(), lr=lr, betas=(0.5, 0.999))
     # We will use opt_dis to update BOTH disentangler AND encoder+decoder for disent loss
     opt_dis = optim.Adam(
         itertools.chain(
-            disent.parameters(),
-            encoder.parameters(),
-            decoder.parameters()
+            disent.parameters(), encoder.parameters(), decoder.parameters()
         ),
-        lr=lr, betas=(0.5, 0.999)
+        lr=lr,
+        betas=(0.5, 0.999),
     )
 
     scaler = GradScaler()
@@ -187,21 +189,21 @@ def train(*,
         for batch, _ in pbar:
             # ── 1) Load batch ───────────────────────────────────────────────────
             # Assume dataloader returns just the image tensor (B,3,224,224)
-            x = batch.to(device)                           # real images
+            x = batch.to(device)  # real images
             B = x.size(0)
 
             # ── 2) Train DISCRIMINATOR (Latent GAN loss #2) ─────────────────
             # a) Compute z = E(x) and detach so encoder is not updated here
             with torch.no_grad():
-                z_enc = encoder(x)                         # (B, latent_dim)
+                z_enc = encoder(x)  # (B, latent_dim)
             z_enc_det = z_enc.detach()
 
             # b) Sample z_noise ∼ N(0,I)
-            z_noise = sample_z_noise(B, latent_dim, device = device)
+            z_noise = sample_z_noise(B, latent_dim, device=device)
 
             # c) Evaluate D on real noise and on fake (encoder) latents
-            real_scores = disc(z_noise)                    # (B,1)
-            fake_scores = disc(z_enc_det)                  # (B,1)
+            real_scores = disc(z_noise)  # (B,1)
+            fake_scores = disc(z_enc_det)  # (B,1)
 
             # d) Compute discriminator hinge loss and update
             loss_d = gan_loss_fn.d_loss(real_scores, fake_scores)
@@ -223,7 +225,7 @@ def train(*,
                 loss_cls = cls_loss_fn(recons, x)
 
                 # 3c) Adversarial “generator” loss L_adv (#2): encourage D(z) → +1
-                fake_scores_g = disc(z)                    # (B,1)
+                fake_scores_g = disc(z)  # (B,1)
                 loss_gan = gan_loss_fn.g_loss(fake_scores_g)  # negative hinge
 
                 # 3d) L_COV (#4): whitening on z
@@ -239,9 +241,11 @@ def train(*,
                     true_probs = F.softmax(clf_logits, dim=1)[:, 1]  # (B,)
                 else:
                     # Single‐logit output: assume sigmoid‐needed
-                    true_probs = torch.sigmoid(clf_logits.view(B, -1).squeeze(1))  # (B,)
+                    true_probs = torch.sigmoid(
+                        clf_logits.view(B, -1).squeeze(1)
+                    )  # (B,)
 
-                loss_csl = csl_loss_fn(z, true_probs)        # BCE on first 14 dims
+                loss_csl = csl_loss_fn(z, true_probs)  # BCE on first 14 dims
 
                 # 3f) L_disentangle (#5): build diff_images and compute dis loss
                 #    i) Pick a random latent index for each sample
@@ -250,36 +254,31 @@ def train(*,
                 )  # (B,)
 
                 #   ii) Standard deviation of z over batch
-                std_z = z.std(dim=0, unbiased=False)       # (latent_dim,)
+                std_z = z.std(dim=0, unbiased=False)  # (latent_dim,)
 
                 #  iii) Random ±1 sign for each sample
                 signs = torch.randint(0, 2, (B,), device=device) * 2 - 1  # (B,)
 
                 #  iv) Perturbation = ±1.5 * std_z[k] for each b
-                perturb_mag = 1.5 * std_z[true_indices]     # (B,)
-                delta = signs * perturb_mag                 # (B,)
+                perturb_mag = 1.5 * std_z[true_indices]  # (B,)
+                delta = signs * perturb_mag  # (B,)
 
                 #  v) Construct z_perturbed
                 z_perturbed = z.clone()
                 z_perturbed[torch.arange(B), true_indices] += delta
 
                 #  vi) Decode both
-                x_rec = recons                         # (B,3,224,224)
-                x_rec_pert = decoder(z_perturbed)            # (B,3,224,224)
+                x_rec = recons  # (B,3,224,224)
+                x_rec_pert = decoder(z_perturbed)  # (B,3,224,224)
 
                 #  vii) diff_images = x_rec_pert − x_rec
-                diff_images = x_rec_pert - x_rec              # (B,3,224,224)
+                diff_images = x_rec_pert - x_rec  # (B,3,224,224)
 
                 loss_disent = dis_loss_fn(diff_images, true_indices)
 
                 # 3g) Total generator‐side loss = weighted sum of #1, #2(gen), #3, #4, #5, #6
                 total_gen_loss = (
-                      loss_vgg
-                    + loss_gan
-                    + loss_cls
-                    + loss_cov
-                    + loss_disent
-                    + loss_csl
+                    loss_vgg + loss_gan + loss_cls + loss_cov + loss_disent + loss_csl
                 )
 
             # b) Backpropagate generator loss
@@ -290,7 +289,7 @@ def train(*,
             # 3) Clip generator gradients, exploding losses for COV
             torch.nn.utils.clip_grad_norm_(
                 itertools.chain(encoder.parameters(), decoder.parameters()),
-                max_norm=1.0
+                max_norm=1.0,
             )
             scaler.step(opt_g)
             scaler.update()
@@ -299,16 +298,14 @@ def train(*,
             # We re‐compute diff_images inside no‐grad for x and z
             with torch.no_grad():
                 z_for_disent = encoder(x)
-                true_indices2 = torch.randint(
-                    0, latent_dim, size=(B,), device=device
-                )
+                true_indices2 = torch.randint(0, latent_dim, size=(B,), device=device)
                 std_z2 = z_for_disent.std(dim=0, unbiased=False)
                 signs2 = torch.randint(0, 2, (B,), device=device) * 2 - 1
                 perturb2 = signs2 * (1.5 * std_z2[true_indices2])
                 z_pert2 = z_for_disent.clone()
                 z_pert2[torch.arange(B), true_indices2] += perturb2
                 x_rec2 = decoder(z_for_disent)
-                x_rec_pert2  = decoder(z_pert2)
+                x_rec_pert2 = decoder(z_pert2)
                 diff_images2 = x_rec_pert2 - x_rec2
 
             # Forward and backward for disentangler alone
@@ -330,13 +327,15 @@ def train(*,
 
             global_step += 1
 
-            pbar.set_postfix(g=f"{loss_gan.item():.2f}",
-                 d=f"{loss_d.item():.2f}",
-                 dis=f"{loss_disent.item():.2f}")
+            pbar.set_postfix(
+                g=f"{loss_gan.item():.2f}",
+                d=f"{loss_d.item():.2f}",
+                dis=f"{loss_disent.item():.2f}",
+            )
 
         # ── 6) At epoch end: write a sample reconstruction grid ─────────────
         with torch.no_grad():
-            sample_imgs = x[:8]       # these are still normalized
+            sample_imgs = x[:8]  # these are still normalized
             sample_recons = recons[:8]  # these are still normalized
 
             # Unnormalize both
@@ -350,8 +349,8 @@ def train(*,
             # Now create a grid of 16 images (8 real + 8 recon)
             grid = torchvision.utils.make_grid(
                 torch.cat([imgs_to_show, recons_to_show], dim=0),
-                nrow=8,    # eight images per row → first row is real, second row is recon
-                normalize=False  # we already put them in [0,1]
+                nrow=8,  # eight images per row → first row is real, second row is recon
+                normalize=False,  # we already put them in [0,1]
             )
             writer.add_image("sample/recon", grid, epoch)
 

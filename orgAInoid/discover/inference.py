@@ -12,6 +12,7 @@ paper (Methods, section “Latent perturbation and visualisation”).
 External deps: scikit-image (for SSIM). Both skimage and scipy are
 pure-python wheels so `pip install scikit-image` is fine.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -24,11 +25,14 @@ from skimage.metrics import structural_similarity as ssim
 
 from .models import build_models
 
-def load_model_from_ckpt(ckpt_path: str | Path,
-                         *,
-                         latent_dim: int = 350,
-                         img_size: int = 224,
-                         device: Union[str, torch.device] = "cpu") -> tuple[torch.nn.Module,...]:
+
+def load_model_from_ckpt(
+    ckpt_path: str | Path,
+    *,
+    latent_dim: int = 350,
+    img_size: int = 224,
+    device: Union[str, torch.device] = "cpu",
+) -> tuple[torch.nn.Module, ...]:
     """Restore encoder & decoder from a checkpoint produced by train_loop."""
     ckpt = torch.load(ckpt_path, map_location=device)
     enc, dec, _ = build_models(latent_dim=latent_dim, img_size=img_size)
@@ -37,6 +41,7 @@ def load_model_from_ckpt(ckpt_path: str | Path,
     enc.eval().to(device)
     dec.eval().to(device)
     return enc, dec
+
 
 def _to_numpy(img: torch.Tensor) -> np.ndarray:
     """Tensor CHW in [-1,1] or [0,1] → float32 HWC in [0,1] for skimage."""
@@ -47,7 +52,10 @@ def _to_numpy(img: torch.Tensor) -> np.ndarray:
     img = img.permute(1, 2, 0).numpy()
     return img.astype(np.float32)
 
-def _patchwise_ssim(a: torch.Tensor, b: torch.Tensor, win_size: int = 11) -> torch.Tensor:
+
+def _patchwise_ssim(
+    a: torch.Tensor, b: torch.Tensor, win_size: int = 11
+) -> torch.Tensor:
     """Compute per-pixel (1 − SSIM) map via skimage, then return torch H×W."""
     a_np, b_np = _to_numpy(a), _to_numpy(b)
     _, ssim_map = ssim(
@@ -62,20 +70,23 @@ def _patchwise_ssim(a: torch.Tensor, b: torch.Tensor, win_size: int = 11) -> tor
     return torch.from_numpy(1.0 - ssim_map.astype(np.float32))  # H×W
 
 
-def _gaussian_blur(map_: torch.Tensor,
-                   kernel_size: int = 7,
-                   sigma: float = 2.0) -> torch.Tensor:
+def _gaussian_blur(
+    map_: torch.Tensor, kernel_size: int = 7, sigma: float = 2.0
+) -> torch.Tensor:
     map_ = map_.unsqueeze(0).unsqueeze(0)  # [1,1,H,W]
     return F.gaussian_blur(map_, (kernel_size, kernel_size), (sigma, sigma)).squeeze()
 
-def explain_image(img: torch.Tensor,
-                  *,
-                  encoder: torch.nn.Module,
-                  decoder: torch.nn.Module,
-                  classifier: torch.nn.Module,
-                  latent_std: Optional[torch.Tensor] = None,
-                  sigma: float = 3.0,
-                  top_k: int = 3) -> Tuple[torch.Tensor, List[torch.Tensor], List[float], List[int]]:
+
+def explain_image(
+    img: torch.Tensor,
+    *,
+    encoder: torch.nn.Module,
+    decoder: torch.nn.Module,
+    classifier: torch.nn.Module,
+    latent_std: Optional[torch.Tensor] = None,
+    sigma: float = 3.0,
+    top_k: int = 3,
+) -> Tuple[torch.Tensor, List[torch.Tensor], List[float], List[int]]:
     """Generate saliency maps for *img*.
 
     Parameters
@@ -103,7 +114,11 @@ def explain_image(img: torch.Tensor,
         recon = decoder(z)[0]  # C H W
 
     D = z.shape[1]
-    std_vec = latent_std.to(device) if latent_std is not None else torch.ones(D, device=device)
+    std_vec = (
+        latent_std.to(device)
+        if latent_std is not None
+        else torch.ones(D, device=device)
+    )
     delta_scores = torch.zeros(D, device=device)
     maps = []
 
@@ -123,7 +138,9 @@ def explain_image(img: torch.Tensor,
             # saliency map
             diff_map = _patchwise_ssim(x_plus, x_minus)
             diff_map = _gaussian_blur(diff_map)
-            diff_map = (diff_map - diff_map.min()) / (diff_map.max() - diff_map.min() + 1e-8)
+            diff_map = (diff_map - diff_map.min()) / (
+                diff_map.max() - diff_map.min() + 1e-8
+            )
             maps.append(diff_map)
 
     # select top-k influential units

@@ -2,27 +2,24 @@ import os
 import pandas as pd
 
 
-def generate_file_table(experiment_id: str,
-                        image_dir: str,
-                        annotations_file: str,
-                        output_file: str) -> None:
-
+def generate_file_table(
+    experiment_id: str, image_dir: str, annotations_file: str, output_file: str
+) -> None:
     file_frame = _generate_file_table(experiment_id, image_dir, annotations_file)
-    file_frame.to_csv(output_file, index = False)
+    file_frame.to_csv(output_file, index=False)
 
     return
 
-def _generate_file_table(experiment_id: str,
-                         image_dir: str,
-                         annotations_file: str):
 
+def _generate_file_table(experiment_id: str, image_dir: str, annotations_file: str):
     annotation_table = pd.read_csv(annotations_file)
     if annotation_table.shape[1] == 1:
-        annotation_table = pd.read_csv(annotations_file, sep = ";")
+        annotation_table = pd.read_csv(annotations_file, sep=";")
 
     annotation_table["well"] = [
         entry.split(experiment_id)[1]
-        if not entry == f"{experiment_id}{experiment_id}" else experiment_id
+        if not entry == f"{experiment_id}{experiment_id}"
+        else experiment_id
         for entry in annotation_table["ID"].tolist()
     ]
 
@@ -33,12 +30,16 @@ def _generate_file_table(experiment_id: str,
     ]
 
     file_name_information = [
-        "experiment", "well", "file_name", "position", "slice", "loop"
+        "experiment",
+        "well",
+        "file_name",
+        "position",
+        "slice",
+        "loop",
     ]
 
     metadata_dict = {
-        annotation: []
-        for annotation in file_name_information + annotations
+        annotation: [] for annotation in file_name_information + annotations
     }
 
     files = os.listdir(image_dir)
@@ -57,9 +58,9 @@ def _generate_file_table(experiment_id: str,
         metadata_dict["slice"].append(contents[4])
         metadata_dict["file_name"].append(file_name)
         metadata = annotation_table.loc[
-            (annotation_table["well"] == well) &
-            (annotation_table["experiment"] == experiment_id),
-            annotations
+            (annotation_table["well"] == well)
+            & (annotation_table["experiment"] == experiment_id),
+            annotations,
         ]
         for annotation in annotations:
             metadata_dict[annotation].append(metadata[annotation].iloc[0])

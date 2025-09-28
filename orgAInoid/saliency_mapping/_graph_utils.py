@@ -23,34 +23,34 @@ from ..image_handling._image_handler import ImageHandler
 
 Node = tuple[int, int]
 
-def get_images_and_masks(dataset: OrganoidDataset,
-                         well: str,
-                         img_handler: ImageHandler) -> tuple[np.ndarray, ...]:
+
+def get_images_and_masks(
+    dataset: OrganoidDataset, well: str, img_handler: ImageHandler
+) -> tuple[np.ndarray, ...]:
     metadata = dataset.metadata[
-        (dataset.metadata["well"] == well) &
-        (dataset.metadata["slice"].isin(dataset.dataset_metadata.slices))
+        (dataset.metadata["well"] == well)
+        & (dataset.metadata["slice"].isin(dataset.dataset_metadata.slices))
     ].copy()
-    metadata = metadata.sort_values("loop", ascending = True)
+    metadata = metadata.sort_values("loop", ascending=True)
     file_paths = metadata["image_path"].tolist()
     imgs = []
     masks = []
 
-    for path in tqdm(file_paths, desc = f"Image generation for well {well}"):
+    for path in tqdm(file_paths, desc=f"Image generation for well {well}"):
         array_index = metadata.loc[
-            metadata["image_path"] == path,
-            "IMAGE_ARRAY_INDEX"
+            metadata["image_path"] == path, "IMAGE_ARRAY_INDEX"
         ].iloc[0]
-        img = dataset.X[array_index,:,:,:]
+        img = dataset.X[array_index, :, :, :]
 
         img_to_mask = OrganoidImage(path)
         _, mask = img_handler.get_mask_and_image(
-            img = img_to_mask,
-            image_target_dimension = dataset.image_metadata.dimension,
-            mask_threshold = dataset.image_metadata.mask_threshold,
-            clean_mask = dataset.image_metadata.cleaned_mask,
-            crop_bounding_box = dataset.image_metadata.crop_bounding_box,
-            rescale_cropped_image = dataset.image_metadata.rescale_cropped_image,
-            crop_bounding_box_dimension = dataset.image_metadata.crop_bounding_box_dimension
+            img=img_to_mask,
+            image_target_dimension=dataset.image_metadata.dimension,
+            mask_threshold=dataset.image_metadata.mask_threshold,
+            clean_mask=dataset.image_metadata.cleaned_mask,
+            crop_bounding_box=dataset.image_metadata.crop_bounding_box,
+            rescale_cropped_image=dataset.image_metadata.rescale_cropped_image,
+            crop_bounding_box_dimension=dataset.image_metadata.crop_bounding_box_dimension,
         )
         if mask is None:
             print("ERROR! MASK CREATION FAILED! SKIPPING LOOP!")
@@ -58,7 +58,7 @@ def get_images_and_masks(dataset: OrganoidDataset,
         mask = mask[np.newaxis, ...]
         imgs.append(img)
         masks.append(mask)
-    
+
     imgs = np.array(imgs)
     masks = np.array(masks)
 
@@ -66,10 +66,13 @@ def get_images_and_masks(dataset: OrganoidDataset,
     # masks.shape = [n_images, 1, 224, 224]
     return imgs, masks
 
-def slic_segment_stack(imgs: np.ndarray,
-                       masks: np.ndarray,
-                       pixels_per_superpixel: int = 1000,
-                       compactness: float = 0.06) -> np.ndarray:
+
+def slic_segment_stack(
+    imgs: np.ndarray,
+    masks: np.ndarray,
+    pixels_per_superpixel: int = 1000,
+    compactness: float = 0.06,
+) -> np.ndarray:
     if imgs.ndim == 4 and imgs.shape[1] == 1:
         imgs_np = imgs[:, 0]
     else:
@@ -88,21 +91,26 @@ def slic_segment_stack(imgs: np.ndarray,
         masked_px = int(mask.sum())
         n_segments = max(1, round(masked_px / pixels_per_superpixel))
 
-        lab = slic(imgs_np[t],
-                   mask = mask,
-                   n_segments = n_segments,
-                   compactness = compactness,
-                   start_label = 1,
-                   channel_axis = None)
+        lab = slic(
+            imgs_np[t],
+            mask=mask,
+            n_segments=n_segments,
+            compactness=compactness,
+            start_label=1,
+            channel_axis=None,
+        )
         lab[~mask] = -1
         labels_stack[t] = lab.astype(np.int32)
 
     return labels_stack
 
-def regionprops_stack(imgs: np.ndarray,
-                      labels_stack: np.ndarray,
-                      props: Optional[list[str]] = None,
-                      hist_bins: int = 8) -> pd.DataFrame:
+
+def regionprops_stack(
+    imgs: np.ndarray,
+    labels_stack: np.ndarray,
+    props: Optional[list[str]] = None,
+    hist_bins: int = 8,
+) -> pd.DataFrame:
     """
     Compute regionprops for a labelled stack.
 
@@ -113,12 +121,14 @@ def regionprops_stack(imgs: np.ndarray,
     """
     if props is None:
         props = [
-            "label", "area", "perimeter",
+            "label",
+            "area",
+            "perimeter",
             "weighted_centroid",
             "weighted_moments_central",
             "weighted_moments_hu",
             "intensity_mean",
-            "intensity_std"
+            "intensity_std",
         ]
 
     imgs_np = imgs[:, 0] if imgs.ndim == 4 and imgs.shape[1] == 1 else imgs
@@ -129,26 +139,25 @@ def regionprops_stack(imgs: np.ndarray,
         assert 0 not in lab
         lab[lab == -1] = 0  # background to 0 for sklearn ignorings
 
-        tbl = regionprops_table(lab,
-                                intensity_image=imgs_np[t],
-                                properties=props)
+        tbl = regionprops_table(lab, intensity_image=imgs_np[t], properties=props)
 
         df = pd.DataFrame(tbl)
 
         if "weighted_centroid-0" in df.columns:
-            df.rename(columns={"weighted_centroid-0": "wcentroid_row",
-                               "weighted_centroid-1": "wcentroid_col"},
-                      inplace=True)
+            df.rename(
+                columns={
+                    "weighted_centroid-0": "wcentroid_row",
+                    "weighted_centroid-1": "wcentroid_col",
+                },
+                inplace=True,
+            )
 
         hist_cols = [f"hist_{i}" for i in range(hist_bins)]
         hist_dict = {c: [] for c in hist_cols}
 
         for lbl in df["label"]:
             pix = imgs_np[t][lab == lbl]
-            h, _ = np.histogram(pix,
-                                bins=hist_bins,
-                                range=(0, 1),
-                                density=True)
+            h, _ = np.histogram(pix, bins=hist_bins, range=(0, 1), density=True)
             for i, v in enumerate(h):
                 hist_dict[f"hist_{i}"].append(float(v))
 
@@ -164,19 +173,22 @@ def regionprops_stack(imgs: np.ndarray,
     region_df = region_df[region_df["label"] > 0].reset_index(drop=True)
     return region_df
 
+
 def _add_cost_attr(G: nx.DiGraph, eps: float = 1e-6) -> None:
     """Adds a cost attribute = 1/(weight+eps) for Dijkstra."""
     for u, v, d in G.edges(data=True):
         w = d.get("weight", 0.0)
-        d["cost"] = 1.0/(w+eps) if w>0 else 1.0/eps
+        d["cost"] = 1.0 / (w + eps) if w > 0 else 1.0 / eps
 
 
-def build_backwards_graph(labels_stack: np.ndarray,
-                          region_df: pd.DataFrame,
-                          n_predecessors: int = 1,
-                          m_candidates: int = 10,
-                          alpha: float = 1.0,
-                          beta: float = 0.5) -> nx.DiGraph:
+def build_backwards_graph(
+    labels_stack: np.ndarray,
+    region_df: pd.DataFrame,
+    n_predecessors: int = 1,
+    m_candidates: int = 10,
+    alpha: float = 1.0,
+    beta: float = 0.5,
+) -> nx.DiGraph:
     """
     Build a backward graph with *normalized* edge weights:
 
@@ -192,10 +204,9 @@ def build_backwards_graph(labels_stack: np.ndarray,
 
     # which columns go into the prop vector?
     prop_cols = [
-        c for c in region_df.columns
-        if c.startswith(
-            ("intensity_", "weighted_moments_hu-", "hist_")
-        )
+        c
+        for c in region_df.columns
+        if c.startswith(("intensity_", "weighted_moments_hu-", "hist_"))
     ]
     n_props = float(len(prop_cols))
 
@@ -204,12 +215,11 @@ def build_backwards_graph(labels_stack: np.ndarray,
     sigma_vec = prop_mat.std(axis=0, ddof=0)
     sigma_vec[sigma_vec == 0] = 1.0
 
-    feat_dict: dict[tuple[int,int], np.ndarray] = {}
-    wcent_dict: dict[tuple[int,int], tuple[float,float]] = {}
-    area_dict: dict[dict[int,int], float] = {}
+    feat_dict: dict[tuple[int, int], np.ndarray] = {}
+    wcent_dict: dict[tuple[int, int], tuple[float, float]] = {}
+    area_dict: dict[dict[int, int], float] = {}
 
-    keep_cols = [c for c in region_df.columns
-                 if c not in {"image_idx", "label"}]
+    keep_cols = [c for c in region_df.columns if c not in {"image_idx", "label"}]
 
     G = nx.DiGraph()
     for _, r in region_df.iterrows():
@@ -243,12 +253,12 @@ def build_backwards_graph(labels_stack: np.ndarray,
         key = la.astype(np.int64) * (max_prev + 1) + lb
         cnt = np.bincount(key)
 
-        overlap_map: dict[int, dict[int,int]] = {}
+        overlap_map: dict[int, dict[int, int]] = {}
         for pid, px in enumerate(cnt):
             if px == 0:
                 continue
             cur = pid // (max_prev + 1) - 1
-            prv = pid %  (max_prev + 1) - 1
+            prv = pid % (max_prev + 1) - 1
             if cur >= 0 and prv >= 0:
                 overlap_map.setdefault(cur, {})[prv] = int(px)
 
@@ -263,13 +273,15 @@ def build_backwards_graph(labels_stack: np.ndarray,
             area_u = area_dict[u]
 
             # gather candidate predecessors
-            cand: list[tuple[float,int,int,float,float]] = []  # (-score, prv, px, d_c, d_p)
+            cand: list[
+                tuple[float, int, int, float, float]
+            ] = []  # (-score, prv, px, d_c, d_p)
 
             # (a) real overlap patches
             for prv, px in overlap_map.get(cur, {}).items():
-                v = (t-1, prv)
+                v = (t - 1, prv)
                 d_c = _cdist(u, v)
-                score = px / (1 + d_c)           # quick filter
+                score = px / (1 + d_c)  # quick filter
                 cand.append((-score, prv, px, d_c, 0.0))
 
             # (b) add nearest by centroid if needed
@@ -280,7 +292,7 @@ def build_backwards_graph(labels_stack: np.ndarray,
                     for prv in prv_labels:
                         if prv in (-1, *[x[1] for x in cand]):
                             continue
-                        v = (t-1, prv)
+                        v = (t - 1, prv)
                         rb, cb = wcent_dict.get(v, (np.nan, np.nan))
                         if np.isnan(rb):
                             continue
@@ -288,12 +300,12 @@ def build_backwards_graph(labels_stack: np.ndarray,
                         dist_list.append((d_c, prv))
                     dist_list.sort()
                     for d_c, prv in dist_list[: m_candidates - len(cand)]:
-                        cand.append((-1/(1+d_c), prv, 0, d_c, 0.0))
+                        cand.append((-1 / (1 + d_c), prv, 0, d_c, 0.0))
 
             # refine final weights on this trimmed set
             refined = []
             for _, prv, px, d_c, _ in cand:
-                v = (t-1, prv)
+                v = (t - 1, prv)
                 d_p = float(np.abs(v_cur - feat_dict[v]).sum())
                 area_v = area_dict[v]
                 union = area_u + area_v - px
@@ -302,35 +314,47 @@ def build_backwards_graph(labels_stack: np.ndarray,
                 d_c_norm = d_c / max_dist
                 d_p_norm = d_p / n_props
 
-                w = (overlap_ratio /
-                     (1.0 + alpha * d_c_norm + beta * d_p_norm)) if px>0 else 0.0
+                w = (
+                    (overlap_ratio / (1.0 + alpha * d_c_norm + beta * d_p_norm))
+                    if px > 0
+                    else 0.0
+                )
                 refined.append((-w, prv, px, d_c_norm, d_p_norm))
 
             # pick top n_predecessors
             refined.sort()
             for _, prv, px, d_cn, d_pn in refined[:n_predecessors]:
-                v = (t-1, prv)
-                overlap_ratio = (px / (area_u + area_dict[v] - px + 1e-8))
-                w = (overlap_ratio /
-                     (1.0 + alpha * d_cn + beta * d_pn)) if px>0 else 0.0
+                v = (t - 1, prv)
+                overlap_ratio = px / (area_u + area_dict[v] - px + 1e-8)
+                w = (
+                    (overlap_ratio / (1.0 + alpha * d_cn + beta * d_pn))
+                    if px > 0
+                    else 0.0
+                )
 
-                G.add_edge(u, v,
-                           overlap_px=px,
-                           overlap_ratio=overlap_ratio,
-                           d_c_norm=d_cn,
-                           d_p_norm=d_pn,
-                           weight=w)
+                G.add_edge(
+                    u,
+                    v,
+                    overlap_px=px,
+                    overlap_ratio=overlap_ratio,
+                    d_c_norm=d_cn,
+                    d_p_norm=d_pn,
+                    weight=w,
+                )
 
     _add_cost_attr(G)
 
     return G
 
-def build_forwards_graph(labels_stack: np.ndarray,
-                         region_df: pd.DataFrame,
-                         n_successors: int = 1,
-                         m_candidates: int = 10,
-                         alpha: float = 1.0,
-                         beta: float = 0.5) -> nx.DiGraph:
+
+def build_forwards_graph(
+    labels_stack: np.ndarray,
+    region_df: pd.DataFrame,
+    n_successors: int = 1,
+    m_candidates: int = 10,
+    alpha: float = 1.0,
+    beta: float = 0.5,
+) -> nx.DiGraph:
     """
     Link each super-pixel at frame t → up to n_successors at t+1,
     using the same normalized weight formula as the backwards graph:
@@ -346,20 +370,23 @@ def build_forwards_graph(labels_stack: np.ndarray,
     max_dist = np.hypot(H, W).astype(np.float32)
 
     # which properties to include
-    prop_cols = [c for c in region_df.columns
-                 if c.startswith(("intensity_", "weighted_moments_hu-", "hist_"))]
+    prop_cols = [
+        c
+        for c in region_df.columns
+        if c.startswith(("intensity_", "weighted_moments_hu-", "hist_"))
+    ]
     n_props = float(len(prop_cols))
 
     # prepare feature, centroid & area caches
-    prop_mat  = region_df[prop_cols].to_numpy(np.float32, copy=False)
+    prop_mat = region_df[prop_cols].to_numpy(np.float32, copy=False)
     sigma_vec = prop_mat.std(axis=0, ddof=0)
     sigma_vec[sigma_vec == 0] = 1.0
 
-    feat_dict: dict[tuple[int,int], np.ndarray] = {}
-    wcent_dict: dict[tuple[int,int], tuple[float,float]] = {}
-    area_dict: dict[tuple[int,int], float] = {}
+    feat_dict: dict[tuple[int, int], np.ndarray] = {}
+    wcent_dict: dict[tuple[int, int], tuple[float, float]] = {}
+    area_dict: dict[tuple[int, int], float] = {}
 
-    keep_cols = [c for c in region_df.columns if c not in {"image_idx","label"}]
+    keep_cols = [c for c in region_df.columns if c not in {"image_idx", "label"}]
     G = nx.DiGraph()
 
     # add nodes
@@ -396,12 +423,12 @@ def build_forwards_graph(labels_stack: np.ndarray,
         cnt = np.bincount(key)
 
         # map curr_label → {next_label: overlap_px}
-        overlap_map: dict[int, dict[int,int]] = {}
+        overlap_map: dict[int, dict[int, int]] = {}
         for pid, px in enumerate(cnt):
             if px == 0:
                 continue
             i = pid // (max_next + 1) - 1
-            j = pid %  (max_next + 1) - 1
+            j = pid % (max_next + 1) - 1
             if i >= 0 and j >= 0:
                 overlap_map.setdefault(i, {})[j] = int(px)
 
@@ -416,11 +443,11 @@ def build_forwards_graph(labels_stack: np.ndarray,
             area_u = area_dict[u]
 
             # 1) gather overlap‐based candidates
-            cand: list[tuple[float,int,int,float,float]] = []
+            cand: list[tuple[float, int, int, float, float]] = []
             for nxt, px in overlap_map.get(cur, {}).items():
                 v = (t + 1, nxt)
                 d_c = _cdist(u, v)
-                score = px / (1 + d_c)           # quick pre‐filter
+                score = px / (1 + d_c)  # quick pre‐filter
                 cand.append((-score, nxt, px, d_c, 0.0))
 
             # 2) if too few, add nearest by centroid
@@ -439,7 +466,7 @@ def build_forwards_graph(labels_stack: np.ndarray,
                         dist_list.append((d_c, nxt))
                     dist_list.sort()
                     for d_c, nxt in dist_list[: m_candidates - len(cand)]:
-                        cand.append((-1/(1+d_c), nxt, 0, d_c, 0.0))
+                        cand.append((-1 / (1 + d_c), nxt, 0, d_c, 0.0))
 
             # 3) refine weights on this trimmed set
             refined = []
@@ -453,8 +480,11 @@ def build_forwards_graph(labels_stack: np.ndarray,
                 d_c_norm = d_c / max_dist
                 d_p_norm = d_p / n_props
 
-                w = (overlap_ratio /
-                     (1.0 + alpha * d_c_norm + beta * d_p_norm)) if px > 0 else 0.0
+                w = (
+                    (overlap_ratio / (1.0 + alpha * d_c_norm + beta * d_p_norm))
+                    if px > 0
+                    else 0.0
+                )
                 refined.append((-w, nxt, px, d_c_norm, d_p_norm))
 
             # 4) pick top n_successors and add edges
@@ -462,36 +492,45 @@ def build_forwards_graph(labels_stack: np.ndarray,
             for _, nxt, px, d_cn, d_pn in refined[:n_successors]:
                 v = (t + 1, nxt)
                 overlap_ratio = px / (area_u + area_dict[v] - px + 1e-8)
-                w = (overlap_ratio /
-                     (1.0 + alpha * d_cn + beta * d_pn)) if px > 0 else 0.0
+                w = (
+                    (overlap_ratio / (1.0 + alpha * d_cn + beta * d_pn))
+                    if px > 0
+                    else 0.0
+                )
 
-                G.add_edge(u, v,
-                           overlap_px=px,
-                           overlap_ratio=overlap_ratio,
-                           d_c_norm=d_cn,
-                           d_p_norm=d_pn,
-                           weight=w)
+                G.add_edge(
+                    u,
+                    v,
+                    overlap_px=px,
+                    overlap_ratio=overlap_ratio,
+                    d_c_norm=d_cn,
+                    d_p_norm=d_pn,
+                    weight=w,
+                )
 
     _add_cost_attr(G)
 
     return G
 
+
 def overlap_stats(G: nx.DiGraph) -> float:
-    overlaps = np.array([d["overlap_px"] for _,_,d in G.edges(data=True)])
+    overlaps = np.array([d["overlap_px"] for _, _, d in G.edges(data=True)])
     nonzero = np.count_nonzero(overlaps)
     total = len(overlaps)
 
-    return (nonzero/total) * 100
+    return (nonzero / total) * 100
 
-def shortest_paths_last_to_first(G: nx.DiGraph,
-                                 weighted: bool = False) -> dict[Node, list[Node]]:
+
+def shortest_paths_last_to_first(
+    G: nx.DiGraph, weighted: bool = False
+) -> dict[Node, list[Node]]:
     """
     For every node in the *last frame*, compute one shortest path
     back to *any* node in frame 0. Uses Dijkstra if weighted else topological graph.
 
     """
     first_f = min(f for f, _ in G.nodes)
-    last_f  = max(f for f, _ in G.nodes)
+    last_f = max(f for f, _ in G.nodes)
     first_nodes = {n for n in G.nodes if n[0] == first_f}
 
     paths: dict[Node, list[Node]] = {}
@@ -500,10 +539,10 @@ def shortest_paths_last_to_first(G: nx.DiGraph,
     if weighted:
         path_func = nx.single_source_dijkstra_path
         length_func = nx.single_source_dijkstra_path_length
-        w_key = "cost"            # lower cost ⇒ stronger edge
+        w_key = "cost"  # lower cost ⇒ stronger edge
     else:
         path_func = nx.single_source_shortest_path
-        length_func = None              # lengths by len(path)
+        length_func = None  # lengths by len(path)
         w_key = None
 
     for src in (n for n in G.nodes if n[0] == last_f):
@@ -523,34 +562,35 @@ def shortest_paths_last_to_first(G: nx.DiGraph,
         else:
             tgt = min(reachable, key=lambda n: len(p_dict[n]))
 
-        paths[src] = p_dict[tgt]        # already in backward order
+        paths[src] = p_dict[tgt]  # already in backward order
 
     return paths
 
-def shortest_paths_first_to_last(G: nx.DiGraph,
-                                 inputs: list[Node],
-                                 weighted: bool = False) -> dict[Node, list[Node]]:
+
+def shortest_paths_first_to_last(
+    G: nx.DiGraph, inputs: list[Node], weighted: bool = False
+) -> dict[Node, list[Node]]:
     """
     For each `start` in `inputs` (frame 0), find ONE shortest path
-    to any node in the last frame of G.  
+    to any node in the last frame of G.
     Returns {start_node → path list}, or omits if unreachable.
 
-    weighted=False → fewest hops  
+    weighted=False → fewest hops
     weighted=True  → minimal total 'cost' (edge-attr 'cost')
     """
     # identify last‐frame nodes
-    last_f = max(f for f,_ in G.nodes)
+    last_f = max(f for f, _ in G.nodes)
     last_nodes = {n for n in G.nodes if n[0] == last_f}
 
     # pick algorithms
     if weighted:
-        path_fn   = nx.single_source_dijkstra_path
+        path_fn = nx.single_source_dijkstra_path
         length_fn = nx.single_source_dijkstra_path_length
-        w_key     = "cost"
+        w_key = "cost"
     else:
-        path_fn   = nx.single_source_shortest_path
+        path_fn = nx.single_source_shortest_path
         length_fn = None
-        w_key     = None
+        w_key = None
 
     out: dict[Node, list[Node]] = {}
     for src in inputs:
@@ -573,9 +613,10 @@ def shortest_paths_first_to_last(G: nx.DiGraph,
 
     return out
 
-def forward_paths_from_backward_paths(G_fwd: nx.DiGraph,
-                                      back_paths: dict[Node, list[Node]],
-                                      weighted: bool = False) -> dict[Node, dict[Node, list[Node]]]:
+
+def forward_paths_from_backward_paths(
+    G_fwd: nx.DiGraph, back_paths: dict[Node, list[Node]], weighted: bool = False
+) -> dict[Node, dict[Node, list[Node]]]:
     """
     Given back_paths: {output_node → backward‐path ending at input_node},
     compute **all** forward paths from each input_node to every output_node
@@ -587,6 +628,7 @@ def forward_paths_from_backward_paths(G_fwd: nx.DiGraph,
     weighted=False → fewest hops (BFS)
     weighted=True  → Dijkstra on edge‐attr 'cost'
     """
+
     # Prepare the right NX call
     def get_path(src: Node, tgt: Node) -> list[Node]:
         if weighted:
@@ -610,8 +652,10 @@ def forward_paths_from_backward_paths(G_fwd: nx.DiGraph,
 
     return dict(out)
 
-def compare_forward_backward_paths(fwd: dict[Node, dict[Node, list[Node]]],
-                                   bwd: dict[Node, list[Node]]) -> pd.DataFrame:
+
+def compare_forward_backward_paths(
+    fwd: dict[Node, dict[Node, list[Node]]], bwd: dict[Node, list[Node]]
+) -> pd.DataFrame:
     """
     Compare forward‐inferred tracks (input_node → output_node) with backward‐inferred
     tracks (output_node → input_node), and return a DataFrame summarising their overlap.
@@ -644,23 +688,27 @@ def compare_forward_backward_paths(fwd: dict[Node, dict[Node, list[Node]]],
             set_f = set(path_f)
             set_b = set(path_b_rev)
             inter = len(set_f & set_b)
-            uni   = len(set_f | set_b)
-            j     = inter / uni if uni else 0.0
+            uni = len(set_f | set_b)
+            j = inter / uni if uni else 0.0
 
-            records.append({
-                "start_node": start_node[1],
-                "end_node": end_node[1],
-                "fwd_length": len(path_f),
-                "bwd_length": len(path_b_rev),
-                "intersection": inter,
-                "union": uni,
-                "jaccard": j
-            })
+            records.append(
+                {
+                    "start_node": start_node[1],
+                    "end_node": end_node[1],
+                    "fwd_length": len(path_f),
+                    "bwd_length": len(path_b_rev),
+                    "intersection": inter,
+                    "union": uni,
+                    "jaccard": j,
+                }
+            )
 
     return pd.DataFrame(records)
 
-def compute_path_level_coverage(G: nx.DiGraph,
-                                paths: dict[Node, list[Node]]) -> pd.DataFrame:
+
+def compute_path_level_coverage(
+    G: nx.DiGraph, paths: dict[Node, list[Node]]
+) -> pd.DataFrame:
     """
     Summarise how many nodes per frame belong to at least one shortest path.
 
@@ -668,7 +716,7 @@ def compute_path_level_coverage(G: nx.DiGraph,
         frame, in_paths, total_nodes, percent
     """
     # gather nodes that lie on at least one path
-    nodes_in_paths = defaultdict(set)        # frame → {nodes}
+    nodes_in_paths = defaultdict(set)  # frame → {nodes}
     for path in paths.values():
         for n in path:
             nodes_in_paths[n[0]].add(n)
@@ -676,19 +724,21 @@ def compute_path_level_coverage(G: nx.DiGraph,
     records = []
     for frame in sorted({f for f, _ in G.nodes}):
         in_paths = len(nodes_in_paths.get(frame, ()))
-        total    = sum(1 for f, _ in G.nodes if f == frame)
-        pct      = (in_paths / total * 100) if total else 0.0
-        records.append(dict(frame=frame,
-                            in_paths=in_paths,
-                            total_nodes=total,
-                            percent=pct))
+        total = sum(1 for f, _ in G.nodes if f == frame)
+        pct = (in_paths / total * 100) if total else 0.0
+        records.append(
+            dict(frame=frame, in_paths=in_paths, total_nodes=total, percent=pct)
+        )
 
     return pd.DataFrame(records)
 
-def compute_input_to_last_costs(G: nx.DiGraph,
-                                backward_paths: dict[Node, list[Node]],
-                                forward_paths: dict[Node, dict[Node, list[Node]]],
-                                weighted: bool = True) -> pd.DataFrame:
+
+def compute_input_to_last_costs(
+    G: nx.DiGraph,
+    backward_paths: dict[Node, list[Node]],
+    forward_paths: dict[Node, dict[Node, list[Node]]],
+    weighted: bool = True,
+) -> pd.DataFrame:
     """
     For each pair of input (frame 0) and output (last frame) nodes,
     compute the shortest path cost. Additionally, flag paths that were
@@ -701,8 +751,8 @@ def compute_input_to_last_costs(G: nx.DiGraph,
       - used: bool, whether this pair was part of a backward path
     """
     first_f = min(f for f, _ in G.nodes())
-    last_f  = max(f for f, _ in G.nodes())
-    inputs  = [n for n in G.nodes() if n[0] == first_f]
+    last_f = max(f for f, _ in G.nodes())
+    inputs = [n for n in G.nodes() if n[0] == first_f]
     outputs = [n for n in G.nodes() if n[0] == last_f]
 
     if weighted:
@@ -722,7 +772,8 @@ def compute_input_to_last_costs(G: nx.DiGraph,
             all_lengths[inp] = {}
 
     used_pairs = {
-        (path[-1], output) for output, path in backward_paths.items()
+        (path[-1], output)
+        for output, path in backward_paths.items()
         if path and path[-1][0] == first_f and output[0] == last_f
     }
 
@@ -730,7 +781,7 @@ def compute_input_to_last_costs(G: nx.DiGraph,
     for inp in inputs:
         lengths = all_lengths.get(inp, {})
         for out in outputs:
-            min_cost = float(lengths[out]) if out in lengths else float('inf')
+            min_cost = float(lengths[out]) if out in lengths else float("inf")
             reachable = out in lengths
             used = (inp, out) in used_pairs
 
@@ -744,7 +795,10 @@ def compute_input_to_last_costs(G: nx.DiGraph,
             if reachable:
                 try:
                     path = path_func(G, inp, out, weight=weight_key)
-                    weights = [G.edges[a, b].get("weight", 0.0) for a, b in zip(path[:-1], path[1:])]
+                    weights = [
+                        G.edges[a, b].get("weight", 0.0)
+                        for a, b in zip(path[:-1], path[1:])
+                    ]
                     n_zero = sum(1 for w in weights if w == 0.0)
                     pct_zero_weight = n_zero / len(weights) if weights else None
                 except (nx.NetworkXNoPath, nx.NodeNotFound):
@@ -767,25 +821,28 @@ def compute_input_to_last_costs(G: nx.DiGraph,
                     union = uni
                     jaccard = j
 
-            records.append({
-                "input_node": inp[1],
-                "output_node": out[1],
-                "min_cost": min_cost,
-                "reachable": reachable,
-                "used": used,
-                "pct_zero_weight": pct_zero_weight,
-                "fwd_length": fwd_length,
-                "bwd_length": bwd_length,
-                "intersection": intersection,
-                "union": union,
-                "jaccard": jaccard
-            })
+            records.append(
+                {
+                    "input_node": inp[1],
+                    "output_node": out[1],
+                    "min_cost": min_cost,
+                    "reachable": reachable,
+                    "used": used,
+                    "pct_zero_weight": pct_zero_weight,
+                    "fwd_length": fwd_length,
+                    "bwd_length": bwd_length,
+                    "intersection": intersection,
+                    "union": union,
+                    "jaccard": jaccard,
+                }
+            )
 
     return pd.DataFrame(records)
 
 
-def mask_selected_inputs(labels_stack: np.ndarray,
-                         input_nodes: set[Node]) -> np.ndarray:
+def mask_selected_inputs(
+    labels_stack: np.ndarray, input_nodes: set[Node]
+) -> np.ndarray:
     """
     From labels_stack (T×H×W) and a list of input_nodes [(0,label),…],
     return a 2D mask for frame 0 where pixels = 1 if their label is in
@@ -799,9 +856,11 @@ def mask_selected_inputs(labels_stack: np.ndarray,
     return mask0
 
 
-def save_to_zarr(mask: np.ndarray,
-                 parameters: dict[str, Union[int, float, str]],
-                 zarr_path: Union[str, Path]) -> None:
+def save_to_zarr(
+    mask: np.ndarray,
+    parameters: dict[str, Union[int, float, str]],
+    zarr_path: Union[str, Path],
+) -> None:
     """
     Store or append one 2D mask (0/1) and its metadata to a Zarr store
     along the 'run' dimension. If the store doesn't exist, it's created.
@@ -822,20 +881,18 @@ def save_to_zarr(mask: np.ndarray,
     if zarr_path.exists():
         # Append to existing store
         ds_old = xr.open_zarr(zarr_path)
-        run_index = ds_old.dims['run']
+        run_index = ds_old.dims["run"]
 
         # New DataArray for this run
         da_new = xr.DataArray(
-            mask[np.newaxis, ...],
-            dims=('run', 'y', 'x'),
-            coords={'run': [run_index]}
+            mask[np.newaxis, ...], dims=("run", "y", "x"), coords={"run": [run_index]}
         )
-        ds_new = da_new.to_dataset(name='mask')
+        ds_new = da_new.to_dataset(name="mask")
         # Attach metadata
         for k, v in parameters.items():
-            ds_new.coords[k] = ('run', [v])
+            ds_new.coords[k] = ("run", [v])
         # Append
-        ds_new.to_zarr(zarr_path, mode='a', append_dim='run')
+        ds_new.to_zarr(zarr_path, mode="a", append_dim="run")
 
     else:
         # Create fresh store (remove any partial)
@@ -843,10 +900,7 @@ def save_to_zarr(mask: np.ndarray,
             shutil.rmtree(zarr_path)
 
         arr = mask[np.newaxis, ...]  # shape (1, H, W)
-        coords = {'run': [0]}
-        coords.update({k: ('run', [v]) for k, v in parameters.items()})
-        ds = xr.Dataset(
-            {'mask': (('run', 'y', 'x'), arr)},
-            coords=coords
-        )
-        ds.to_zarr(zarr_path, mode='w')
+        coords = {"run": [0]}
+        coords.update({k: ("run", [v]) for k, v in parameters.items()})
+        ds = xr.Dataset({"mask": (("run", "y", "x"), arr)}, coords=coords)
+        ds.to_zarr(zarr_path, mode="w")

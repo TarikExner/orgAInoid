@@ -13,12 +13,10 @@ article {Afting2025.02.19.639061,
 	year = {2025},
 	doi = {10.1101/2025.02.19.639061},
 	publisher = {Cold Spring Harbor Laboratory},
-	abstract = {Retinal organoids have become important models for studying development and disease, yet stochastic heterogeneity in the formation of cell types, tissues, and phenotypes remains a major challenge. This limits our ability to precisely experimentally address the early developmental trajectories towards these outcomes. Here, we utilize deep learning to predict the differentiation path and resulting tissues in retinal organoids well before they become visually discernible. Our approach effectively bypasses the challenge of organoid-related heterogeneity in tissue formation. For this, we acquired a high-resolution time-lapse imaging dataset comprising about 1,000 organoids and over 100,000 images enabling precise temporal tracking of organoid development. By combining expert annotations with advanced image analysis of organoid morphology, we characterized the heterogeneity of the retinal pigmented epithelium (RPE) and lens tissues, as well as global organoid morphologies over time. Using this training set, our deep learning approach accurately predicts the emergence and size of RPE and lens tissue formation on an organoid-by-organoid basis at early developmental stages, refining our understanding of when early lineage decisions are made. This approach advances knowledge of tissue and phenotype decision-making in organoid development and can inform the design of similar predictive platforms for other organoid systems, paving the way for more standardized and reproducible organoid research. Finally, it provides a direct focus on early developmental time points for in-depth molecular analyses, alleviated from confounding effects of heterogeneity.Competing Interest StatementThe authors have declared no competing interest.},
 	URL = {https://www.biorxiv.org/content/early/2025/02/23/2025.02.19.639061},
 	eprint = {https://www.biorxiv.org/content/early/2025/02/23/2025.02.19.639061.full.pdf},
 	journal = {bioRxiv}
 }
-
 
 
 One important comment: The code refers to the terms "validation" and "test" set other than the nomenclature commonly used within the field.
@@ -59,7 +57,10 @@ classifier experiments with algorithms of "classical" machine learning.
 
 ## Use the classification datasets
 
-The datasets have been deposited at Zenodo [links pending].
+The datasets have been deposited at Zenodo:
+- [Single slice](https://zenodo.org/records/17202714)  
+- [SUM projections](https://zenodo.org/records/17205312)  
+- [Maximum projections](https://zenodo.org/records/17205321)
 
 In order to use it, you will have to clone the repository.
 

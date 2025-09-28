@@ -1,4 +1,3 @@
-
 import os
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -16,313 +15,479 @@ from . import figure_utils as utils
 from .figure_data_generation import get_cnn_output
 
 
-def _generate_main_figure(rpe_classes_output: pd.DataFrame,
-                          lens_classes_output: pd.DataFrame,
-                          figure_output_dir: str = "",
-                          sketch_dir: str = "",
-                          figure_name: str = ""):
-
-    def generate_subfigure_a(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
+def _generate_main_figure(
+    rpe_classes_output: pd.DataFrame,
+    lens_classes_output: pd.DataFrame,
+    figure_output_dir: str = "",
+    sketch_dir: str = "",
+    figure_name: str = "",
+):
+    def generate_subfigure_a(
+        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+    ) -> None:
         ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.3)
-        fig_sgs = gs.subgridspec(1,4)
+        utils._figure_label(ax, subfigure_label, x=-0.3)
+        fig_sgs = gs.subgridspec(1, 4)
 
         readout = "RPE_classes"
         model = "DenseNet121"
 
         data = rpe_classes_output
         data = cast(pd.DataFrame, data[data["Readout"] == readout])
-        data["ValExpID"] = data["ValExpID"].map(lambda x, m=cfg.EXPERIMENT_MAP: m.get(x))
+        data["ValExpID"] = data["ValExpID"].map(
+            lambda x, m=cfg.EXPERIMENT_MAP: m.get(x)
+        )
 
         train_f1 = fig.add_subplot(fig_sgs[0])
         test_f1 = fig.add_subplot(fig_sgs[1])
         val_f1 = fig.add_subplot(fig_sgs[2])
 
         legend = fig.add_subplot(fig_sgs[3])
-        
+
         plot_data = cast(pd.DataFrame, data[data["Model"] == model])
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TrainF1", hue = "ValExpID", ax = train_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TestF1", hue = "ValExpID", ax = test_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "ValF1", hue = "ValExpID", ax = val_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TrainF1",
+            hue="ValExpID",
+            ax=train_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TestF1",
+            hue="ValExpID",
+            ax=test_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="ValF1",
+            hue="ValExpID",
+            ax=val_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
 
         f1_ylim = (0.3, 1.01)
         handles, labels = train_f1.get_legend_handles_labels()
-        for axis in [
-            train_f1, test_f1, val_f1
-        ]:
+        for axis in [train_f1, test_f1, val_f1]:
             axis.legend().remove()
             axis.tick_params(**cfg.TICKPARAMS_PARAMS)
-            axis.set_xlabel(axis.get_xlabel(), fontsize = cfg.AXIS_LABEL_SIZE)
-            axis.set_ylabel(axis.get_ylabel(), fontsize = cfg.AXIS_LABEL_SIZE)
+            axis.set_xlabel(axis.get_xlabel(), fontsize=cfg.AXIS_LABEL_SIZE)
+            axis.set_ylabel(axis.get_ylabel(), fontsize=cfg.AXIS_LABEL_SIZE)
 
         for axis in [train_f1, test_f1, val_f1]:
             axis.set_ylim(f1_ylim)
             axis.set_xlabel("Epoch")
-            
 
         legend.axis("off")
-        legend.legend(handles, labels, loc = "center left", fontsize = cfg.TITLE_SIZE, **cfg.TWO_COL_LEGEND)
+        legend.legend(
+            handles,
+            labels,
+            loc="center left",
+            fontsize=cfg.TITLE_SIZE,
+            **cfg.TWO_COL_LEGEND,
+        )
 
-        test_f1.set_title(f"{model}: RPE amount", fontsize = cfg.TITLE_SIZE)
+        test_f1.set_title(f"{model}: RPE amount", fontsize=cfg.TITLE_SIZE)
 
         return
 
-    def generate_subfigure_b(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
+    def generate_subfigure_b(
+        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+    ) -> None:
         ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.3)
-        fig_sgs = gs.subgridspec(1,4)
+        utils._figure_label(ax, subfigure_label, x=-0.3)
+        fig_sgs = gs.subgridspec(1, 4)
 
         readout = "RPE_classes"
         model = "ResNet50"
 
         data = rpe_classes_output
         data = cast(pd.DataFrame, data[data["Readout"] == readout])
-        data["ValExpID"] = data["ValExpID"].map(lambda x, m=cfg.EXPERIMENT_MAP: m.get(x))
+        data["ValExpID"] = data["ValExpID"].map(
+            lambda x, m=cfg.EXPERIMENT_MAP: m.get(x)
+        )
 
         train_f1 = fig.add_subplot(fig_sgs[0])
         test_f1 = fig.add_subplot(fig_sgs[1])
         val_f1 = fig.add_subplot(fig_sgs[2])
 
         legend = fig.add_subplot(fig_sgs[3])
-        
+
         plot_data = cast(pd.DataFrame, data[data["Model"] == model])
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TrainF1", hue = "ValExpID", ax = train_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TestF1", hue = "ValExpID", ax = test_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "ValF1", hue = "ValExpID", ax = val_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TrainF1",
+            hue="ValExpID",
+            ax=train_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TestF1",
+            hue="ValExpID",
+            ax=test_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="ValF1",
+            hue="ValExpID",
+            ax=val_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
 
         f1_ylim = (0.3, 1.01)
         handles, labels = train_f1.get_legend_handles_labels()
-        for axis in [
-            train_f1, test_f1, val_f1
-        ]:
+        for axis in [train_f1, test_f1, val_f1]:
             axis.legend().remove()
             axis.tick_params(**cfg.TICKPARAMS_PARAMS)
-            axis.set_xlabel(axis.get_xlabel(), fontsize = cfg.AXIS_LABEL_SIZE)
-            axis.set_ylabel(axis.get_ylabel(), fontsize = cfg.AXIS_LABEL_SIZE)
+            axis.set_xlabel(axis.get_xlabel(), fontsize=cfg.AXIS_LABEL_SIZE)
+            axis.set_ylabel(axis.get_ylabel(), fontsize=cfg.AXIS_LABEL_SIZE)
 
         for axis in [train_f1, test_f1, val_f1]:
             axis.set_ylim(f1_ylim)
             axis.set_xlabel("Epoch")
-            
 
         legend.axis("off")
-        legend.legend(handles, labels, loc = "center left", fontsize = cfg.TITLE_SIZE, **cfg.TWO_COL_LEGEND)
+        legend.legend(
+            handles,
+            labels,
+            loc="center left",
+            fontsize=cfg.TITLE_SIZE,
+            **cfg.TWO_COL_LEGEND,
+        )
 
-        test_f1.set_title(f"{model}: RPE amount", fontsize = cfg.TITLE_SIZE)
+        test_f1.set_title(f"{model}: RPE amount", fontsize=cfg.TITLE_SIZE)
 
         return
 
-    def generate_subfigure_c(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
+    def generate_subfigure_c(
+        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+    ) -> None:
         ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.3)
-        fig_sgs = gs.subgridspec(1,4)
+        utils._figure_label(ax, subfigure_label, x=-0.3)
+        fig_sgs = gs.subgridspec(1, 4)
 
         readout = "RPE_classes"
         model = "MobileNetV3_Large"
 
         data = rpe_classes_output
         data = cast(pd.DataFrame, data[data["Readout"] == readout])
-        data["ValExpID"] = data["ValExpID"].map(lambda x, m=cfg.EXPERIMENT_MAP: m.get(x))
+        data["ValExpID"] = data["ValExpID"].map(
+            lambda x, m=cfg.EXPERIMENT_MAP: m.get(x)
+        )
 
         train_f1 = fig.add_subplot(fig_sgs[0])
         test_f1 = fig.add_subplot(fig_sgs[1])
         val_f1 = fig.add_subplot(fig_sgs[2])
 
         legend = fig.add_subplot(fig_sgs[3])
-        
+
         plot_data = cast(pd.DataFrame, data[data["Model"] == model])
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TrainF1", hue = "ValExpID", ax = train_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TestF1", hue = "ValExpID", ax = test_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "ValF1", hue = "ValExpID", ax = val_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TrainF1",
+            hue="ValExpID",
+            ax=train_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TestF1",
+            hue="ValExpID",
+            ax=test_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="ValF1",
+            hue="ValExpID",
+            ax=val_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
 
         f1_ylim = (0.3, 1.01)
         handles, labels = train_f1.get_legend_handles_labels()
-        for axis in [
-            train_f1, test_f1, val_f1
-        ]:
+        for axis in [train_f1, test_f1, val_f1]:
             axis.legend().remove()
             axis.tick_params(**cfg.TICKPARAMS_PARAMS)
-            axis.set_xlabel(axis.get_xlabel(), fontsize = cfg.AXIS_LABEL_SIZE)
-            axis.set_ylabel(axis.get_ylabel(), fontsize = cfg.AXIS_LABEL_SIZE)
+            axis.set_xlabel(axis.get_xlabel(), fontsize=cfg.AXIS_LABEL_SIZE)
+            axis.set_ylabel(axis.get_ylabel(), fontsize=cfg.AXIS_LABEL_SIZE)
 
         for axis in [train_f1, test_f1, val_f1]:
             axis.set_ylim(f1_ylim)
             axis.set_xlabel("Epoch")
-            
 
         legend.axis("off")
-        legend.legend(handles, labels, loc = "center left", fontsize = cfg.TITLE_SIZE, **cfg.TWO_COL_LEGEND)
+        legend.legend(
+            handles,
+            labels,
+            loc="center left",
+            fontsize=cfg.TITLE_SIZE,
+            **cfg.TWO_COL_LEGEND,
+        )
 
-        test_f1.set_title(f"{model}: RPE amount", fontsize = cfg.TITLE_SIZE)
+        test_f1.set_title(f"{model}: RPE amount", fontsize=cfg.TITLE_SIZE)
 
         return
 
-    def generate_subfigure_d(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
+    def generate_subfigure_d(
+        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+    ) -> None:
         ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.3)
-        fig_sgs = gs.subgridspec(1,4)
+        utils._figure_label(ax, subfigure_label, x=-0.3)
+        fig_sgs = gs.subgridspec(1, 4)
 
         readout = "Lens_classes"
         model = "DenseNet121"
 
         data = lens_classes_output
         data = cast(pd.DataFrame, data[data["Readout"] == readout])
-        data["ValExpID"] = data["ValExpID"].map(lambda x, m=cfg.EXPERIMENT_MAP: m.get(x))
+        data["ValExpID"] = data["ValExpID"].map(
+            lambda x, m=cfg.EXPERIMENT_MAP: m.get(x)
+        )
 
         train_f1 = fig.add_subplot(fig_sgs[0])
         test_f1 = fig.add_subplot(fig_sgs[1])
         val_f1 = fig.add_subplot(fig_sgs[2])
 
         legend = fig.add_subplot(fig_sgs[3])
-        
+
         plot_data = cast(pd.DataFrame, data[data["Model"] == model])
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TrainF1", hue = "ValExpID", ax = train_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TestF1", hue = "ValExpID", ax = test_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "ValF1", hue = "ValExpID", ax = val_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TrainF1",
+            hue="ValExpID",
+            ax=train_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TestF1",
+            hue="ValExpID",
+            ax=test_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="ValF1",
+            hue="ValExpID",
+            ax=val_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
 
         f1_ylim = (0.3, 1.01)
         handles, labels = train_f1.get_legend_handles_labels()
-        for axis in [
-            train_f1, test_f1, val_f1
-        ]:
+        for axis in [train_f1, test_f1, val_f1]:
             axis.legend().remove()
             axis.tick_params(**cfg.TICKPARAMS_PARAMS)
-            axis.set_xlabel(axis.get_xlabel(), fontsize = cfg.AXIS_LABEL_SIZE)
-            axis.set_ylabel(axis.get_ylabel(), fontsize = cfg.AXIS_LABEL_SIZE)
+            axis.set_xlabel(axis.get_xlabel(), fontsize=cfg.AXIS_LABEL_SIZE)
+            axis.set_ylabel(axis.get_ylabel(), fontsize=cfg.AXIS_LABEL_SIZE)
 
         for axis in [train_f1, test_f1, val_f1]:
             axis.set_ylim(f1_ylim)
             axis.set_xlabel("Epoch")
-            
 
         legend.axis("off")
-        legend.legend(handles, labels, loc = "center left", fontsize = cfg.TITLE_SIZE, **cfg.TWO_COL_LEGEND)
+        legend.legend(
+            handles,
+            labels,
+            loc="center left",
+            fontsize=cfg.TITLE_SIZE,
+            **cfg.TWO_COL_LEGEND,
+        )
 
-        test_f1.set_title(f"{model}: lens sizes", fontsize = cfg.TITLE_SIZE)
+        test_f1.set_title(f"{model}: lens sizes", fontsize=cfg.TITLE_SIZE)
 
         return
 
-    def generate_subfigure_e(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
+    def generate_subfigure_e(
+        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+    ) -> None:
         ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.3)
-        fig_sgs = gs.subgridspec(1,4)
+        utils._figure_label(ax, subfigure_label, x=-0.3)
+        fig_sgs = gs.subgridspec(1, 4)
 
         readout = "Lens_classes"
         model = "ResNet50"
 
         data = lens_classes_output
         data = cast(pd.DataFrame, data[data["Readout"] == readout])
-        data["ValExpID"] = data["ValExpID"].map(lambda x, m=cfg.EXPERIMENT_MAP: m.get(x))
+        data["ValExpID"] = data["ValExpID"].map(
+            lambda x, m=cfg.EXPERIMENT_MAP: m.get(x)
+        )
 
         train_f1 = fig.add_subplot(fig_sgs[0])
         test_f1 = fig.add_subplot(fig_sgs[1])
         val_f1 = fig.add_subplot(fig_sgs[2])
 
         legend = fig.add_subplot(fig_sgs[3])
-        
+
         plot_data = cast(pd.DataFrame, data[data["Model"] == model])
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TrainF1", hue = "ValExpID", ax = train_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TestF1", hue = "ValExpID", ax = test_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "ValF1", hue = "ValExpID", ax = val_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TrainF1",
+            hue="ValExpID",
+            ax=train_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TestF1",
+            hue="ValExpID",
+            ax=test_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="ValF1",
+            hue="ValExpID",
+            ax=val_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
 
         f1_ylim = (0.3, 1.01)
         handles, labels = train_f1.get_legend_handles_labels()
-        for axis in [
-            train_f1, test_f1, val_f1
-        ]:
+        for axis in [train_f1, test_f1, val_f1]:
             axis.legend().remove()
             axis.tick_params(**cfg.TICKPARAMS_PARAMS)
-            axis.set_xlabel(axis.get_xlabel(), fontsize = cfg.AXIS_LABEL_SIZE)
-            axis.set_ylabel(axis.get_ylabel(), fontsize = cfg.AXIS_LABEL_SIZE)
+            axis.set_xlabel(axis.get_xlabel(), fontsize=cfg.AXIS_LABEL_SIZE)
+            axis.set_ylabel(axis.get_ylabel(), fontsize=cfg.AXIS_LABEL_SIZE)
 
         for axis in [train_f1, test_f1, val_f1]:
             axis.set_ylim(f1_ylim)
             axis.set_xlabel("Epoch")
-            
 
         legend.axis("off")
-        legend.legend(handles, labels, loc = "center left", fontsize = cfg.TITLE_SIZE, **cfg.TWO_COL_LEGEND)
+        legend.legend(
+            handles,
+            labels,
+            loc="center left",
+            fontsize=cfg.TITLE_SIZE,
+            **cfg.TWO_COL_LEGEND,
+        )
 
-        test_f1.set_title(f"{model}: lens sizes", fontsize = cfg.TITLE_SIZE)
+        test_f1.set_title(f"{model}: lens sizes", fontsize=cfg.TITLE_SIZE)
 
         return
 
-    def generate_subfigure_f(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
+    def generate_subfigure_f(
+        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+    ) -> None:
         ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.3)
-        fig_sgs = gs.subgridspec(1,4)
+        utils._figure_label(ax, subfigure_label, x=-0.3)
+        fig_sgs = gs.subgridspec(1, 4)
 
         readout = "Lens_classes"
         model = "MobileNetV3_Large"
 
         data = lens_classes_output
         data = cast(pd.DataFrame, data[data["Readout"] == readout])
-        data["ValExpID"] = data["ValExpID"].map(lambda x, m=cfg.EXPERIMENT_MAP: m.get(x))
+        data["ValExpID"] = data["ValExpID"].map(
+            lambda x, m=cfg.EXPERIMENT_MAP: m.get(x)
+        )
 
         train_f1 = fig.add_subplot(fig_sgs[0])
         test_f1 = fig.add_subplot(fig_sgs[1])
         val_f1 = fig.add_subplot(fig_sgs[2])
 
         legend = fig.add_subplot(fig_sgs[3])
-        
+
         plot_data = cast(pd.DataFrame, data[data["Model"] == model])
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TrainF1", hue = "ValExpID", ax = train_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "TestF1", hue = "ValExpID", ax = test_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
-        sns.lineplot(data = plot_data, x = "Epoch", y = "ValF1", hue = "ValExpID", ax = val_f1, palette = cfg.EXPERIMENT_LEGEND_CMAP, linewidth = 0.75)
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TrainF1",
+            hue="ValExpID",
+            ax=train_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="TestF1",
+            hue="ValExpID",
+            ax=test_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
+        sns.lineplot(
+            data=plot_data,
+            x="Epoch",
+            y="ValF1",
+            hue="ValExpID",
+            ax=val_f1,
+            palette=cfg.EXPERIMENT_LEGEND_CMAP,
+            linewidth=0.75,
+        )
 
         f1_ylim = (0.3, 1.01)
         handles, labels = train_f1.get_legend_handles_labels()
-        for axis in [
-            train_f1, test_f1, val_f1
-        ]:
+        for axis in [train_f1, test_f1, val_f1]:
             axis.legend().remove()
             axis.tick_params(**cfg.TICKPARAMS_PARAMS)
-            axis.set_xlabel(axis.get_xlabel(), fontsize = cfg.AXIS_LABEL_SIZE)
-            axis.set_ylabel(axis.get_ylabel(), fontsize = cfg.AXIS_LABEL_SIZE)
+            axis.set_xlabel(axis.get_xlabel(), fontsize=cfg.AXIS_LABEL_SIZE)
+            axis.set_ylabel(axis.get_ylabel(), fontsize=cfg.AXIS_LABEL_SIZE)
 
         for axis in [train_f1, test_f1, val_f1]:
             axis.set_ylim(f1_ylim)
             axis.set_xlabel("Epoch")
-            
 
         legend.axis("off")
-        legend.legend(handles, labels, loc = "center left", fontsize = cfg.TITLE_SIZE, **cfg.TWO_COL_LEGEND)
+        legend.legend(
+            handles,
+            labels,
+            loc="center left",
+            fontsize=cfg.TITLE_SIZE,
+            **cfg.TWO_COL_LEGEND,
+        )
 
-        test_f1.set_title(f"{model}: lens sizes", fontsize = cfg.TITLE_SIZE)
+        test_f1.set_title(f"{model}: lens sizes", fontsize=cfg.TITLE_SIZE)
 
         return
 
-
-    fig = plt.figure(layout = "constrained",
-                     figsize = (cfg.FIGURE_WIDTH_FULL, cfg.FIGURE_HEIGHT_FULL))
-    gs = GridSpec(ncols = 6,
-                  nrows = 6,
-                  figure = fig,
-                  height_ratios = [1,1,1,1,1,1])
-    a_coords = gs[0,:]
-    b_coords = gs[1,:]
-    c_coords = gs[2,:]
-    d_coords = gs[3,:]
-    e_coords = gs[4,:]
-    f_coords = gs[5,:]
+    fig = plt.figure(
+        layout="constrained", figsize=(cfg.FIGURE_WIDTH_FULL, cfg.FIGURE_HEIGHT_FULL)
+    )
+    gs = GridSpec(ncols=6, nrows=6, figure=fig, height_ratios=[1, 1, 1, 1, 1, 1])
+    a_coords = gs[0, :]
+    b_coords = gs[1, :]
+    c_coords = gs[2, :]
+    d_coords = gs[3, :]
+    e_coords = gs[4, :]
+    f_coords = gs[5, :]
 
     fig_a = fig.add_subplot(a_coords)
     fig_b = fig.add_subplot(b_coords)
@@ -339,30 +504,37 @@ def _generate_main_figure(rpe_classes_output: pd.DataFrame,
     generate_subfigure_f(fig, fig_f, f_coords, "F")
 
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.pdf")
-    plt.savefig(output_dir, dpi = 300, bbox_inches = "tight")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
-    plt.savefig(output_dir, dpi = 300, bbox_inches = "tight")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
     return
 
 
-def figure_S22_generation(rpe_classes_classification_dir: str,
-                          lens_classes_classification_dir: str,
-                          figure_data_dir: str,
-                          figure_output_dir: str,
-                          **kwargs) -> None:
-    rpe_classes_output = get_cnn_output(classification_dir = rpe_classes_classification_dir,
-                                        readout = "RPE_classes",
-                                        proj = "SL3",
-                                        output_dir = figure_data_dir)
-    lens_classes_output = get_cnn_output(classification_dir = lens_classes_classification_dir,
-                                       readout = "Lens_classes",
-                                       proj = "SL3",
-                                       output_dir = figure_data_dir)
+def figure_S22_generation(
+    rpe_classes_classification_dir: str,
+    lens_classes_classification_dir: str,
+    figure_data_dir: str,
+    figure_output_dir: str,
+    **kwargs,
+) -> None:
+    rpe_classes_output = get_cnn_output(
+        classification_dir=rpe_classes_classification_dir,
+        readout="RPE_classes",
+        proj="SL3",
+        output_dir=figure_data_dir,
+    )
+    lens_classes_output = get_cnn_output(
+        classification_dir=lens_classes_classification_dir,
+        readout="Lens_classes",
+        proj="SL3",
+        output_dir=figure_data_dir,
+    )
 
-    _generate_main_figure(rpe_classes_output = rpe_classes_output,
-                          lens_classes_output = lens_classes_output,
-                          figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S22")
-
+    _generate_main_figure(
+        rpe_classes_output=rpe_classes_output,
+        lens_classes_output=lens_classes_output,
+        figure_output_dir=figure_output_dir,
+        figure_name="Supplementary_Figure_S22",
+    )

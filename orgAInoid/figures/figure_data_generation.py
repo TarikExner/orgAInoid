@@ -31,39 +31,37 @@ from .figure_data_utils import (
     _generate_classification_results_raw_data,
     _generate_classification_results_external_experiment,
     get_morphometrics_frame,
-
     READOUT_BASELINE_READOUT_MAP,
     _STRING_LABEL_COLS,
     _BINARY_MAP,
-
     Readouts,
     BaselineReadouts,
     Projections,
-    ProjectionIDs
+    ProjectionIDs,
 )
 
 CLASS_ENTRIES = {
     "RPE_Final": ["No", "Yes"],
     "Lens_Final": ["No", "Yes"],
-    "RPE_classes": [0,1,2,3],
-    "Lens_classes": [0,1,2,3]
+    "RPE_classes": [0, 1, 2, 3],
+    "Lens_classes": [0, 1, 2, 3],
 }
 
 EVALUATORS = ["HEAT21", "HEAT22", "HEAT23", "HEAT24", "HEAT25", "HEAT27"]
 
-PC_COLUMNS = [
-    f"PC{i}" for i in range(1,21)
-]
+PC_COLUMNS = [f"PC{i}" for i in range(1, 21)]
 
 
-def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
-                                                data_columns: list[str],
-                                                dimreds: list[str] = ["UMAP", "TSNE"],
-                                                use_pca: bool = False,
-                                                n_pcs: int = 20,
-                                                timeframe_length: int = 24,
-                                                output_dir: str = "./figure_data/",
-                                                output_filename: str = "morphometrics_dimred") -> pd.DataFrame:
+def calculate_organoid_dimensionality_reduction(
+    df: pd.DataFrame,
+    data_columns: list[str],
+    dimreds: list[str] = ["UMAP", "TSNE"],
+    use_pca: bool = False,
+    n_pcs: int = 20,
+    timeframe_length: int = 24,
+    output_dir: str = "./figure_data/",
+    output_filename: str = "morphometrics_dimred",
+) -> pd.DataFrame:
     save_suffix = "_pca" if use_pca else "_raw"
 
     output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
@@ -71,17 +69,16 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
     if existing_file is not None:
         return existing_file
 
-    pc_columns = [f"PC{i}" for i in range(1, n_pcs+1)]
+    pc_columns = [f"PC{i}" for i in range(1, n_pcs + 1)]
 
     for experiment in cfg.EXPERIMENTS:
-        print(f">>> Calculating dimreds for experiment {experiment} using {save_suffix.strip('_')} data")
+        print(
+            f">>> Calculating dimreds for experiment {experiment} using {save_suffix.strip('_')} data"
+        )
         exp_data = df.loc[df["experiment"] == experiment, data_columns].to_numpy()
         exp_data = StandardScaler().fit_transform(exp_data)
         if use_pca:
-            _pca = PCA(
-                n_components = n_pcs,
-                random_state = 187
-            ).fit_transform(exp_data)
+            _pca = PCA(n_components=n_pcs, random_state=187).fit_transform(exp_data)
             df.loc[df["experiment"] == experiment, pc_columns] = _pca
             dimred_input_data = _pca
         else:
@@ -90,32 +87,36 @@ def calculate_organoid_dimensionality_reduction(df: pd.DataFrame,
         for dim_red in dimreds:
             if dim_red == "UMAP":
                 print("... calculating UMAP")
-                coords = UMAP(init = "pca", random_state = 187).fit_transform(dimred_input_data)
+                coords = UMAP(init="pca", random_state=187).fit_transform(
+                    dimred_input_data
+                )
                 df.loc[df["experiment"] == experiment, ["UMAP1", "UMAP2"]] = coords
             elif dim_red == "TSNE":
                 print("... calculating TSNE")
-                coords = TSNE(random_state = 187).fit_transform(dimred_input_data)
+                coords = TSNE(random_state=187).fit_transform(dimred_input_data)
                 df.loc[df["experiment"] == experiment, ["TSNE1", "TSNE2"]] = coords
             else:
                 raise ValueError(f"Unknown DimRed {dim_red}")
 
     timepoints = [f"LO{i:03d}" for i in range(1, 145)]
     timeframe_dict = {
-        tp: str((i // timeframe_length) + 1)
-        for i, tp in enumerate(timepoints)
+        tp: str((i // timeframe_length) + 1) for i, tp in enumerate(timepoints)
     }
 
     df["timeframe"] = df["loop"].map(lambda x, m=timeframe_dict: m.get(x))
     df["timeframe"] = df["timeframe"].astype(str)
-    df.to_csv(output_file, index = False)
+    df.to_csv(output_file, index=False)
     return df
 
-def calculate_organoid_distances(df: pd.DataFrame,
-                                 data_columns: list[str],
-                                 use_pca: bool = False,
-                                 n_pcs: int = 20,
-                                 output_dir: str = "./figure_data/organoid_distances",
-                                 output_filename: str = "organoid_distances") -> pd.DataFrame:
+
+def calculate_organoid_distances(
+    df: pd.DataFrame,
+    data_columns: list[str],
+    use_pca: bool = False,
+    n_pcs: int = 20,
+    output_dir: str = "./figure_data/organoid_distances",
+    output_filename: str = "organoid_distances",
+) -> pd.DataFrame:
     """\
     Calculates the distances between organoids and between loops
     Note: n_pcs = 20 keeps ~93% variance of the morphometrics data
@@ -133,97 +134,116 @@ def calculate_organoid_distances(df: pd.DataFrame,
     for experiment in cfg.EXPERIMENTS:
         data_columns = original_data_columns
 
-        print(f">>> Calculating distances for experiment {experiment} using {save_suffix.strip('_')} data")
+        print(
+            f">>> Calculating distances for experiment {experiment} using {save_suffix.strip('_')} data"
+        )
         exp_data = cast(pd.DataFrame, df[df["experiment"] == experiment].copy())
         exp_data: pd.DataFrame
         time_points = sorted(np.unique(exp_data["loop"].to_numpy()))
 
         exp_data[data_columns] = StandardScaler().fit_transform(exp_data[data_columns])
         if use_pca:
-            _pca = PCA(
-                n_components = n_pcs,
-                random_state = 187
-            ).fit(exp_data[data_columns])
+            _pca = PCA(n_components=n_pcs, random_state=187).fit(exp_data[data_columns])
             scores = _pca.transform(exp_data[data_columns])
 
-            pc_columns = [f"PC{i}" for i in range(1,n_pcs+1)]
-            pc_frame = pd.DataFrame(data = scores,
-                                    columns = pd.Index(pc_columns),
-                                    index = exp_data.index)
-            exp_data = pd.concat([exp_data, pc_frame], axis = 1)
+            pc_columns = [f"PC{i}" for i in range(1, n_pcs + 1)]
+            pc_frame = pd.DataFrame(
+                data=scores, columns=pd.Index(pc_columns), index=exp_data.index
+            )
+            exp_data = pd.concat([exp_data, pc_frame], axis=1)
             data_columns = pc_columns
 
         distance_data = []
 
         # Compute the interorganoid distances at each time point
         for time_point in time_points:
-            df_time = cast(pd.DataFrame, exp_data[exp_data["loop"] == time_point].sort_values("well"))
+            df_time = cast(
+                pd.DataFrame,
+                exp_data[exp_data["loop"] == time_point].sort_values("well"),
+            )
             data: np.ndarray = df_time[data_columns].values
             subjects: np.ndarray = df_time["well"].values
-            distances = pdist(data, metric = "euclidean")
+            distances = pdist(data, metric="euclidean")
             dist_matrix = squareform(distances)
-            idx_upper = np.triu_indices(len(subjects), k = 1)
+            idx_upper = np.triu_indices(len(subjects), k=1)
             for i, j in zip(*idx_upper):
-                distance_data.append({
-                    "loop": time_point,
-                    "distance_type": "interorganoid",
-                    "distance": dist_matrix[i,j]
-                })
+                distance_data.append(
+                    {
+                        "loop": time_point,
+                        "distance_type": "interorganoid",
+                        "distance": dist_matrix[i, j],
+                    }
+                )
 
         # Compute intertimepoint distances between consecutive time points
         for i in range(len(time_points) - 1):
             time_point_n = time_points[i]
-            time_point_n1 = time_points[i+1]
+            time_point_n1 = time_points[i + 1]
             df_n = exp_data[exp_data["loop"] == time_point_n]
             df_n1 = exp_data[exp_data["loop"] == time_point_n1]
 
-            common_subjects = np.intersect1d(df_n["well"].unique(), df_n1["well"].unique())
+            common_subjects = np.intersect1d(
+                df_n["well"].unique(), df_n1["well"].unique()
+            )
 
             if len(common_subjects) == 0:
                 continue
 
             df_n_common = df_n[df_n["well"].isin(common_subjects)].sort_values("well")
-            df_n1_common = df_n1[df_n1["well"].isin(common_subjects)].sort_values("well")
+            df_n1_common = df_n1[df_n1["well"].isin(common_subjects)].sort_values(
+                "well"
+            )
 
             distances = []
             for well in common_subjects:
                 _distance = cdist(
-                    df_n_common.loc[df_n_common["well"] == well, data_columns].to_numpy(),
-                    df_n1_common.loc[df_n1_common["well"] == well, data_columns].to_numpy()
+                    df_n_common.loc[
+                        df_n_common["well"] == well, data_columns
+                    ].to_numpy(),
+                    df_n1_common.loc[
+                        df_n1_common["well"] == well, data_columns
+                    ].to_numpy(),
                 )
                 distances.append(_distance[0][0])
 
             avg_loop = time_point_n
             for dist in distances:
-                distance_data.append({
-                    'loop': avg_loop,
-                    'distance_type': 'intraorganoid',
-                    'distance': dist
-                })
+                distance_data.append(
+                    {
+                        "loop": avg_loop,
+                        "distance_type": "intraorganoid",
+                        "distance": dist,
+                    }
+                )
 
         df_distances = pd.DataFrame(distance_data)
-        df_distances["loop"] = [int(loop.split("LO")[1]) for loop in df_distances["loop"].tolist()]
+        df_distances["loop"] = [
+            int(loop.split("LO")[1]) for loop in df_distances["loop"].tolist()
+        ]
         df_distances["experiment"] = experiment
-        df_distances['distance'] = df_distances\
-            .groupby(['loop', 'distance_type', 'experiment'])['distance']\
-            .transform(
-                lambda x: np.clip(
-                    x, x.quantile(0.025), x.quantile(0.975)
-                ) if x.name[1] == "intraorganoid" else x
-            )
+        df_distances["distance"] = df_distances.groupby(
+            ["loop", "distance_type", "experiment"]
+        )["distance"].transform(
+            lambda x: np.clip(x, x.quantile(0.025), x.quantile(0.975))
+            if x.name[1] == "intraorganoid"
+            else x
+        )
 
         dist_dfs.append(df_distances)
-    dist_df = pd.concat(dist_dfs, axis = 0)
-    dist_df.to_csv(output_file, index = False)
+    dist_df = pd.concat(dist_dfs, axis=0)
+    dist_df.to_csv(output_file, index=False)
     return dist_df
 
-def compare_neighbors_by_loop(df,
-                              dimred,
-                              data_cols,
-                              loop_col,
-                              n_neighbors=30,
-                              metric="euclidean",
-                              user_suffix="pca"):
+
+def compare_neighbors_by_loop(
+    df,
+    dimred,
+    data_cols,
+    loop_col,
+    n_neighbors=30,
+    metric="euclidean",
+    user_suffix="pca",
+):
     """
     Compute the average Jaccard similarity of n-nearest neighbors between
     the original data space and a 2D embedding, **per loop**.
@@ -261,8 +281,8 @@ def compare_neighbors_by_loop(df,
     loops = df[loop_col]
 
     # Fit neighbor searchers
-    nbrs_X = NearestNeighbors(n_neighbors=n_neighbors+1, metric=metric).fit(X)
-    nbrs_Y = NearestNeighbors(n_neighbors=n_neighbors+1, metric=metric).fit(Y)
+    nbrs_X = NearestNeighbors(n_neighbors=n_neighbors + 1, metric=metric).fit(X)
+    nbrs_Y = NearestNeighbors(n_neighbors=n_neighbors + 1, metric=metric).fit(Y)
 
     idx_X = nbrs_X.kneighbors(return_distance=False)
     idx_Y = nbrs_Y.kneighbors(return_distance=False)
@@ -275,23 +295,26 @@ def compare_neighbors_by_loop(df,
         inter = len(set_X & set_Y)
         union = len(set_X | set_Y)
         jacc_list.append(inter / union if union > 0 else np.nan)
-    sample_jaccard = pd.Series(jacc_list, index=df.index, name='jaccard')
+    sample_jaccard = pd.Series(jacc_list, index=df.index, name="jaccard")
 
     # Group by loop and average
     loop_jaccard = sample_jaccard.groupby(loops).mean()
 
     return loop_jaccard, sample_jaccard
 
-def compare_neighbors_by_experiment(df: pd.DataFrame,
-                                    dimred: str,
-                                    user_suffix: str,
-                                    data_cols: list[str],
-                                    loop_col: str = "loop",
-                                    experiment_col: str = "experiment",
-                                    n_neighbors: int = 30,
-                                    metric: str = "euclidean",
-                                    output_dir: str = "./figure_data",
-                                    output_filename: str = "jaccard_neighbors") -> pd.DataFrame:
+
+def compare_neighbors_by_experiment(
+    df: pd.DataFrame,
+    dimred: str,
+    user_suffix: str,
+    data_cols: list[str],
+    loop_col: str = "loop",
+    experiment_col: str = "experiment",
+    n_neighbors: int = 30,
+    metric: str = "euclidean",
+    output_dir: str = "./figure_data",
+    output_filename: str = "jaccard_neighbors",
+) -> pd.DataFrame:
     """
     For each experiment and each loop, compute the mean Jaccard index
     between high‑D neighbors and dimred neighbors.
@@ -313,29 +336,34 @@ def compare_neighbors_by_experiment(df: pd.DataFrame,
         sub = df[df[experiment_col] == exp]
         # this returns a Series indexed by loop
         loop_jacc, _ = compare_neighbors_by_loop(
-            sub, dimred, data_cols, loop_col,
+            sub,
+            dimred,
+            data_cols,
+            loop_col,
             n_neighbors=n_neighbors,
-            metric=metric, user_suffix=user_suffix
+            metric=metric,
+            user_suffix=user_suffix,
         )
         for loop_val, jacc in loop_jacc.items():
-            records.append({
-                experiment_col: exp,
-                loop_col: loop_val,
-                "mean_jaccard": jacc
-            })
+            records.append(
+                {experiment_col: exp, loop_col: loop_val, "mean_jaccard": jacc}
+            )
 
     result_df = pd.DataFrame.from_records(records)
     result_df["loop"] = [int(lo.split("LO")[1]) for lo in result_df["loop"]]
-    result_df.to_csv(output_file, index = False)
+    result_df.to_csv(output_file, index=False)
     return result_df
 
-def well_same_well_fraction_by_loop(df: pd.DataFrame,
-                                    data_cols: list[str],
-                                    well_col: str,
-                                    loop_col: str,
-                                    n_neighbors: int = 30,
-                                    metric: str = "euclidean",
-                                    user_suffix = "pca") -> pd.Series:
+
+def well_same_well_fraction_by_loop(
+    df: pd.DataFrame,
+    data_cols: list[str],
+    well_col: str,
+    loop_col: str,
+    n_neighbors: int = 30,
+    metric: str = "euclidean",
+    user_suffix="pca",
+) -> pd.Series:
     """
     For one experiment subset, compute for each loop the average
     fraction of each cell’s n_neighbors (in the original data space)
@@ -369,28 +397,29 @@ def well_same_well_fraction_by_loop(df: pd.DataFrame,
     loops = df[loop_col].values
 
     # 2) Find n_neighbors in the original data space
-    nbrs = NearestNeighbors(n_neighbors=n_neighbors+1, metric=metric).fit(X)
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors + 1, metric=metric).fit(X)
     neighbors = nbrs.kneighbors(return_distance=False)[:, 1:]  # drop self
 
     # 3) Compute, for each cell, the fraction of its neighbors in the same well
     fracs = [(wells[neighbors[i]] == wells[i]).mean() for i in range(len(df))]
 
     # 4) Group by loop and average
-    return pd.Series(fracs, index=df.index, name='obs_frac') \
-             .groupby(loops) \
-             .mean()
+    return pd.Series(fracs, index=df.index, name="obs_frac").groupby(loops).mean()
 
-def neighbors_per_well_by_experiment(df: pd.DataFrame,
-                                     dimred: str,
-                                     user_suffix: str,
-                                     data_cols: list[str],
-                                     well_col: str = "well",
-                                     loop_col: str = "loop",
-                                     experiment_col: str = "experiment",
-                                     n_neighbors: int = 30,
-                                     metric: str = "euclidean",
-                                     output_dir: str = "./figure_data",
-                                     output_filename: str = "well_enrichment") -> pd.DataFrame:
+
+def neighbors_per_well_by_experiment(
+    df: pd.DataFrame,
+    dimred: str,
+    user_suffix: str,
+    data_cols: list[str],
+    well_col: str = "well",
+    loop_col: str = "loop",
+    experiment_col: str = "experiment",
+    n_neighbors: int = 30,
+    metric: str = "euclidean",
+    output_dir: str = "./figure_data",
+    output_filename: str = "well_enrichment",
+) -> pd.DataFrame:
     """
     For each experiment and loop, compute the same-well neighbor fraction.
 
@@ -412,27 +441,31 @@ def neighbors_per_well_by_experiment(df: pd.DataFrame,
         print(f">>> Computing neighbors per well for experiment {exp}")
         sub = df[df[experiment_col] == exp]
         frac_by_loop = well_same_well_fraction_by_loop(
-            sub, data_cols=data_cols, well_col=well_col,
-            loop_col=loop_col, n_neighbors=n_neighbors,
-            metric=metric, user_suffix=user_suffix
+            sub,
+            data_cols=data_cols,
+            well_col=well_col,
+            loop_col=loop_col,
+            n_neighbors=n_neighbors,
+            metric=metric,
+            user_suffix=user_suffix,
         )
         for loop_val, obs_frac in frac_by_loop.items():
-            records.append({
-                experiment_col: exp,
-                loop_col: loop_val,
-                'obs_frac': obs_frac
-            })
+            records.append(
+                {experiment_col: exp, loop_col: loop_val, "obs_frac": obs_frac}
+            )
 
     df = pd.DataFrame.from_records(records)
     df["loop"] = _loop_to_timepoint(df["loop"].tolist())
-    df.to_csv(output_file, index = False)
+    df.to_csv(output_file, index=False)
     return df
 
-def get_ground_truth_annotations(morphometrics_dir: str = "",
-                                 n_timeframes: int = 12,
-                                 output_dir: str = "./figure_data",
-                                 output_filename: str = "human_ground_truth_annotations") -> pd.DataFrame:
-    
+
+def get_ground_truth_annotations(
+    morphometrics_dir: str = "",
+    n_timeframes: int = 12,
+    output_dir: str = "./figure_data",
+    output_filename: str = "human_ground_truth_annotations",
+) -> pd.DataFrame:
     output_file = os.path.join(output_dir, f"{output_filename}_{n_timeframes}.csv")
     existing_file = check_for_file(output_file)
     if existing_file is not None:
@@ -444,56 +477,65 @@ def get_ground_truth_annotations(morphometrics_dir: str = "",
     morphometrics["timepoint"] = _loop_to_timepoint(morphometrics["loop"].tolist())
     timeframe_dict = _build_timeframe_dict(n_timeframes)
     morphometrics["timeframe"] = morphometrics["loop"].map(timeframe_dict)
-    morphometrics.to_csv(output_file, index = False)
+    morphometrics.to_csv(output_file, index=False)
 
     return cast(pd.DataFrame, morphometrics)
-    
-def concat_human_evaluations(results_dir: str = "",
-                             output_dir: str = "./figure_data",
-                             output_filename: str = "human_evaluations_concat") -> pd.DataFrame:
+
+
+def concat_human_evaluations(
+    results_dir: str = "",
+    output_dir: str = "./figure_data",
+    output_filename: str = "human_evaluations_concat",
+) -> pd.DataFrame:
     output_file = os.path.join(output_dir, f"{output_filename}.csv")
     existing_file = check_for_file(output_file)
     if existing_file is not None:
         return existing_file
-    
+
     eval_dfs = []
     for evaluator in EVALUATORS:
-        df = pd.read_csv(os.path.join(results_dir, f"{evaluator}_organoid_classification.csv"))
+        df = pd.read_csv(
+            os.path.join(results_dir, f"{evaluator}_organoid_classification.csv")
+        )
         df = rename_annotation_columns(df)
         eval_dfs.append(df)
 
-    human_evaluations = pd.concat(eval_dfs, axis = 0)
-    human_evaluations = human_evaluations.reset_index(drop = True)
-    human_evaluations.to_csv(output_file, index = False)
+    human_evaluations = pd.concat(eval_dfs, axis=0)
+    human_evaluations = human_evaluations.reset_index(drop=True)
+    human_evaluations.to_csv(output_file, index=False)
     return human_evaluations
 
-def create_human_ground_truth_comparison(evaluator_results_dir: str,
-                                         morphometrics_dir: str,
-                                         n_timeframes: int = 12,
-                                         output_dir: str = "./figure_data",
-                                         output_filename: str = "human_ground_truth_comparison") -> pd.DataFrame:
-    
+
+def create_human_ground_truth_comparison(
+    evaluator_results_dir: str,
+    morphometrics_dir: str,
+    n_timeframes: int = 12,
+    output_dir: str = "./figure_data",
+    output_filename: str = "human_ground_truth_comparison",
+) -> pd.DataFrame:
     output_file = os.path.join(output_dir, f"{output_filename}_{n_timeframes}.csv")
     existing_file = check_for_file(output_file)
     if existing_file is not None:
         return existing_file
 
     human_evaluations = concat_human_evaluations(evaluator_results_dir, output_dir)
-    ground_truth = get_ground_truth_annotations(morphometrics_dir,
-                                                output_dir = output_dir,
-                                                n_timeframes = n_timeframes)
-    comparison = ground_truth.merge(human_evaluations, on = "file_name", how = "inner")
+    ground_truth = get_ground_truth_annotations(
+        morphometrics_dir, output_dir=output_dir, n_timeframes=n_timeframes
+    )
+    comparison = ground_truth.merge(human_evaluations, on="file_name", how="inner")
 
-    comparison.to_csv(output_file, index = False)
+    comparison.to_csv(output_file, index=False)
     return comparison
 
 
-def human_f1_per_evaluator(evaluator_results_dir: str,
-                           morphometrics_dir: str,
-                           average: str = "weighted",
-                           n_timeframes = 12,
-                           output_dir: str = "./figure_data",
-                           output_filename: str = "human_f1_per_evaluator") -> pd.DataFrame:
+def human_f1_per_evaluator(
+    evaluator_results_dir: str,
+    morphometrics_dir: str,
+    average: str = "weighted",
+    n_timeframes=12,
+    output_dir: str = "./figure_data",
+    output_filename: str = "human_f1_per_evaluator",
+) -> pd.DataFrame:
     """
     Weighted F1 scores per timeframe and evaluator for all human_eval_ columns.
     """
@@ -502,23 +544,26 @@ def human_f1_per_evaluator(evaluator_results_dir: str,
     if existing_file is not None:
         return existing_file
 
-    df = create_human_ground_truth_comparison(evaluator_results_dir,
-                                              morphometrics_dir,
-                                              n_timeframes = n_timeframes,
-                                              output_dir = output_dir)
-    f1_frame = f1_scores(df,
-                         group_keys=["timeframe", "Evaluator_ID"],
-                         average=average)
+    df = create_human_ground_truth_comparison(
+        evaluator_results_dir,
+        morphometrics_dir,
+        n_timeframes=n_timeframes,
+        output_dir=output_dir,
+    )
+    f1_frame = f1_scores(df, group_keys=["timeframe", "Evaluator_ID"], average=average)
 
-    f1_frame.to_csv(output_file, index = False)
+    f1_frame.to_csv(output_file, index=False)
     return f1_frame
 
-def human_f1_per_experiment(evaluator_results_dir: str,
-                            morphometrics_dir: str,
-                            n_timeframes: int = 12,
-                            average: str = "weighted",
-                            output_dir: str = "./figure_data",
-                            output_filename: str = "human_f1_per_experiment") -> pd.DataFrame:
+
+def human_f1_per_experiment(
+    evaluator_results_dir: str,
+    morphometrics_dir: str,
+    n_timeframes: int = 12,
+    average: str = "weighted",
+    output_dir: str = "./figure_data",
+    output_filename: str = "human_f1_per_experiment",
+) -> pd.DataFrame:
     """
     Weighted F1 scores per timeframe and experiment for all human_eval_ columns.
     """
@@ -526,20 +571,23 @@ def human_f1_per_experiment(evaluator_results_dir: str,
     existing_file = check_for_file(output_file)
     if existing_file is not None:
         return existing_file
-    df = create_human_ground_truth_comparison(evaluator_results_dir,
-                                              morphometrics_dir,
-                                              n_timeframes = n_timeframes,
-                                              output_dir = output_dir)
-    f1_frame = f1_scores(df,
-                         group_keys=["timeframe", "experiment"],
-                         average=average)
+    df = create_human_ground_truth_comparison(
+        evaluator_results_dir,
+        morphometrics_dir,
+        n_timeframes=n_timeframes,
+        output_dir=output_dir,
+    )
+    f1_frame = f1_scores(df, group_keys=["timeframe", "experiment"], average=average)
 
-    f1_frame.to_csv(output_file, index = False)
+    f1_frame.to_csv(output_file, index=False)
     return f1_frame
 
-def get_dataset_annotations(annotations_dir: str,
-                            output_dir: str = "./figure_data",
-                            output_filename: str = "dataset_annotations") -> pd.DataFrame:
+
+def get_dataset_annotations(
+    annotations_dir: str,
+    output_dir: str = "./figure_data",
+    output_filename: str = "dataset_annotations",
+) -> pd.DataFrame:
     output_file = os.path.join(output_dir, f"{output_filename}.csv")
     existing_file = check_for_file(output_file)
     if existing_file is not None:
@@ -548,22 +596,22 @@ def get_dataset_annotations(annotations_dir: str,
     frames = []
     for experiment in cfg.EXPERIMENTS:
         frames.append(
-            pd.read_csv(os.path.join(annotations_dir, f"{experiment}_annotations.csv"), sep = ";")
+            pd.read_csv(
+                os.path.join(annotations_dir, f"{experiment}_annotations.csv"), sep=";"
+            )
         )
-    annotations = pd.concat(frames, axis = 0)
+    annotations = pd.concat(frames, axis=0)
     annotations = annotations.dropna()
     annotations[["experiment", "well"]] = pd.DataFrame(
-        data = [
-            [ID[:4], ID[4:]] for ID in annotations["ID"].tolist()
-        ]
+        data=[[ID[:4], ID[4:]] for ID in annotations["ID"].tolist()]
     ).to_numpy()
-    annotations.to_csv(output_file, index = False)
+    annotations.to_csv(output_file, index=False)
     return annotations
 
-def confusion_matrix_last_timeframe_all(df: pd.DataFrame,
-                                        truth_col: str,
-                                        pred_col: str,
-                                        timeframe_col: str = "timeframe") -> np.ndarray:
+
+def confusion_matrix_last_timeframe_all(
+    df: pd.DataFrame, truth_col: str, pred_col: str, timeframe_col: str = "timeframe"
+) -> np.ndarray:
     """
     Compute a single confusion matrix across all evaluators for the last timeframe.
 
@@ -589,142 +637,181 @@ def confusion_matrix_last_timeframe_all(df: pd.DataFrame,
     sub = sub[sub[timeframe_col] == last]
 
     if truth_col in _STRING_LABEL_COLS:
-        y_true = sub[truth_col].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
-        y_pred = sub[pred_col].astype(str).str.lower().map(_BINARY_MAP).astype(int).to_numpy()
+        y_true = (
+            sub[truth_col]
+            .astype(str)
+            .str.lower()
+            .map(_BINARY_MAP)
+            .astype(int)
+            .to_numpy()
+        )
+        y_pred = (
+            sub[pred_col]
+            .astype(str)
+            .str.lower()
+            .map(_BINARY_MAP)
+            .astype(int)
+            .to_numpy()
+        )
     else:
         y_true = sub[truth_col].astype(int).to_numpy()
         y_pred = sub[pred_col].astype(int).to_numpy()
 
     return confusion_matrix(y_true, y_pred)
 
-def human_f1_RPE_visibility_conf_matrix(evaluator_results_dir: str,
-                                        morphometrics_dir: str,
-                                        output_dir: str = "./figure_data",
-                                        output_filename: str = "RPE_vis_conf_matrix"):
+
+def human_f1_RPE_visibility_conf_matrix(
+    evaluator_results_dir: str,
+    morphometrics_dir: str,
+    output_dir: str = "./figure_data",
+    output_filename: str = "RPE_vis_conf_matrix",
+):
     output_filename = os.path.join(output_dir, f"{output_filename}.npy")
     if os.path.isfile(output_filename):
         return np.load(output_filename)
 
+    df = create_human_ground_truth_comparison(
+        evaluator_results_dir, morphometrics_dir, output_dir=output_dir
+    )
 
-    df = create_human_ground_truth_comparison(evaluator_results_dir,
-                                              morphometrics_dir,
-                                              output_dir = output_dir)
-
-    conf_matrix = confusion_matrix_last_timeframe_all(df,
-                                                      truth_col = "RPE_Final",
-                                                      pred_col = "human_eval_RPE_Final_Contains")
+    conf_matrix = confusion_matrix_last_timeframe_all(
+        df, truth_col="RPE_Final", pred_col="human_eval_RPE_Final_Contains"
+    )
     np.save(output_filename, conf_matrix)
     return conf_matrix
 
-def generate_classification_results(readout: Readouts,
-                                    output_dir: str,
-                                    proj: Projections,
-                                    hyperparameter_dir: str,
-                                    experiment_dir: str,
-                                    morphometrics_dir: str,
-                                    raw_data_dir: str,
-                                    baseline: bool = False):
+
+def generate_classification_results(
+    readout: Readouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    experiment_dir: str,
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    baseline: bool = False,
+):
     return _generate_classification_results(**locals())
 
-def generate_classification_results_raw_data(readout: Readouts,
-                                             output_dir: str,
-                                             proj: Projections,
-                                             hyperparameter_dir: str,
-                                             experiment_dir: str,
-                                             morphometrics_dir: str,
-                                             raw_data_dir: str,
-                                             baseline: bool = False) -> tuple[pd.DataFrame, ...]:
+
+def generate_classification_results_raw_data(
+    readout: Readouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    experiment_dir: str,
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    baseline: bool = False,
+) -> tuple[pd.DataFrame, ...]:
     return _generate_classification_results_raw_data(**locals())
 
 
-def generate_baseline_results(readout: BaselineReadouts,
-                              output_dir: str,
-                              proj: Projections,
-                              hyperparameter_dir: str,
-                              experiment_dir: str,
-                              morphometrics_dir: str,
-                              raw_data_dir: str,
-                              baseline: bool = True):
+def generate_baseline_results(
+    readout: BaselineReadouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    experiment_dir: str,
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    baseline: bool = True,
+):
     return _generate_classification_results(**locals())
 
-def generate_baseline_results_raw_data(readout: BaselineReadouts,
-                                       output_dir: str,
-                                       proj: Projections,
-                                       hyperparameter_dir: str,
-                                       experiment_dir: str,
-                                       morphometrics_dir: str,
-                                       raw_data_dir: str,
-                                       baseline: bool = True):
+
+def generate_baseline_results_raw_data(
+    readout: BaselineReadouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    experiment_dir: str,
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    baseline: bool = True,
+):
     return _generate_classification_results_raw_data(**locals())
 
-def generate_classification_results_external_experiment(external_experiment_id: str,
-                                                        readout: BaselineReadouts,
-                                                        output_dir: str,
-                                                        proj: Projections,
-                                                        hyperparameter_dir: str,
-                                                        experiment_dir: str,
-                                                        morphometrics_dir: str,
-                                                        raw_data_dir: str,
-                                                        baseline: bool = False):
+
+def generate_classification_results_external_experiment(
+    external_experiment_id: str,
+    readout: BaselineReadouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    experiment_dir: str,
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    baseline: bool = False,
+):
     return _generate_classification_results_external_experiment(**locals())
 
-def generate_baseline_results_external_experiment(external_experiment_id: str,
-                                                  readout: BaselineReadouts,
-                                                  output_dir: str,
-                                                  proj: Projections,
-                                                  hyperparameter_dir: str,
-                                                  experiment_dir: str,
-                                                  morphometrics_dir: str,
-                                                  raw_data_dir: str,
-                                                  baseline: bool = True):
+
+def generate_baseline_results_external_experiment(
+    external_experiment_id: str,
+    readout: BaselineReadouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    experiment_dir: str,
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    baseline: bool = True,
+):
     return _generate_classification_results_external_experiment(**locals())
 
-def get_classification_f1_data_external_experiment(external_experiment_id: str,
-                                                   readout: Readouts,
-                                                   output_dir: str,
-                                                   proj: Projections,
-                                                   hyperparameter_dir: str,
-                                                   classification_dir: str,
-                                                   baseline_dir: Optional[str],
-                                                   morphometrics_dir: str,
-                                                   raw_data_dir: str,
-                                                   evaluator_results_dir: str) -> pd.DataFrame:
+
+def get_classification_f1_data_external_experiment(
+    external_experiment_id: str,
+    readout: Readouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    classification_dir: str,
+    baseline_dir: Optional[str],
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    evaluator_results_dir: str,
+) -> pd.DataFrame:
     classifier_f1s, _, _ = generate_classification_results_external_experiment(
-        external_experiment_id = external_experiment_id,
-        readout = readout,
-        output_dir = output_dir,
-        proj = proj,
-        hyperparameter_dir = hyperparameter_dir,
-        experiment_dir = classification_dir,
-        morphometrics_dir = morphometrics_dir,
-        raw_data_dir = raw_data_dir
+        external_experiment_id=external_experiment_id,
+        readout=readout,
+        output_dir=output_dir,
+        proj=proj,
+        hyperparameter_dir=hyperparameter_dir,
+        experiment_dir=classification_dir,
+        morphometrics_dir=morphometrics_dir,
+        raw_data_dir=raw_data_dir,
     )
     if baseline_dir is not None:
         baseline_f1s, _, _ = generate_baseline_results_external_experiment(
-            external_experiment_id = external_experiment_id,
-            readout = READOUT_BASELINE_READOUT_MAP[readout],
-            output_dir = output_dir,
-            proj = proj,
-            hyperparameter_dir = hyperparameter_dir,
-            experiment_dir = baseline_dir,
-            morphometrics_dir = morphometrics_dir,
-            raw_data_dir = raw_data_dir
+            external_experiment_id=external_experiment_id,
+            readout=READOUT_BASELINE_READOUT_MAP[readout],
+            output_dir=output_dir,
+            proj=proj,
+            hyperparameter_dir=hyperparameter_dir,
+            experiment_dir=baseline_dir,
+            morphometrics_dir=morphometrics_dir,
+            raw_data_dir=raw_data_dir,
         )
     else:
         baseline_f1s = pd.DataFrame()
 
-    return pd.concat([classifier_f1s, baseline_f1s], axis = 0)
+    return pd.concat([classifier_f1s, baseline_f1s], axis=0)
 
-def get_classification_f1_data_raw(readout: Readouts,
-                                   output_dir: str,
-                                   proj: Projections,
-                                   hyperparameter_dir: str,
-                                   classification_dir: str,
-                                   baseline_dir: Optional[str],
-                                   morphometrics_dir: str,
-                                   raw_data_dir: str,
-                                   evaluator_results_dir: str,
-                                   output_filename: str = "") -> pd.DataFrame:
+
+def get_classification_f1_data_raw(
+    readout: Readouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    classification_dir: str,
+    baseline_dir: Optional[str],
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    evaluator_results_dir: str,
+    output_filename: str = "",
+) -> pd.DataFrame:
     if not output_filename:
         output_filename = f"raw_results_cnn_and_clf_{readout}.csv"
     output_file = os.path.join(output_dir, f"{output_filename}.csv")
@@ -733,34 +820,32 @@ def get_classification_f1_data_raw(readout: Readouts,
         return existing_file
 
     cnn_f1s, clf_f1s = generate_classification_results_raw_data(
-        readout = readout,
-        output_dir = output_dir,
-        proj = proj,
-        hyperparameter_dir = hyperparameter_dir,
-        experiment_dir = classification_dir,
-        morphometrics_dir = morphometrics_dir,
-        raw_data_dir = raw_data_dir
+        readout=readout,
+        output_dir=output_dir,
+        proj=proj,
+        hyperparameter_dir=hyperparameter_dir,
+        experiment_dir=classification_dir,
+        morphometrics_dir=morphometrics_dir,
+        raw_data_dir=raw_data_dir,
     )
     if baseline_dir is not None:
         baseline_cnn_f1s, baseline_clf_f1s = generate_baseline_results_raw_data(
-            readout = READOUT_BASELINE_READOUT_MAP[readout],
-            output_dir = output_dir,
-            proj = proj,
-            hyperparameter_dir = hyperparameter_dir,
-            experiment_dir = baseline_dir,
-            morphometrics_dir = morphometrics_dir,
-            raw_data_dir = raw_data_dir
+            readout=READOUT_BASELINE_READOUT_MAP[readout],
+            output_dir=output_dir,
+            proj=proj,
+            hyperparameter_dir=hyperparameter_dir,
+            experiment_dir=baseline_dir,
+            morphometrics_dir=morphometrics_dir,
+            raw_data_dir=raw_data_dir,
         )
     else:
         baseline_cnn_f1s, baseline_clf_f1s = pd.DataFrame(), pd.DataFrame()
 
-    results = pd.concat(
-        [cnn_f1s, baseline_cnn_f1s, clf_f1s, baseline_clf_f1s],
-        axis = 0
-    )
-    results.to_csv(output_file, index = False)
+    results = pd.concat([cnn_f1s, baseline_cnn_f1s, clf_f1s, baseline_clf_f1s], axis=0)
+    results.to_csv(output_file, index=False)
 
     return results
+
 
 def f1_vs_distance_plot(
     df: pd.DataFrame,
@@ -771,7 +856,7 @@ def f1_vs_distance_plot(
     pred_col: str = "pred",
     group_col: str = "val_experiment",
     set_col: str = "set",
-    set_name: str = "both",          # "test", "val", or "both"
+    set_name: str = "both",  # "test", "val", or "both"
     n_distance_bins: int = 10,
     min_samples_per_bin: int = 10,
 ):
@@ -800,17 +885,25 @@ def f1_vs_distance_plot(
     right = edges[bin_idx + 1]
     centers = (left + right) / 2.0
     half_width = (right - left) / 2.0
-    work["_dist_norm"] = np.clip(np.abs(vals - centers) / np.maximum(half_width, 1e-12), 0.0, 1.0)
+    work["_dist_norm"] = np.clip(
+        np.abs(vals - centers) / np.maximum(half_width, 1e-12), 0.0, 1.0
+    )
 
     # distance bins on [0, 1]
     dist_bin_edges = np.linspace(0.0, 1.0, n_distance_bins + 1)
     dist_bin_centers = (dist_bin_edges[:-1] + dist_bin_edges[1:]) / 2.0
-    dist_bin_idx = np.digitize(work["_dist_norm"].to_numpy(), dist_bin_edges, right=False) - 1
-    dist_bin_idx = np.where(dist_bin_idx == n_distance_bins, n_distance_bins - 1, dist_bin_idx)
+    dist_bin_idx = (
+        np.digitize(work["_dist_norm"].to_numpy(), dist_bin_edges, right=False) - 1
+    )
+    dist_bin_idx = np.where(
+        dist_bin_idx == n_distance_bins, n_distance_bins - 1, dist_bin_idx
+    )
     work["_dist_bin"] = dist_bin_idx
 
     # label set for sklearn (union of truth/pred present in the filtered data)
-    all_labels = pd.unique(pd.concat([work[truth_col], work[pred_col]], ignore_index=True))
+    all_labels = pd.unique(
+        pd.concat([work[truth_col], work[pred_col]], ignore_index=True)
+    )
     # keep stable order for reproducibility
     try:
         all_labels = np.sort(all_labels)
@@ -842,70 +935,79 @@ def f1_vs_distance_plot(
                 zero_division=0,
             )
 
-            rows.append({
-                group_col: exp,
-                "set": set_lbl,
-                "dist_center": float(dist_bin_centers[b]),
-                "n": int(n),
-                "f1_weighted": float(f1_w),
-            })
+            rows.append(
+                {
+                    group_col: exp,
+                    "set": set_lbl,
+                    "dist_center": float(dist_bin_centers[b]),
+                    "n": int(n),
+                    "f1_weighted": float(f1_w),
+                }
+            )
 
     summary_df = pd.DataFrame(rows)
-    summary_df["val_experiment"] = [exp_id[0] for exp_id in summary_df["val_experiment"].tolist()]
+    summary_df["val_experiment"] = [
+        exp_id[0] for exp_id in summary_df["val_experiment"].tolist()
+    ]
 
     return summary_df
 
-    
-def get_classification_f1_data(readout: Readouts,
-                               output_dir: str,
-                               proj: Projections,
-                               hyperparameter_dir: str,
-                               classification_dir: str,
-                               baseline_dir: Optional[str],
-                               morphometrics_dir: str,
-                               raw_data_dir: str,
-                               evaluator_results_dir: str) -> pd.DataFrame:
+
+def get_classification_f1_data(
+    readout: Readouts,
+    output_dir: str,
+    proj: Projections,
+    hyperparameter_dir: str,
+    classification_dir: str,
+    baseline_dir: Optional[str],
+    morphometrics_dir: str,
+    raw_data_dir: str,
+    evaluator_results_dir: str,
+) -> pd.DataFrame:
     classifier_f1s, _, _ = generate_classification_results(
-        readout = readout,
-        output_dir = output_dir,
-        proj = proj,
-        hyperparameter_dir = hyperparameter_dir,
-        experiment_dir = classification_dir,
-        morphometrics_dir = morphometrics_dir,
-        raw_data_dir = raw_data_dir
+        readout=readout,
+        output_dir=output_dir,
+        proj=proj,
+        hyperparameter_dir=hyperparameter_dir,
+        experiment_dir=classification_dir,
+        morphometrics_dir=morphometrics_dir,
+        raw_data_dir=raw_data_dir,
     )
     if baseline_dir is not None:
         baseline_f1s, _, _ = generate_baseline_results(
-            readout = READOUT_BASELINE_READOUT_MAP[readout],
-            output_dir = output_dir,
-            proj = proj,
-            hyperparameter_dir = hyperparameter_dir,
-            experiment_dir = baseline_dir,
-            morphometrics_dir = morphometrics_dir,
-            raw_data_dir = raw_data_dir
+            readout=READOUT_BASELINE_READOUT_MAP[readout],
+            output_dir=output_dir,
+            proj=proj,
+            hyperparameter_dir=hyperparameter_dir,
+            experiment_dir=baseline_dir,
+            morphometrics_dir=morphometrics_dir,
+            raw_data_dir=raw_data_dir,
         )
     else:
         baseline_f1s = pd.DataFrame()
 
-    human_data = human_f1_per_experiment(evaluator_results_dir = evaluator_results_dir,
-                                         morphometrics_dir = morphometrics_dir,
-                                         n_timeframes = 48,
-                                         output_dir = output_dir)
-    human_data = add_loop_from_timeframe(human_data,
-                                         n_timeframes = 48)
+    human_data = human_f1_per_experiment(
+        evaluator_results_dir=evaluator_results_dir,
+        morphometrics_dir=morphometrics_dir,
+        n_timeframes=48,
+        output_dir=output_dir,
+    )
+    human_data = add_loop_from_timeframe(human_data, n_timeframes=48)
     human_data["classifier"] = "human"
     cols_to_choose = ["experiment", "loop", "F1", "classifier"]
-    human_data = human_data.rename(columns = {f"F1_{readout}": "F1"})
+    human_data = human_data.rename(columns={f"F1_{readout}": "F1"})
     human_data = human_data[cols_to_choose]
 
-    return pd.concat([classifier_f1s, baseline_f1s, human_data], axis = 0)
+    return pd.concat([classifier_f1s, baseline_f1s, human_data], axis=0)
 
-def get_classifier_comparison(classifier_results_dir: str,
-                              readout: Readouts,
-                              proj: ProjectionIDs,
-                              output_dir: str = "./figure_data",
-                              output_filename: str = "classifier_benchmark") -> pd.DataFrame:
 
+def get_classifier_comparison(
+    classifier_results_dir: str,
+    readout: Readouts,
+    proj: ProjectionIDs,
+    output_dir: str = "./figure_data",
+    output_filename: str = "classifier_benchmark",
+) -> pd.DataFrame:
     # CLFCOMP_SLICE3
     # CLFCOMP_MAX
     # HYPERPARAM_SUM
@@ -923,27 +1025,33 @@ def get_classifier_comparison(classifier_results_dir: str,
         proj = proj.split("Z")[1]
 
     benchmark = pd.read_csv(
-        os.path.join(classifier_results_dir, f"CLFCOMP_{proj}.log"),
-        index_col = False
+        os.path.join(classifier_results_dir, f"CLFCOMP_{proj}.log"), index_col=False
     )
     hyperparam_tuning = pd.read_csv(
-        os.path.join(classifier_results_dir, f"HYPERPARAM_{proj}.log"),
-        index_col = False
+        os.path.join(classifier_results_dir, f"HYPERPARAM_{proj}.log"), index_col=False
     )
     benchmark["tuning"] = "not tuned"
     hyperparam_tuning["tuning"] = "tuned"
-    data = pd.concat([benchmark, hyperparam_tuning], axis = 0)
+    data = pd.concat([benchmark, hyperparam_tuning], axis=0)
     data = data[data["readout"] == readout].copy()
-    data["ALGORITHM"] = [f"{algorithm}: {tuning}" for algorithm, tuning in zip(data["algorithm"].tolist(), data["tuning"].tolist())]
+    data["ALGORITHM"] = [
+        f"{algorithm}: {tuning}"
+        for algorithm, tuning in zip(
+            data["algorithm"].tolist(), data["tuning"].tolist()
+        )
+    ]
 
-    data.to_csv(output_file, index = False)
+    data.to_csv(output_file, index=False)
     return cast(pd.DataFrame, data)
 
-def get_cnn_output(classification_dir: str,
-                   readout: Readouts,
-                   proj: ProjectionIDs,
-                   output_dir: str = "./figure_data",
-                   output_filename: str = "cnn_output") -> pd.DataFrame:
+
+def get_cnn_output(
+    classification_dir: str,
+    readout: Readouts,
+    proj: ProjectionIDs,
+    output_dir: str = "./figure_data",
+    output_filename: str = "cnn_output",
+) -> pd.DataFrame:
     save_suffix = f"_{readout}_{proj}"
 
     output_file = os.path.join(output_dir, f"{output_filename}{save_suffix}.csv")
@@ -952,20 +1060,22 @@ def get_cnn_output(classification_dir: str,
         return existing_file
 
     data = pd.read_csv(
-        os.path.join(classification_dir, f"results/{readout}.txt"),
-        index_col = False
+        os.path.join(classification_dir, f"results/{readout}.txt"), index_col=False
     )
     data = convert_cnn_output_to_float(data)
 
-    data.to_csv(output_file, index = False)
+    data.to_csv(output_file, index=False)
     return data
 
-def load_and_aggregate_matrices(readout,
-                                classifier: Literal["neural_net", "classifier"],
-                                eval_set: Literal["test", "val"],
-                                proj: str,
-                                figure_data_dir: str,
-                                morphometrics_dir: str) -> pd.DataFrame:
+
+def load_and_aggregate_matrices(
+    readout,
+    classifier: Literal["neural_net", "classifier"],
+    eval_set: Literal["test", "val"],
+    proj: str,
+    figure_data_dir: str,
+    morphometrics_dir: str,
+) -> pd.DataFrame:
     """
     Load confusion matrices for each experiment and each loop, compute the average
     confusion matrix per loop across experiments, and return a DataFrame indexed
@@ -975,8 +1085,10 @@ def load_and_aggregate_matrices(readout,
 
     suffix = f"_{proj}" if proj else ""
     morpho = get_morphometrics_frame(morphometrics_dir, suffix=suffix)
-    morpho = morpho[["experiment","well","loop"]].drop_duplicates()
-    morpho = morpho.sort_values(["experiment","well","loop"], ascending=[True,True,True])
+    morpho = morpho[["experiment", "well", "loop"]].drop_duplicates()
+    morpho = morpho.sort_values(
+        ["experiment", "well", "loop"], ascending=[True, True, True]
+    )
 
     # hacky, but it's late...
     if not proj:
@@ -997,12 +1109,12 @@ def load_and_aggregate_matrices(readout,
             data.setdefault(lo, []).append(mats[i])
 
     mean_dict = {lo: np.mean(ms, axis=0) for lo, ms in data.items()}
-    df = pd.DataFrame({
-        'loop': list(mean_dict.keys()),
-        'mean_matrix': list(mean_dict.values())
-    }).set_index('loop')
-    df.index.name = 'loop'
+    df = pd.DataFrame(
+        {"loop": list(mean_dict.keys()), "mean_matrix": list(mean_dict.values())}
+    ).set_index("loop")
+    df.index.name = "loop"
     return df
+
 
 def classwise_confusion_matrix(matrix):
     """
@@ -1025,14 +1137,17 @@ def classwise_confusion_matrix(matrix):
         results.append(np.array([[tn, fp], [fn, tp]]))
     return tuple(results)
 
-def convert_to_percentages(df: pd.DataFrame,
-                           matrix_col: str = 'mean_matrix') -> pd.DataFrame:
+
+def convert_to_percentages(
+    df: pd.DataFrame, matrix_col: str = "mean_matrix"
+) -> pd.DataFrame:
     """
     Given a DataFrame with an array column of confusion matrices, compute percentage
     normalization per matrix and store in 'percentage_matrix'.
     """
-    df['percentage_matrix'] = df[matrix_col].apply(lambda m: (m / m.sum()) * 100)
+    df["percentage_matrix"] = df[matrix_col].apply(lambda m: (m / m.sum()) * 100)
     return df
+
 
 def flatten_for_plotting(df: pd.DataFrame, classes: int) -> pd.DataFrame:
     """
@@ -1046,38 +1161,41 @@ def flatten_for_plotting(df: pd.DataFrame, classes: int) -> pd.DataFrame:
       Index is numeric loop hours (float), derived from 'LO###' / 2.
     """
     # infer class count from the matrices
-    sample_mat = df['percentage_matrix'].iloc[0]
+    sample_mat = df["percentage_matrix"].iloc[0]
     n_classes = sample_mat.shape[0]
 
     df = df.sort_index()
 
     # numeric loop index (e.g., "LO072" -> 36.0 for 30-min steps)
-    loops_num = df.index.to_series().str.replace('LO', '', regex=False).astype(int) / 2.0
+    loops_num = (
+        df.index.to_series().str.replace("LO", "", regex=False).astype(int) / 2.0
+    )
     loops_num.index = df.index  # align
 
     if n_classes == 2:
         # expecting a 2x2 matrix already; ensure order ['tn','tp','fn','fp']
         records = []
-        for lo, mat in df['percentage_matrix'].items():
+        for lo, mat in df["percentage_matrix"].items():
             # mat is 2x2 with rows=true class, cols=pred class
             # components from full confusion matrix:
             tn = mat[0, 0]
             tp = mat[1, 1]
             fn = mat[1, 0]
             fp = mat[0, 1]
-            records.append(pd.Series(
-                {'tn': tn, 'tp': tp, 'fn': fn, 'fp': fp},
-                name=loops_num.loc[lo]
-            ))
+            records.append(
+                pd.Series(
+                    {"tn": tn, "tp": tp, "fn": fn, "fp": fp}, name=loops_num.loc[lo]
+                )
+            )
         out = pd.DataFrame(records)
-        out.index.name = 'loop'
+        out.index.name = "loop"
         # enforce column order
-        return out[['tn', 'tp', 'fn', 'fp']]
+        return out[["tn", "tp", "fn", "fp"]]
 
     # multi-class branch
     # build per-loop, per-class components into a single wide DataFrame
     # we reuse the classwise 2x2 definition: [[tn, fp],[fn, tp]]
-    cmaps = df['percentage_matrix'].apply(classwise_confusion_matrix)
+    cmaps = df["percentage_matrix"].apply(classwise_confusion_matrix)
 
     rows = []
     for lo, class_tuples in cmaps.items():
@@ -1090,29 +1208,32 @@ def flatten_for_plotting(df: pd.DataFrame, classes: int) -> pd.DataFrame:
             tp = float(cm2[1, 1])
             fn = float(cm2[1, 0])
             fp = float(cm2[0, 1])
-            cls = f'class{ci}'
-            pieces[(cls, 'tn')] = tn
-            pieces[(cls, 'tp')] = tp
-            pieces[(cls, 'fn')] = fn
-            pieces[(cls, 'fp')] = fp
+            cls = f"class{ci}"
+            pieces[(cls, "tn")] = tn
+            pieces[(cls, "tp")] = tp
+            pieces[(cls, "fn")] = fn
+            pieces[(cls, "fp")] = fp
         s = pd.Series(pieces, name=loop_val)
         rows.append(s)
 
     out = pd.DataFrame(rows)
-    out.index.name = 'loop'
+    out.index.name = "loop"
     # sort columns: class0..classN, within each class ['tn','tp','fn','fp']
     out = out.sort_index(axis=1, level=[0, 1])
     # enforce per-class inner order
-    inner_order = ['tn', 'tp', 'fn', 'fp']
+    inner_order = ["tn", "tp", "fn", "fp"]
     out = out.loc[:, out.columns.set_levels(inner_order, level=1)]
     return out
 
-def create_confusion_matrix_frame(readout: Readouts,
-                                  classifier: Literal["neural_net", "classifier"],
-                                  eval_set: Literal["test", "val"],
-                                  proj: Projections, # = ""!
-                                  figure_data_dir: str,
-                                  morphometrics_dir: str) -> pd.DataFrame:
+
+def create_confusion_matrix_frame(
+    readout: Readouts,
+    classifier: Literal["neural_net", "classifier"],
+    eval_set: Literal["test", "val"],
+    proj: Projections,  # = ""!
+    figure_data_dir: str,
+    morphometrics_dir: str,
+) -> pd.DataFrame:
     """
     High-level function returning a DataFrame ready for plotting:
     - Binary readouts (RPE_Final, Lens_Final): 2 classes.
@@ -1120,30 +1241,32 @@ def create_confusion_matrix_frame(readout: Readouts,
     Columns reflect confusion matrix components, rows are loop hours.
     """
     output_dir = os.path.join(figure_data_dir, f"classification_{readout}")
-    output_filename = os.path.join(output_dir, f"conf_matrices_{classifier}_{eval_set}_{proj}.data")
+    output_filename = os.path.join(
+        output_dir, f"conf_matrices_{classifier}_{eval_set}_{proj}.data"
+    )
 
     if os.path.isfile(output_filename):
         return pd.read_pickle(output_filename)
 
     base_df = load_and_aggregate_matrices(
-        readout = readout,
-        classifier = classifier,
-        eval_set = eval_set,
-        proj = proj,
-        figure_data_dir = figure_data_dir,
-        morphometrics_dir = morphometrics_dir
+        readout=readout,
+        classifier=classifier,
+        eval_set=eval_set,
+        proj=proj,
+        figure_data_dir=figure_data_dir,
+        morphometrics_dir=morphometrics_dir,
     )
     pct_df = convert_to_percentages(base_df)
-    _cls = 2 if 'classes' not in readout else 4
+    _cls = 2 if "classes" not in readout else 4
     plot_df = flatten_for_plotting(pct_df, classes=_cls)
     plot_df = plot_df.sort_index()
     plot_df.to_pickle(output_filename)
     return plot_df
 
-def run_f1_statistics(df: pd.DataFrame,
-                      readout: Readouts,
-                      p_adjust: str = "bonferroni") -> pd.DataFrame:
 
+def run_f1_statistics(
+    df: pd.DataFrame, readout: Readouts, p_adjust: str = "bonferroni"
+) -> pd.DataFrame:
     from scipy.stats import shapiro, f_oneway, ttest_ind
 
     group_col = "classifier"
@@ -1153,7 +1276,6 @@ def run_f1_statistics(df: pd.DataFrame,
 
     for loop in sorted(df[loop_col].unique()):
         sub = df[df[loop_col] == loop]
-        
 
         # 1) Normality check
         for clf, grp in sub.groupby(group_col):
@@ -1161,61 +1283,65 @@ def run_f1_statistics(df: pd.DataFrame,
             if p_sw < 0.05:
                 warnings.warn(
                     f'Loop {loop}, classifier "{clf}" fails normality (Shapiro p={p_sw:.3f})',
-                    UserWarning
+                    UserWarning,
                 )
-        
+
         # 2) ANOVA
-        groups = [grp[value_col].values
-                  for _, grp in sub.groupby(group_col)]
+        groups = [grp[value_col].values for _, grp in sub.groupby(group_col)]
         F, p_anova = f_oneway(*groups)
-        records.append({
-            'loop':      loop,
-            'test':      'anova',
-            'group1':    None,
-            'group2':    None,
-            'statistic': F,
-            'p_raw':     p_anova,
-            'p_adj':     p_anova
-        })
-        
+        records.append(
+            {
+                "loop": loop,
+                "test": "anova",
+                "group1": None,
+                "group2": None,
+                "statistic": F,
+                "p_raw": p_anova,
+                "p_adj": p_anova,
+            }
+        )
+
         # pairwise ttest
         classes = sorted(sub[group_col].unique())
         pair_results = []
         for i in range(len(classes)):
-            for j in range(i+1, len(classes)):
+            for j in range(i + 1, len(classes)):
                 g1, g2 = classes[i], classes[j]
-                a = sub.loc[sub[group_col]==g1, value_col].values
-                b = sub.loc[sub[group_col]==g2, value_col].values
+                a = sub.loc[sub[group_col] == g1, value_col].values
+                b = sub.loc[sub[group_col] == g2, value_col].values
                 t_stat, p_val = ttest_ind(a, b, equal_var=True)
                 pair_results.append((g1, g2, t_stat, p_val))
 
         m = len(pair_results)
         raw_ps = [pr[3] for pr in pair_results]
-        if p_adjust == 'bonferroni':
-            adj_ps = [min(p*m, 1.0) for p in raw_ps]
-        elif p_adjust == 'holm':
+        if p_adjust == "bonferroni":
+            adj_ps = [min(p * m, 1.0) for p in raw_ps]
+        elif p_adjust == "holm":
             order = np.argsort(raw_ps)
             adj = np.empty(m)
             for rank, idx in enumerate(order):
-                adj[idx] = min((m-rank)*raw_ps[idx], 1.0)
+                adj[idx] = min((m - rank) * raw_ps[idx], 1.0)
             adj_ps = list(adj)
         else:
-            raise ValueError(f'Unknown p_adjust: {p_adjust}')
+            raise ValueError(f"Unknown p_adjust: {p_adjust}")
 
         for (g1, g2, t_stat, p_val), p_a in zip(pair_results, adj_ps):
-            records.append({
-                'loop':      loop,
-                'test':      't-test',
-                'group1':    g1,
-                'group2':    g2,
-                'statistic': t_stat,
-                'p_raw':     p_val,
-                'p_adj':     p_a
-            })
+            records.append(
+                {
+                    "loop": loop,
+                    "test": "t-test",
+                    "group1": g1,
+                    "group2": g2,
+                    "statistic": t_stat,
+                    "p_raw": p_val,
+                    "p_adj": p_a,
+                }
+            )
 
     res = pd.DataFrame.from_records(records)
     res["readout"] = readout
     return res
+
 
 def auc_per_experiment(
     df: pd.DataFrame,
@@ -1225,9 +1351,9 @@ def auc_per_experiment(
     score_col: str = "F1",
     exp_col: str = "experiment",
     method_col: str = "classifier",
-    paired_test: str = "wilcoxon",   # or "ttest"
+    paired_test: str = "wilcoxon",  # or "ttest"
     normalize_time: bool = True,
-    plot: bool = True
+    plot: bool = True,
 ):
     """
     Compute AUC of F1-vs-time per (experiment, classifier), then do paired
@@ -1237,6 +1363,7 @@ def auc_per_experiment(
     from itertools import combinations
     from scipy.integrate import trapezoid
     from scipy.stats import wilcoxon, ttest_rel
+
     # --- AUC per (experiment, method) ---
     rows = []
     for (exp, meth), sub in df.groupby([exp_col, method_col], dropna=False):
@@ -1247,10 +1374,12 @@ def auc_per_experiment(
             continue
         auc = trapezoid(y=y, x=t)
         if normalize_time:
-            span = (t.max() - t.min())
+            span = t.max() - t.min()
             if span > 0:
                 auc = auc / span  # equals average F1 over time window
-        rows.append({exp_col: exp, method_col: meth, "AUC": float(auc), "n_timepts": len(t)})
+        rows.append(
+            {exp_col: exp, method_col: meth, "AUC": float(auc), "n_timepts": len(t)}
+        )
     auc_df = pd.DataFrame(rows)
 
     piv = auc_df.pivot(index=exp_col, columns=method_col, values="AUC")
@@ -1270,15 +1399,17 @@ def auc_per_experiment(
         else:
             raise ValueError("paired_test must be 'wilcoxon' or 'ttest'")
         diff_mean = float(np.mean(x - y))
-        stats_rows.append({
-            "method_1": m1,
-            "method_2": m2,
-            "n_experiments": int(pair.shape[0]),
-            "test": test_name,
-            "statistic": float(stat),
-            "p_value": float(p),
-            "mean_auc_diff_(m1-m2)": diff_mean
-        })
+        stats_rows.append(
+            {
+                "method_1": m1,
+                "method_2": m2,
+                "n_experiments": int(pair.shape[0]),
+                "test": test_name,
+                "statistic": float(stat),
+                "p_value": float(p),
+                "mean_auc_diff_(m1-m2)": diff_mean,
+            }
+        )
     stats_df = pd.DataFrame(stats_rows)
 
     # Holm-Bonferroni correction

@@ -19,6 +19,7 @@ from ..image_handling import ImageHandler, OrganoidImage
 # Normal dataset: train/test_split
 # crossvalidation dataset: multiple train/test_splits
 
+
 class OrganoidDataset:
     """\
     Base class to handle datasets associated with classification.
@@ -42,47 +43,48 @@ class OrganoidDataset:
 
     """
 
-    def __init__(self,
-                 dataset_id: str,
-                 readouts: list[str],
-                 readouts_n_classes: list[int],
-                 file_frame: pd.DataFrame,
-                 start_timepoint: int,
-                 stop_timepoint: int,
-                 slices: list[str],
-                 image_size: int,
-                 crop_bbox: bool,
-                 rescale_cropped_image: bool,
-                 crop_size: Optional[int],
-                 segmentator_input_dir: str,
-                 segmentator_input_size: int,
-                 segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
-                 experiment_dir: str,
-                 z_projection: Optional[str] = None,
-                 _skip_init: bool = False):
-
+    def __init__(
+        self,
+        dataset_id: str,
+        readouts: list[str],
+        readouts_n_classes: list[int],
+        file_frame: pd.DataFrame,
+        start_timepoint: int,
+        stop_timepoint: int,
+        slices: list[str],
+        image_size: int,
+        crop_bbox: bool,
+        rescale_cropped_image: bool,
+        crop_size: Optional[int],
+        segmentator_input_dir: str,
+        segmentator_input_size: int,
+        segmentation_model_name: Literal["HRNET", "UNET", "DEEPLABV3"],
+        experiment_dir: str,
+        z_projection: Optional[str] = None,
+        _skip_init: bool = False,
+    ):
         if _skip_init is True:
             return
 
         self.img_handler = ImageHandler(
-            segmentator_input_dir = segmentator_input_dir,
-            segmentator_input_size = segmentator_input_size,
-            segmentation_model_name = segmentation_model_name
+            segmentator_input_dir=segmentator_input_dir,
+            segmentator_input_size=segmentator_input_size,
+            segmentation_model_name=segmentation_model_name,
         )
 
         self._image_metadata = ImageMetadata(
-            dimension = image_size,
-            cropped_bbox = crop_bbox,
-            scaled_to_size = rescale_cropped_image,
-            crop_size = crop_size,
-            segmentator_model = _get_model_from_enum(segmentation_model_name),
-            segmentator_input_size = segmentator_input_size,
-            mask_threshold = 0.3,
-            cleaned_mask = True,
-            scale_masked_image = True,
-            crop_bounding_box = True,
-            rescale_cropped_image = rescale_cropped_image,
-            crop_bounding_box_dimension = crop_size
+            dimension=image_size,
+            cropped_bbox=crop_bbox,
+            scaled_to_size=rescale_cropped_image,
+            crop_size=crop_size,
+            segmentator_model=_get_model_from_enum(segmentation_model_name),
+            segmentator_input_size=segmentator_input_size,
+            mask_threshold=0.3,
+            cleaned_mask=True,
+            scale_masked_image=True,
+            crop_bounding_box=True,
+            rescale_cropped_image=rescale_cropped_image,
+            crop_bounding_box_dimension=crop_size,
         )
 
         if not isinstance(readouts, list):
@@ -90,25 +92,30 @@ class OrganoidDataset:
         if not isinstance(readouts_n_classes, list):
             readouts_n_classes = [readouts_n_classes]
 
-        assert len(readouts) == len(readouts_n_classes), "Provide n_classes for every readout"
+        assert len(readouts) == len(readouts_n_classes), (
+            "Provide n_classes for every readout"
+        )
 
         self._dataset_metadata = DatasetMetadata(
-            dataset_id = dataset_id,
-            experiment_dir = experiment_dir,
-            readouts = readouts,
-            readouts_n_classes = readouts_n_classes,
-            start_timepoint = start_timepoint,
-            stop_timepoint = stop_timepoint,
-            slices = slices,
-            z_projection = z_projection
+            dataset_id=dataset_id,
+            experiment_dir=experiment_dir,
+            readouts=readouts,
+            readouts_n_classes=readouts_n_classes,
+            start_timepoint=start_timepoint,
+            stop_timepoint=stop_timepoint,
+            slices=slices,
+            z_projection=z_projection,
         )
 
         self._metadata = self._preprocess_file_frame(file_frame)
 
         self.create_full_dataset(self._metadata)
-        
+
         if not self.dataset_metadata.z_projection:
-            assert self.X.shape[0] == self.metadata.shape[0] * self.dataset_metadata.n_slices
+            assert (
+                self.X.shape[0]
+                == self.metadata.shape[0] * self.dataset_metadata.n_slices
+            )
         else:
             pass
 
@@ -120,53 +127,50 @@ class OrganoidDataset:
 
         self._create_class_counts()
 
-    def subsample(self,
-                  frac: float) -> Optional["OrganoidDataset"]:
+    def subsample(self, frac: float) -> Optional["OrganoidDataset"]:
         assert -1 not in self._metadata["IMAGE_ARRAY_INDEX"]
         self._metadata = self._metadata.sample(
-            frac = frac, replace = False, random_state = 187
-        ).sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+            frac=frac, replace=False, random_state=187
+        ).sort_values("IMAGE_ARRAY_INDEX", ascending=True)
 
         indices = self._metadata["IMAGE_ARRAY_INDEX"].tolist()
         self._subset_by_indices(indices)
 
         return
 
-    def subsample_n(self,
-                    n: int) -> None:
+    def subsample_n(self, n: int) -> None:
         assert -1 not in self._metadata["IMAGE_ARRAY_INDEX"]
         if n >= self._metadata.shape[0]:
-            print(f"Not subsetting {n} images due to a dataset_size of {self._metadata.shape[0]}")
+            print(
+                f"Not subsetting {n} images due to a dataset_size of {self._metadata.shape[0]}"
+            )
             return
         self._metadata = self._metadata.sample(
-            n, replace = False, random_state = 187
-        ).sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+            n, replace=False, random_state=187
+        ).sort_values("IMAGE_ARRAY_INDEX", ascending=True)
 
         indices = self._metadata["IMAGE_ARRAY_INDEX"].tolist()
         self._subset_by_indices(indices)
 
         return
 
-    def subset_experiments(self,
-                           experiments: Union[list[str], tuple[str], str]) -> None:
+    def subset_experiments(
+        self, experiments: Union[list[str], tuple[str], str]
+    ) -> None:
         assert -1 not in self._metadata["IMAGE_ARRAY_INDEX"]
         if isinstance(experiments, str):
             experiments = [experiments]
 
         self._metadata = self._metadata[
             self._metadata["experiment"].isin(experiments)
-        ].sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+        ].sort_values("IMAGE_ARRAY_INDEX", ascending=True)
 
         indices = self._metadata["IMAGE_ARRAY_INDEX"].tolist()
         self._subset_by_indices(indices)
 
-    def _subset_by_indices(self,
-                           indices: list) -> None:
+    def _subset_by_indices(self, indices: list) -> None:
         self.X = self.X[indices]
-        self.y = {
-            key: self.y[key][indices] for key in self.y.keys()
-
-        }
+        self.y = {key: self.y[key][indices] for key in self.y.keys()}
         self._metadata["IMAGE_ARRAY_INDEX"] = np.arange(self.X.shape[0])
 
         self._create_class_counts()
@@ -185,29 +189,30 @@ class OrganoidDataset:
         self.dataset_metadata.class_balance = class_balances
         return
 
-    def _get_loop_names(self,
-                        start_timepoint: int,
-                        stop_timepoint: int) -> list[str]:
+    def _get_loop_names(self, start_timepoint: int, stop_timepoint: int) -> list[str]:
         return [
-            f"LO{i}" if i >= 100 else f"LO0{i}" if i>= 10 else f"LO00{i}"
+            f"LO{i}" if i >= 100 else f"LO0{i}" if i >= 10 else f"LO00{i}"
             for i in range(start_timepoint, stop_timepoint)
         ]
 
-    def _preprocess_file_frame(self,
-                               file_frame: pd.DataFrame) -> pd.DataFrame:
+    def _preprocess_file_frame(self, file_frame: pd.DataFrame) -> pd.DataFrame:
         """\
         Selects the necessary parts of the files, e.g. slices, loops and so forth.
         Appends 'image_path' and a placeholder 'IMAGE_ARRAY_INDEX' and sorts the values.
         """
         file_frame.loc[:, "image_path"] = [
             os.path.join(self.dataset_metadata.experiment_dir, experiment, file_name)
-            for experiment, file_name
-            in zip(file_frame["experiment"].tolist(), file_frame["file_name"].tolist())
+            for experiment, file_name in zip(
+                file_frame["experiment"].tolist(), file_frame["file_name"].tolist()
+            )
         ]
 
         timepoints = [
-            f"LO{i}" if i >= 100 else f"LO0{i}" if i>= 10 else f"LO00{i}"
-            for i in range(self.dataset_metadata.start_timepoint + 1, self.dataset_metadata.stop_timepoint + 1)
+            f"LO{i}" if i >= 100 else f"LO0{i}" if i >= 10 else f"LO00{i}"
+            for i in range(
+                self.dataset_metadata.start_timepoint + 1,
+                self.dataset_metadata.stop_timepoint + 1,
+            )
         ]
 
         assert isinstance(timepoints, list)
@@ -215,15 +220,14 @@ class OrganoidDataset:
         assert isinstance(self.dataset_metadata.slices, list)
 
         preprocessed = file_frame.loc[
-            (file_frame["slice"].isin(self.dataset_metadata.slices)) &
-            (file_frame["loop"].isin(timepoints)),
-            ["image_path", "experiment", "well", "loop", "slice"] + self.dataset_metadata.readouts
+            (file_frame["slice"].isin(self.dataset_metadata.slices))
+            & (file_frame["loop"].isin(timepoints)),
+            ["image_path", "experiment", "well", "loop", "slice"]
+            + self.dataset_metadata.readouts,
         ]
 
         # important for the extraction of slices later
-        preprocessed = preprocessed.sort_values(
-            ["experiment", "well", "loop", "slice"]
-        )
+        preprocessed = preprocessed.sort_values(["experiment", "well", "loop", "slice"])
 
         # We keep track of the individual images in order to split them later
         # by individual wells. That way, we dont have to care about image
@@ -234,8 +238,7 @@ class OrganoidDataset:
         assert isinstance(preprocessed, pd.DataFrame)
         return preprocessed
 
-    def create_full_dataset(self,
-                            file_frame: pd.DataFrame) -> None:
+    def create_full_dataset(self, file_frame: pd.DataFrame) -> None:
         self.X, self.y = self._prepare_classification_data()
         self._metadata = self.metadata[self.metadata["IMAGE_ARRAY_INDEX"] != -1]
         self.n_images = self.X.shape
@@ -254,10 +257,7 @@ class OrganoidDataset:
         images = []
 
         # labels are stored in multiple np.ndarrays in a dictionary
-        labels = {
-            readout: []
-            for readout in self.dataset_metadata.readouts
-        }
+        labels = {readout: [] for readout in self.dataset_metadata.readouts}
 
         start = time.time()
 
@@ -268,18 +268,16 @@ class OrganoidDataset:
 
         image_array_index = 0
         for i, (experiment, well) in enumerate(unique_experiment_well_combo):
-
             stop = time.time()
 
             if i != 0:
-                print(f"{i}/{n_wells} wells completed in {round(stop-start, 2)} seconds..")
+                print(
+                    f"{i}/{n_wells} wells completed in {round(stop - start, 2)} seconds.."
+                )
 
             start = time.time()
 
-            well_df = df[
-                (df["experiment"] == experiment) &
-                (df["well"] == well)
-            ].copy()
+            well_df = df[(df["experiment"] == experiment) & (df["well"] == well)].copy()
             assert isinstance(well_df, pd.DataFrame)
 
             well_labels = well_df[self.dataset_metadata.readouts]
@@ -299,13 +297,13 @@ class OrganoidDataset:
                     image = self._create_z_projection(imgs)
                     masked_image = self.img_handler.get_masked_image(
                         image,
-                        image_target_dimension = self.image_metadata.dimension,
-                        mask_threshold = self.image_metadata.mask_threshold,
-                        clean_mask = self.image_metadata.cleaned_mask,
-                        scale_masked_image = self.image_metadata.scale_masked_image,
-                        crop_bounding_box = self.image_metadata.crop_bounding_box,
-                        rescale_cropped_image = self.image_metadata.rescale_cropped_image,
-                        crop_bounding_box_dimension = self.image_metadata.crop_bounding_box_dimension
+                        image_target_dimension=self.image_metadata.dimension,
+                        mask_threshold=self.image_metadata.mask_threshold,
+                        clean_mask=self.image_metadata.cleaned_mask,
+                        scale_masked_image=self.image_metadata.scale_masked_image,
+                        crop_bounding_box=self.image_metadata.crop_bounding_box,
+                        rescale_cropped_image=self.image_metadata.rescale_cropped_image,
+                        crop_bounding_box_dimension=self.image_metadata.crop_bounding_box_dimension,
                     )
                     if masked_image is not None:
                         loop_images.append(masked_image)
@@ -317,34 +315,34 @@ class OrganoidDataset:
                         image = OrganoidImage(path)
                         masked_image = self.img_handler.get_masked_image(
                             image,
-                            image_target_dimension = self.image_metadata.dimension,
-                            mask_threshold = self.image_metadata.mask_threshold,
-                            clean_mask = self.image_metadata.cleaned_mask,
-                            scale_masked_image = self.image_metadata.scale_masked_image,
-                            crop_bounding_box = self.image_metadata.crop_bounding_box,
-                            rescale_cropped_image = self.image_metadata.rescale_cropped_image,
-                            crop_bounding_box_dimension = self.image_metadata.crop_bounding_box_dimension
+                            image_target_dimension=self.image_metadata.dimension,
+                            mask_threshold=self.image_metadata.mask_threshold,
+                            clean_mask=self.image_metadata.cleaned_mask,
+                            scale_masked_image=self.image_metadata.scale_masked_image,
+                            crop_bounding_box=self.image_metadata.crop_bounding_box,
+                            rescale_cropped_image=self.image_metadata.rescale_cropped_image,
+                            crop_bounding_box_dimension=self.image_metadata.crop_bounding_box_dimension,
                         )
                         if masked_image is not None:
                             loop_images.append(masked_image)
                         else:
                             loop_images = None
                             break
-                
+
                 # we check if all slices are within the array
                 if loop_images is not None:
                     if self.dataset_metadata.z_projection:
                         assert len(loop_images) == 1
                     elif self.dataset_metadata.n_slices != len(loop_images):
                         loop_images = None
-                
+
                 if loop_images is not None:
                     images.append(np.array(loop_images))
                     self.metadata.loc[
-                        (self.metadata["experiment"] == experiment) &
-                        (self.metadata["well"] == well) &
-                        (self.metadata["loop"] == loop),
-                        "IMAGE_ARRAY_INDEX"
+                        (self.metadata["experiment"] == experiment)
+                        & (self.metadata["well"] == well)
+                        & (self.metadata["loop"] == loop),
+                        "IMAGE_ARRAY_INDEX",
                     ] = image_array_index
                     image_array_index += 1
 
@@ -352,84 +350,79 @@ class OrganoidDataset:
                         labels[label].append(well_labels[label].iloc[0])
                 else:
                     n_failed_images += 1
-                    print(f"Dataset creation: skipping images {experiment}: {well} : {loop}")
+                    print(
+                        f"Dataset creation: skipping images {experiment}: {well} : {loop}"
+                    )
 
         images = np.array(images)
-        labels = {
-            key: np.array(label_list)
-            for key, label_list in labels.items()
-        }
+        labels = {key: np.array(label_list) for key, label_list in labels.items()}
 
         for label in labels:
             assert images.shape[0] == labels[label].shape[0]
-        
+
         if not self.dataset_metadata.z_projection:
             assert images.shape[1] == self.dataset_metadata.n_slices
         else:
             assert images.shape[1] == 1
-        
+
         for key, label_list in labels.items():
             if self.dataset_metadata.n_classes_dict[key] != -1:
                 labels[key] = self._one_hot_encode_labels(label_list, key)
             else:
-                labels[key] = labels[key].reshape(-1,1)
+                labels[key] = labels[key].reshape(-1, 1)
 
         print(f"In total, {n_failed_images}/{images.shape[0]} images were skipped.")
 
         return images, labels
 
-    def _create_z_projection(self,
-                             imgs: list[OrganoidImage]) -> OrganoidImage:
+    def _create_z_projection(self, imgs: list[OrganoidImage]) -> OrganoidImage:
         if len(imgs) == 1:
             return imgs[0]
 
         if self.dataset_metadata.z_projection == "max":
-            projected_array = np.max(
-                [org_image.image for org_image in imgs],
-                axis = 0
-            )
+            projected_array = np.max([org_image.image for org_image in imgs], axis=0)
         elif self.dataset_metadata.z_projection == "sum":
-            projected_array = np.sum(
-                [org_image.image for org_image in imgs],
-                axis = 0
-            )
+            projected_array = np.sum([org_image.image for org_image in imgs], axis=0)
         else:
             raise ValueError("This shouldnt happen...")
 
         assert projected_array.shape == imgs[0].shape, projected_array.shape
 
-        img = OrganoidImage(path = None)
+        img = OrganoidImage(path=None)
         img.set_image(projected_array)
         return img
 
-    def merge(self,
-              other: "OrganoidDataset",
-              copy: bool = False) -> "OrganoidDataset":
-
+    def merge(self, other: "OrganoidDataset", copy: bool = False) -> "OrganoidDataset":
         if copy is True:
             raise NotImplementedError("Currently not supported to copy the instance")
 
         assert isinstance(other, type(self)), "Currently only one dataset is supported"
 
-        assert self.image_metadata == other.image_metadata, "Can only merge datasets with identical settings"
-        assert all(key in other.y for key in self.y), "Can only merge datasets with identical readouts"
+        assert self.image_metadata == other.image_metadata, (
+            "Can only merge datasets with identical settings"
+        )
+        assert all(key in other.y for key in self.y), (
+            "Can only merge datasets with identical readouts"
+        )
 
         if not hasattr(other.dataset_metadata, "timepoints"):
             other.dataset_metadata.timepoints = list(
                 range(
                     other.dataset_metadata.start_timepoint,
-                    other.dataset_metadata.stop_timepoint + 1
+                    other.dataset_metadata.stop_timepoint + 1,
                 )
             )
         if not hasattr(self.dataset_metadata, "timepoints"):
             self.dataset_metadata.timepoints = list(
                 range(
                     self.dataset_metadata.start_timepoint,
-                    self.dataset_metadata.stop_timepoint + 1
+                    self.dataset_metadata.stop_timepoint + 1,
                 )
             )
 
-        combined_timepoints = self.dataset_metadata.timepoints + other.dataset_metadata.timepoints
+        combined_timepoints = (
+            self.dataset_metadata.timepoints + other.dataset_metadata.timepoints
+        )
 
         pre_merge_X_shape = self.X.shape[0]
 
@@ -440,15 +433,14 @@ class OrganoidDataset:
         assert -1 not in self.metadata["IMAGE_ARRAY_INDEX"]
 
         other_md["IMAGE_ARRAY_INDEX"] = [
-            index + pre_merge_X_shape
-            for index in other_md["IMAGE_ARRAY_INDEX"]
+            index + pre_merge_X_shape for index in other_md["IMAGE_ARRAY_INDEX"]
         ]
 
         self.X = np.vstack([self.X, other.X])
         for key in self.y:
             self.y[key] = np.vstack([self.y[key], other.y[key]])
 
-        self._metadata = pd.concat([self.metadata, other_md], axis = 0)
+        self._metadata = pd.concat([self.metadata, other_md], axis=0)
 
         if hasattr(self.dataset_metadata, "z_projection"):
             if not self.dataset_metadata.z_projection:
@@ -463,10 +455,12 @@ class OrganoidDataset:
 
         return self
 
-    def add_annotations(self,
-                        annotations: Union[list[str], str],
-                        annotations_n_classes: int,
-                        df: pd.DataFrame) -> None:
+    def add_annotations(
+        self,
+        annotations: Union[list[str], str],
+        annotations_n_classes: int,
+        df: pd.DataFrame,
+    ) -> None:
         """\
         annotations: name for the new readout
         df: dataframe storing experiment, well and the annotation data
@@ -483,17 +477,16 @@ class OrganoidDataset:
         new_metadata = df[["experiment", "well"] + annotations]
         self._metadata = self.metadata.merge(
             new_metadata,
-            left_on = ["experiment", "well"],
-            right_on = ["experiment", "well"]
+            left_on=["experiment", "well"],
+            right_on=["experiment", "well"],
         )
         # Copy it to not mess up the actual metadata
         merged = self._metadata[self._metadata["IMAGE_ARRAY_INDEX"] != -1].copy()
-        merged = self._metadata.sort_values("IMAGE_ARRAY_INDEX", ascending = True)
+        merged = self._metadata.sort_values("IMAGE_ARRAY_INDEX", ascending=True)
         for annotation in annotations:
             self.dataset_metadata.add_readout(annotation, annotations_n_classes)
             encoded_labels = self._one_hot_encode_labels(
-                merged[annotation].to_numpy(),
-                readout = annotation
+                merged[annotation].to_numpy(), readout=annotation
             )
             if hasattr(self.dataset_metadata, "z_projection"):
                 if not self.dataset_metadata.z_projection:
@@ -504,9 +497,9 @@ class OrganoidDataset:
         self._create_class_counts()
         return
 
-    def _one_hot_encode_labels(self,
-                               labels_array: np.ndarray,
-                               readout: str) -> np.ndarray:
+    def _one_hot_encode_labels(
+        self, labels_array: np.ndarray, readout: str
+    ) -> np.ndarray:
         n_classes = self.dataset_metadata.n_classes_dict[readout]
         n_appended = 0
         if np.unique(labels_array).shape[0] != n_classes:
@@ -524,7 +517,7 @@ class OrganoidDataset:
 
         label_encoder = LabelEncoder()
         integer_encoded = label_encoder.fit_transform(labels_array)
-    
+
         onehot_encoder = OneHotEncoder()
         integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
         classification = onehot_encoder.fit_transform(integer_encoded).toarray()
@@ -533,9 +526,7 @@ class OrganoidDataset:
             classification = classification[:-n_appended]
         return classification
 
-    def split_timepoints(self,
-                         start_timepoint: int,
-                         stop_timepoint: int) -> None:
+    def split_timepoints(self, start_timepoint: int, stop_timepoint: int) -> None:
         """Splits inplace"""
         assert start_timepoint in self.dataset_metadata.timepoints
         assert stop_timepoint in self.dataset_metadata.timepoints
@@ -544,13 +535,15 @@ class OrganoidDataset:
         self._metadata = self.metadata[self.metadata["loop"].isin(loops)]
         self.dataset_metadata.start_timepoint = start_timepoint
         self.dataset_metadata.stop_timepoint = stop_timepoint
-        self.dataset_metadata.timepoints = list(range(start_timepoint, stop_timepoint + 1))
+        self.dataset_metadata.timepoints = list(
+            range(start_timepoint, stop_timepoint + 1)
+        )
 
         arr_idxs = [idx for idx in self.metadata["IMAGE_ARRAY_INDEX"] if idx != -1]
         self.X = self.X[arr_idxs]
         for key in self.y:
             self.y[key] = self.y[key][arr_idxs]
-        
+
         image_arr_indices = []
         counter = 0
         for idx in self.metadata["IMAGE_ARRAY_INDEX"]:
@@ -569,16 +562,10 @@ class OrganoidDataset:
 
         return
 
-    def _get_unique_experiment_well_combo(self,
-                                          df: pd.DataFrame,
-                                          col1: str,
-                                          col2: str):
+    def _get_unique_experiment_well_combo(self, df: pd.DataFrame, col1: str, col2: str):
         return df[[col1, col2]].drop_duplicates().reset_index(drop=True).to_numpy()
 
-    def _save_metadata(self,
-                       output_dir: PathLike,
-                       overwrite: bool = False
-                       ):
+    def _save_metadata(self, output_dir: PathLike, overwrite: bool = False):
         """Save the metadata to a central JSON file."""
         metadata = self._create_metadata()
 
@@ -586,7 +573,7 @@ class OrganoidDataset:
 
         # Load existing metadata
         if metadata_file.exists():
-            with open(metadata_file, 'r') as f:
+            with open(metadata_file, "r") as f:
                 all_metadata = json.load(f)
         else:
             all_metadata = {}
@@ -595,13 +582,14 @@ class OrganoidDataset:
         if not overwrite:
             if metadata.get("dataset_id") in all_metadata:
                 raise ValueError(
-                    f"Dataset with ID {self.dataset_metadata.dataset_id} already exists in metadata.")
+                    f"Dataset with ID {self.dataset_metadata.dataset_id} already exists in metadata."
+                )
 
         # Add new metadata entry under the dataset_id key
         all_metadata[self.dataset_metadata.dataset_id] = metadata
 
         # Write the updated metadata back to the JSON file
-        with open(metadata_file, 'w') as f:
+        with open(metadata_file, "w") as f:
             json.dump(all_metadata, f, indent=4)
 
     def _create_metadata(self) -> dict:
@@ -620,9 +608,9 @@ class OrganoidDataset:
 
     def save(self, output_dir: PathLike, overwrite: bool = False):
         """Save the dataset and its metadata to disk."""
-        
+
         # we delete the img_handler because we want to be able to read
-        # everything independent of a GPU. 
+        # everything independent of a GPU.
         if hasattr(self, "img_handler"):
             del self.img_handler
 
@@ -634,7 +622,7 @@ class OrganoidDataset:
 
         # Save the metadata
         self._save_metadata(output_dir, overwrite)
- 
+
     @property
     def image_metadata(self):
         """Returns metadata associated with image processing"""
@@ -652,8 +640,7 @@ class OrganoidDataset:
         return self._metadata
 
     @classmethod
-    def read_classification_dataset(cls,
-                                    file_name) -> "OrganoidDataset":
+    def read_classification_dataset(cls, file_name) -> "OrganoidDataset":
         with open(file_name, "rb") as file:
             dataset = pickle.load(file)
         return dataset
@@ -676,12 +663,13 @@ class OrganoidDataset:
             "segmentator_input_size": None,
             "segmentation_model_name": None,
             "experiment_dir": None,
-            "_skip_init": True
+            "_skip_init": True,
         }
         new = cls(**init_kwargs)
         for attr, value in vars(old_instance).items():
             setattr(new, attr, value)
         return new
+
 
 class OrganoidValidationDataset(OrganoidDataset):
     """\
@@ -689,9 +677,7 @@ class OrganoidValidationDataset(OrganoidDataset):
     X and y are not subset but rather returned as is.
     """
 
-    def __init__(self,
-                 base_dataset: Union[PathLike, OrganoidDataset],
-                 readout: str):
+    def __init__(self, base_dataset: Union[PathLike, OrganoidDataset], readout: str):
         if isinstance(base_dataset, OrganoidDataset):
             dataset = base_dataset
         else:
@@ -700,22 +686,20 @@ class OrganoidValidationDataset(OrganoidDataset):
         self.X = dataset.X
         self.y = dataset.y[readout]
 
-class OrganoidDatasetSplitter:
 
+class OrganoidDatasetSplitter:
     def __init__(self):
         pass
 
-    def _filter_wells(self,
-                      df: pd.DataFrame,
-                      combinations: np.ndarray,
-                      columns: list[str]):
+    def _filter_wells(
+        self, df: pd.DataFrame, combinations: np.ndarray, columns: list[str]
+    ):
         combinations_df = pd.DataFrame(combinations, columns=columns)
-        return df.merge(combinations_df, on=columns, how='inner')
+        return df.merge(combinations_df, on=columns, how="inner")
 
-    def _get_array_indices_from_frame(self,
-                                      df: pd.DataFrame,
-                                      train_wells: np.ndarray,
-                                      test_wells: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _get_array_indices_from_frame(
+        self, df: pd.DataFrame, train_wells: np.ndarray, test_wells: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         train_df = self._filter_wells(df, train_wells, ["experiment", "well"])
         test_df = self._filter_wells(df, test_wells, ["experiment", "well"])
 
@@ -730,38 +714,34 @@ class OrganoidDatasetSplitter:
 
         return train_idxs, test_idxs
 
-    def _annotate_wells(self,
-                        metadata: pd.DataFrame,
-                        wells_to_annotate: np.ndarray,
-                        colname: str = "set",
-                        set_value: Literal["train", "test"] = "train"):
+    def _annotate_wells(
+        self,
+        metadata: pd.DataFrame,
+        wells_to_annotate: np.ndarray,
+        colname: str = "set",
+        set_value: Literal["train", "test"] = "train",
+    ):
         for experiment, well in wells_to_annotate:
             metadata.loc[
-                (metadata["experiment"] == experiment) &
-                (metadata["well"] == well),
-                colname
+                (metadata["experiment"] == experiment) & (metadata["well"] == well),
+                colname,
             ] = set_value
 
         return metadata
 
-    def _annotate_train_test_wells(self,
-                                   metadata: pd.DataFrame,
-                                   colname: str,
-                                   train_wells: np.ndarray,
-                                   test_wells: np.ndarray):
-        kwargs = {
-            "metadata": metadata,
-            "colname": colname
-        }
+    def _annotate_train_test_wells(
+        self,
+        metadata: pd.DataFrame,
+        colname: str,
+        train_wells: np.ndarray,
+        test_wells: np.ndarray,
+    ):
+        kwargs = {"metadata": metadata, "colname": colname}
         metadata = self._annotate_wells(
-            wells_to_annotate = train_wells,
-            set_value = "train",
-            **kwargs
+            wells_to_annotate=train_wells, set_value="train", **kwargs
         )
         metadata = self._annotate_wells(
-            wells_to_annotate = test_wells,
-            set_value = "test",
-            **kwargs
+            wells_to_annotate=test_wells, set_value="test", **kwargs
         )
 
         return metadata
@@ -776,10 +756,12 @@ class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
             [...]
     """
 
-    def __init__(self,
-                 base_dataset: Union[PathLike, OrganoidDataset],
-                 readout: str,
-                 n_splits: int = 5):
+    def __init__(
+        self,
+        base_dataset: Union[PathLike, OrganoidDataset],
+        readout: str,
+        n_splits: int = 5,
+    ):
         self.readout = readout
         if isinstance(base_dataset, OrganoidDataset):
             self.dataset = base_dataset
@@ -789,7 +771,7 @@ class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
         self._metadata = self.dataset.metadata
         self._calculate_k_folds(n_splits, self._metadata)
 
-    def __iter__(self) -> 'OrganoidCrossValidationDataset':
+    def __iter__(self) -> "OrganoidCrossValidationDataset":
         self.current_fold = 0  # Reset fold index for new iteration
         return self
 
@@ -800,7 +782,9 @@ class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
         self.current_fold += 1
         return data
 
-    def get_fold_data(self, fold: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def get_fold_data(
+        self, fold: int
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         train_idxs, test_idxs = self.fold_indices[fold]
         X_train = self.dataset.X[train_idxs]
         X_test = self.dataset.X[test_idxs]
@@ -808,35 +792,37 @@ class OrganoidCrossValidationDataset(OrganoidDataset, OrganoidDatasetSplitter):
         y_test = self.dataset.y[self.readout][test_idxs]
         return X_train, X_test, y_train, y_test
 
-    def _calculate_k_folds(self,
-                           n_splits: int,
-                           metadata: pd.DataFrame):
-        self.fold_indices = {
-            i: (np.array([]), np.array([]))
-            for i in range(n_splits)
-        }
-        skf = KFold(n_splits = n_splits, shuffle = True, random_state = 187)
-        unique_well_per_experiment = self._get_unique_experiment_well_combo(metadata, "experiment", "well")
-        for i, (train_indices, test_indices) in enumerate(skf.split(unique_well_per_experiment)):
+    def _calculate_k_folds(self, n_splits: int, metadata: pd.DataFrame):
+        self.fold_indices = {i: (np.array([]), np.array([])) for i in range(n_splits)}
+        skf = KFold(n_splits=n_splits, shuffle=True, random_state=187)
+        unique_well_per_experiment = self._get_unique_experiment_well_combo(
+            metadata, "experiment", "well"
+        )
+        for i, (train_indices, test_indices) in enumerate(
+            skf.split(unique_well_per_experiment)
+        ):
             train_wells = unique_well_per_experiment[train_indices]
             test_wells = unique_well_per_experiment[test_indices]
             self._metadata = self._annotate_train_test_wells(
                 self._metadata,
-                colname = f"fold{i}",
-                train_wells = train_wells,
-                test_wells = test_wells,
+                colname=f"fold{i}",
+                train_wells=train_wells,
+                test_wells=test_wells,
             )
-            self.fold_indices[i] = (self._get_array_indices_from_frame(metadata, train_wells, test_wells))
+            self.fold_indices[i] = self._get_array_indices_from_frame(
+                metadata, train_wells, test_wells
+            )
 
         return
 
 
 class OrganoidTrainingDataset(OrganoidDataset, OrganoidDatasetSplitter):
-
-    def __init__(self,
-                 base_dataset: Union[PathLike, OrganoidDataset],
-                 readout: str,
-                 test_size: float = 0.1):
+    def __init__(
+        self,
+        base_dataset: Union[PathLike, OrganoidDataset],
+        readout: str,
+        test_size: float = 0.1,
+    ):
         if isinstance(base_dataset, OrganoidDataset):
             self.dataset = base_dataset
         else:
@@ -844,8 +830,7 @@ class OrganoidTrainingDataset(OrganoidDataset, OrganoidDatasetSplitter):
         self.readout = readout
         self._metadata = self.dataset.metadata.copy()
         self.train_idxs, self.test_idxs = self._calculate_train_test_split(
-            test_size,
-            self._metadata
+            test_size, self._metadata
         )
 
     @property
@@ -868,24 +853,21 @@ class OrganoidTrainingDataset(OrganoidDataset, OrganoidDatasetSplitter):
     def arrays(self):
         return self.X_train, self.X_test, self.y_train, self.y_test
 
-
-    def _calculate_train_test_split(self,
-                                    test_size: float,
-                                    metadata: pd.DataFrame):
-        unique_well_per_experiment = self._get_unique_experiment_well_combo(metadata, "experiment", "well")
+    def _calculate_train_test_split(self, test_size: float, metadata: pd.DataFrame):
+        unique_well_per_experiment = self._get_unique_experiment_well_combo(
+            metadata, "experiment", "well"
+        )
         train_wells, test_wells = train_test_split(
-            unique_well_per_experiment,
-            test_size = test_size,
-            random_state = 187
+            unique_well_per_experiment, test_size=test_size, random_state=187
         )
         assert isinstance(train_wells, np.ndarray)
         assert isinstance(test_wells, np.ndarray)
 
         self._metadata = self._annotate_train_test_wells(
             self._metadata,
-            colname = "set",
-            train_wells = train_wells,
-            test_wells = test_wells,
+            colname="set",
+            train_wells=train_wells,
+            test_wells=test_wells,
         )
 
         return self._get_array_indices_from_frame(metadata, train_wells, test_wells)

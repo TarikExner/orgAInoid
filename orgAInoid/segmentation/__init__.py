@@ -9,5 +9,5 @@ __all__ = [
     "run_hrnet_training",
     "UNet",
     "DEEPLABV3",
-    "HRNET"
+    "HRNET",
 ]

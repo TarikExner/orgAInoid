@@ -1,10 +1,9 @@
-from . import (figure_1_generation,
-               figure_2_generation,
-
-               figure_S1_generation,
-               figure_S2_generation,
-
-               )
+from . import (
+    figure_1_generation,
+    figure_2_generation,
+    figure_S1_generation,
+    figure_S2_generation,
+)
 
 DIRECTORIES = {
     "annotations_dir": "../metadata",
@@ -16,6 +15,7 @@ DIRECTORIES = {
     "microscopy_dir": "./microscopy_images",
 }
 
+
 def generate_final_figures():
     figure_1_generation(**DIRECTORIES)
     figure_2_generation(**DIRECTORIES)
@@ -26,5 +26,3 @@ def generate_final_figures():
 
 if __name__ == "__main__":
     generate_final_figures()
-
-

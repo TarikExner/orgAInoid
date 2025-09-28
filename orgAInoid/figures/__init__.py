@@ -33,6 +33,7 @@ from .figure_S26 import figure_S26_generation
 from .figure_S27 import figure_S27_generation
 from .figure_S28 import figure_S28_generation
 from .figure_S29 import figure_S29_generation
+
 # from .figure_S30 import figure_S30_generation
 from .figure_S31 import figure_S31_generation
 from .figure_S32 import figure_S32_generation
@@ -52,7 +53,6 @@ __all__ = [
     "figure_3_generation",
     "figure_4_generation",
     "figure_5_generation",
-
     "figure_S1_generation",
     "figure_S2_generation",
     "figure_S3_generation",
@@ -92,8 +92,7 @@ __all__ = [
     "figure_S37_generation",
     "figure_S38_generation",
     "figure_S39_generation",
-
-    "supplementary_file_S1_generation"
+    "supplementary_file_S1_generation",
 ]
 
 DIRECTORIES = {
@@ -107,52 +106,37 @@ DIRECTORIES = {
     "raw_data_dir": "../classification/raw_data",
     "hyperparameter_dir": "../shape_analysis/results/best_params",
     "classifier_results_dir": "../shape_analysis/results",
-
     "rpe_classification_dir": "../classification/experiment_32",
     "lens_classification_dir": "../classification/experiment_33",
     "rpe_classes_classification_dir": "../classification/experiment_34",
     "lens_classes_classification_dir": "../classification/experiment_35",
-
     "rpe_baseline_dir": "../classification/experiment_36_RPE_baseline",
     "lens_baseline_dir": "../classification/experiment_37_Lens_baseline",
     "rpe_classes_baseline_dir": "../classification/experiment_38_RPEC_baseline",
     "lens_classes_baseline_dir": "../classification/experiment_39_LensC_baseline",
     "morph_classes_experiment_dir": "../classification/experiment_48_Morph_classes",
-
     "rpe_classification_dir_sum": "../classification/experiment_40_RPE_Final_ZSUM",
     "lens_classification_dir_sum": "../classification/experiment_41_Lens_Final_ZSUM",
     "rpe_classes_classification_dir_sum": "../classification/experiment_42_RPE_classes_Final_ZSUM",
     "lens_classes_classification_dir_sum": "../classification/experiment_43_Lens_classes_Final_ZSUM",
     "morph_classes_experiment_dir_sum": "../classification/experiment_49_Morph_classes_ZSUM",
-
     "rpe_classification_dir_max": "../classification/experiment_44_RPE_Final_ZMAX",
     "lens_classification_dir_max": "../classification/experiment_45_Lens_Final_ZMAX",
     "rpe_classes_classification_dir_max": "../classification/experiment_46_RPE_classes_ZMAX",
     "lens_classes_classification_dir_max": "../classification/experiment_47_Lens_classes_ZMAX",
     "morph_classes_experiment_dir_max": "../classification/experiment_50_Morph_classes_ZMAX",
-
     "saliency_input_dir": "../classification/saliencies/results",
 }
 
 DESCRIPTIONS = {
-    "Supplementary_Figure_S1":
-        "original Supp Fig S1 showing Supplementary data for Figure 1",
-    "Supplementary_Figure_S2":
-        "original Supp Fig S2 showing Supplementary data for Figure 2, distances of no-Wnt-organoids",
-    "Supplementary_Figure_S3":
-        "jaccard neighbor data on organoid distances",
-    "Supplementary_Figure_S4":
-        "original Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
-    "Supplementary_Figure_S5":
-        "SUM IMAGES: Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
-    "Supplementary_Figure_S6":
-        "MAX IMAGES: Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
-
-
-
-
-        
+    "Supplementary_Figure_S1": "original Supp Fig S1 showing Supplementary data for Figure 1",
+    "Supplementary_Figure_S2": "original Supp Fig S2 showing Supplementary data for Figure 2, distances of no-Wnt-organoids",
+    "Supplementary_Figure_S3": "jaccard neighbor data on organoid distances",
+    "Supplementary_Figure_S4": "original Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
+    "Supplementary_Figure_S5": "SUM IMAGES: Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
+    "Supplementary_Figure_S6": "MAX IMAGES: Supplementary Figure S3 showing the classifier comp. for RPE Final and Lens final",
 }
+
 
 def generate_final_figures():
     figure_1_generation(**DIRECTORIES)
@@ -202,6 +186,3 @@ def generate_final_figures():
     figure_S39_generation(**DIRECTORIES)
 
     supplementary_file_S1_generation(**DIRECTORIES)
-
-
-

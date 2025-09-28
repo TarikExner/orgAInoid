@@ -24,8 +24,9 @@ METHOD_FAMILIES = {
 }
 
 
-TOPK_PCTS = [1, 5, 10] # %
+TOPK_PCTS = [1, 5, 10]  # %
 MULTISCALES = [1, 0.5, 0.25]
+
 
 def zscore_in_mask(arr: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """Z-score arr within mask (mask>0). Keeps sign. Returns same shape float32."""
@@ -68,8 +69,9 @@ def kendall_tau_like(rank_a: np.ndarray, rank_b: np.ndarray) -> float:
     # Spearman rho
     a = rank_a.ravel().astype(np.float64)
     b = rank_b.ravel().astype(np.float64)
-    a -= a.mean(); b -= b.mean()
-    denom = (np.linalg.norm(a) * np.linalg.norm(b))
+    a -= a.mean()
+    b -= b.mean()
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
     return float((a @ b) / denom) if denom > 0 else 0.0
 
 
@@ -88,7 +90,11 @@ def to_rank(abs_map: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return out
 
 
-def rank_consensus(maps: Dict[str, np.ndarray], mask: np.ndarray, weights: Dict[str, float] | None = None) -> np.ndarray:
+def rank_consensus(
+    maps: Dict[str, np.ndarray],
+    mask: np.ndarray,
+    weights: Dict[str, float] | None = None,
+) -> np.ndarray:
     """Rank aggregation over |z|; lower summed rank = stronger. Returns float32 score (normalized 0..1 in mask)."""
     m = mask > 0
     H, W = mask.shape
@@ -105,7 +111,7 @@ def rank_consensus(maps: Dict[str, np.ndarray], mask: np.ndarray, weights: Dict[
     out = np.zeros((H, W), dtype=np.float32)
     if m.sum() > 0 and total_w > 0:
         vals = agg[m]
-        inv = (vals.max() - vals)  # higher is better
+        inv = vals.max() - vals  # higher is better
         inv -= inv.min()
         rng = inv.max() - inv.min()
         inv = inv / rng if rng > 1e-12 else np.zeros_like(inv)
@@ -113,21 +119,34 @@ def rank_consensus(maps: Dict[str, np.ndarray], mask: np.ndarray, weights: Dict[
     return out
 
 
-def slic_regions(image_like: np.ndarray, mask: np.ndarray, n_segments: int = 500, compactness: float = 0.1) -> np.ndarray:
+def slic_regions(
+    image_like: np.ndarray,
+    mask: np.ndarray,
+    n_segments: int = 500,
+    compactness: float = 0.1,
+) -> np.ndarray:
     """Create SLIC labels restricted to mask. Works with 2D image-like array."""
     img = image_like
     if img.ndim == 2:
-        img3 = np.stack([img]*3, axis=-1)
+        img3 = np.stack([img] * 3, axis=-1)
     elif img.ndim == 3 and img.shape[-1] == 3:
         img3 = img
     else:
         # fallback to uniform texture
         img3 = np.repeat(mask[..., None], 3, axis=-1).astype(np.float32)
-    labels = slic(img3, n_segments=n_segments, compactness=compactness, start_label=1, mask=mask.astype(bool))
+    labels = slic(
+        img3,
+        n_segments=n_segments,
+        compactness=compactness,
+        start_label=1,
+        mask=mask.astype(bool),
+    )
     return labels.astype(np.int32)
 
 
-def region_vote(abs_maps: Dict[str, np.ndarray], labels: np.ndarray, top_quantile: float = 0.9) -> pd.DataFrame:
+def region_vote(
+    abs_maps: Dict[str, np.ndarray], labels: np.ndarray, top_quantile: float = 0.9
+) -> pd.DataFrame:
     """Per region vote: a method votes if region mean(|map|) is in top_quantile for that image.
     Returns a tidy DataFrame with columns: region, method, voted (0/1), score.
     """
@@ -139,8 +158,16 @@ def region_vote(abs_maps: Dict[str, np.ndarray], labels: np.ndarray, top_quantil
             continue
         thr = np.quantile(scores, top_quantile)
         for ridx, sc in enumerate(scores, start=1):
-            rows.append({"region": ridx, "method": mname, "voted": int(sc >= thr), "score": float(sc)})
+            rows.append(
+                {
+                    "region": ridx,
+                    "method": mname,
+                    "voted": int(sc >= thr),
+                    "score": float(sc),
+                }
+            )
     return pd.DataFrame(rows)
+
 
 @dataclass
 class samplekey:
@@ -148,8 +175,10 @@ class samplekey:
     well: str
     loop: int
 
+
 def extract_loop_int(loop: str):
     return int(loop.split("LO")[1])
+
 
 def iter_h5_samples(
     h5_path: str,
@@ -185,7 +214,9 @@ def iter_h5_samples(
             # Pick loop keys (fast, no scanning beyond the needed ones)
             loop_keys = list(grp_well.keys())
             if loops_set is not None:
-                loop_keys = [lk for lk in loop_keys if extract_loop_int(lk) in loops_set]
+                loop_keys = [
+                    lk for lk in loop_keys if extract_loop_int(lk) in loops_set
+                ]
             loop_keys.sort(key=extract_loop_int)
 
             for loop_key in loop_keys:
@@ -194,10 +225,12 @@ def iter_h5_samples(
 
                 # Always read image + mask
                 sample["image"] = grp_loop["input_image"][...]
-                sample["mask"]  = grp_loop["mask"][...]
+                sample["mask"] = grp_loop["mask"][...]
 
                 # Restrict model groups
-                model_keys = [k for k in grp_loop.keys() if k not in ("input_image", "mask")]
+                model_keys = [
+                    k for k in grp_loop.keys() if k not in ("input_image", "mask")
+                ]
                 if models is not None:
                     allowed_models = set(models)
                     model_keys = [m for m in model_keys if m in allowed_models]
@@ -225,7 +258,9 @@ def iter_h5_samples(
                 yield well, extract_loop_int(loop_key), sample
 
 
-def collect_maps(sample: dict, use_trained: bool = True) -> Tuple[Dict[str, Dict[str, np.ndarray]], np.ndarray, np.ndarray]:
+def collect_maps(
+    sample: dict, use_trained: bool = True
+) -> Tuple[Dict[str, Dict[str, np.ndarray]], np.ndarray, np.ndarray]:
     """Return (maps_by_model, image2d, mask2d). Each map is 2D (H, W) float32.
     Your stored maps are already combined across channels.
     """
@@ -254,14 +289,18 @@ def collect_maps(sample: dict, use_trained: bool = True) -> Tuple[Dict[str, Dict
     return maps_by_model, img2d, mask2d
 
 
-def normalize_maps(maps_by_model: Dict[str, Dict[str, np.ndarray]], mask2d: np.ndarray) -> Dict[str, Dict[str, np.ndarray]]:
+def normalize_maps(
+    maps_by_model: Dict[str, Dict[str, np.ndarray]], mask2d: np.ndarray
+) -> Dict[str, Dict[str, np.ndarray]]:
     out = {}
     for model, md in maps_by_model.items():
         out[model] = {fn: zscore_in_mask(arr, mask2d) for fn, arr in md.items()}
     return out
 
 
-def method_agreement_for_sample(norm_maps_by_model: Dict[str, Dict[str, np.ndarray]], mask2d: np.ndarray) -> pd.DataFrame:
+def method_agreement_for_sample(
+    norm_maps_by_model: Dict[str, Dict[str, np.ndarray]], mask2d: np.ndarray
+) -> pd.DataFrame:
     """Method×method Dice across all models, averaged over models and k in TOPK_PCTS."""
     # stack across models by averaging maps per method (keeps method signal while reducing model noise)
     methods = sorted({fn for md in norm_maps_by_model.values() for fn in md.keys()})
@@ -284,17 +323,27 @@ def method_agreement_for_sample(norm_maps_by_model: Dict[str, Dict[str, np.ndarr
                 Ma = topk_mask_from_abs(merged[a], k, mask2d)
                 Mb = topk_mask_from_abs(merged[b], k, mask2d)
                 score_list.append(dice(Ma, Mb))
-            rows.append({"method_a": a, "method_b": b, "dice_avg": float(np.mean(score_list))})
+            rows.append(
+                {"method_a": a, "method_b": b, "dice_avg": float(np.mean(score_list))}
+            )
     return pd.DataFrame(rows)
 
 
-def cross_model_consistency(norm_maps_by_model: Dict[str, Dict[str, np.ndarray]], mask2d: np.ndarray) -> pd.DataFrame:
+def cross_model_consistency(
+    norm_maps_by_model: Dict[str, Dict[str, np.ndarray]], mask2d: np.ndarray
+) -> pd.DataFrame:
     """For each method, correlation between models (Spearman-like on ranks)."""
     models = sorted(norm_maps_by_model.keys())
     methods = sorted({fn for md in norm_maps_by_model.values() for fn in md.keys()})
     rows = []
     # precompute ranks
-    ranks = {model: {fn: to_rank(md.get(fn, np.zeros_like(mask2d)), mask2d) for fn, _ in norm_maps_by_model[model].items()} for model, md in norm_maps_by_model.items()}
+    ranks = {
+        model: {
+            fn: to_rank(md.get(fn, np.zeros_like(mask2d)), mask2d)
+            for fn, _ in norm_maps_by_model[model].items()
+        }
+        for model, md in norm_maps_by_model.items()
+    }
     for fn in methods:
         # compare across all model pairs
         for i in range(len(models)):
@@ -305,10 +354,20 @@ def cross_model_consistency(norm_maps_by_model: Dict[str, Dict[str, np.ndarray]]
                 r1 = ranks[m1][fn]
                 r2 = ranks[m2][fn]
                 corr = kendall_tau_like(r1, r2)
-                rows.append({"method": fn, "model_a": m1, "model_b": m2, "rank_corr": float(corr)})
+                rows.append(
+                    {
+                        "method": fn,
+                        "model_a": m1,
+                        "model_b": m2,
+                        "rank_corr": float(corr),
+                    }
+                )
     return pd.DataFrame(rows)
 
-def dice_to_peak_timeseries(consensus_by_time: Dict[int, np.ndarray], mask2d: np.ndarray, top_pct: float = 5.0) -> pd.DataFrame:
+
+def dice_to_peak_timeseries(
+    consensus_by_time: Dict[int, np.ndarray], mask2d: np.ndarray, top_pct: float = 5.0
+) -> pd.DataFrame:
     """Return DataFrame with columns: time, dice_to_peak."""
     if not consensus_by_time:
         return pd.DataFrame(columns=["time", "dice_to_peak"])
@@ -327,14 +386,15 @@ def dice_to_peak_timeseries(consensus_by_time: Dict[int, np.ndarray], mask2d: np
     return pd.DataFrame(rows)
 
 
-def entropy_and_drift(consensus_by_time: dict[int, np.ndarray],
-                      mask2d: np.ndarray,
-                      mode: str | None = None,   # None (original), or 'quantile' | 'top_pct' | 'abs'
-                      q: float = 0.9,            # for mode='quantile'
-                      top_pct: float = 5.0,      # for mode='top_pct' (percent of pixels)
-                      abs_value: float = 0.0,    # for mode='abs'
-                      binarize: bool = False     # if True: entropy over binary suprathreshold area
-                      ) -> pd.DataFrame:
+def entropy_and_drift(
+    consensus_by_time: dict[int, np.ndarray],
+    mask2d: np.ndarray,
+    mode: str | None = None,  # None (original), or 'quantile' | 'top_pct' | 'abs'
+    q: float = 0.9,  # for mode='quantile'
+    top_pct: float = 5.0,  # for mode='top_pct' (percent of pixels)
+    abs_value: float = 0.0,  # for mode='abs'
+    binarize: bool = False,  # if True: entropy over binary suprathreshold area
+) -> pd.DataFrame:
     """
     Drop-in replacement for your original entropy_and_drift.
 
@@ -346,6 +406,7 @@ def entropy_and_drift(consensus_by_time: dict[int, np.ndarray],
     on *suprathreshold* values only. If binarize=True, suprathreshold pixels
     are treated as 1's (area-entropy); otherwise use their weights (weighted-entropy).
     """
+
     def _threshold_mask(vals: np.ndarray) -> np.ndarray:
         if vals.size == 0:
             return np.zeros_like(vals, dtype=bool)
@@ -396,7 +457,11 @@ def entropy_and_drift(consensus_by_time: dict[int, np.ndarray],
                     com = (np.nan, np.nan)
                 else:
                     # entropy on suprathreshold values (weighted or binary)
-                    use_vals = (vals[keep] > 0).astype(np.float64) if binarize else vals[keep].astype(np.float64)
+                    use_vals = (
+                        (vals[keep] > 0).astype(np.float64)
+                        if binarize
+                        else vals[keep].astype(np.float64)
+                    )
                     s = use_vals.sum()
                     if s <= 0:
                         ent = 0.0
@@ -413,20 +478,29 @@ def entropy_and_drift(consensus_by_time: dict[int, np.ndarray],
                     grid.ravel()[flat_idx] = active
                     com = center_of_mass(grid) if grid.sum() > 0 else (np.nan, np.nan)
 
-        drift = float(np.linalg.norm(np.array(com) - np.array(com_prev))) if (
-            com_prev is not None and not np.any(np.isnan(com))
-        ) else 0.0
+        drift = (
+            float(np.linalg.norm(np.array(com) - np.array(com_prev)))
+            if (com_prev is not None and not np.any(np.isnan(com)))
+            else 0.0
+        )
 
         rows.append({"time": t, "entropy": ent, "drift": drift})
         com_prev = com
 
     return pd.DataFrame(rows)
 
-def build_consensus(norm_maps: Dict[str, np.ndarray], mask2d: np.ndarray, weights: Dict[str, float] | None = None) -> np.ndarray:
+
+def build_consensus(
+    norm_maps: Dict[str, np.ndarray],
+    mask2d: np.ndarray,
+    weights: Dict[str, float] | None = None,
+) -> np.ndarray:
     return rank_consensus(norm_maps, mask2d, weights)
 
 
-def dice_to_peak_timeseries(consensus_by_time: Dict[int, np.ndarray], mask2d: np.ndarray, top_pct: float = 5.0) -> pd.DataFrame:
+def dice_to_peak_timeseries(
+    consensus_by_time: Dict[int, np.ndarray], mask2d: np.ndarray, top_pct: float = 5.0
+) -> pd.DataFrame:
     """Return DataFrame with columns: time, dice_to_peak."""
     if not consensus_by_time:
         return pd.DataFrame(columns=["time", "dice_to_peak"])
@@ -444,13 +518,16 @@ def dice_to_peak_timeseries(consensus_by_time: Dict[int, np.ndarray], mask2d: np
         rows.append({"time": t, "dice_to_peak": dice(Mt, peak_mask)})
     return pd.DataFrame(rows)
 
-def _worker_process_file(h5_path: str,
-                         loops: list[int],
-                         n_segments: int,
-                         compactness: float,
-                         topk_pct: float,
-                         series_peak_loop: int | None,
-                         baseline: bool = False):
+
+def _worker_process_file(
+    h5_path: str,
+    loops: list[int],
+    n_segments: int,
+    compactness: float,
+    topk_pct: float,
+    series_peak_loop: int | None,
+    baseline: bool = False,
+):
     """Runs all metrics for one H5 file. Returns plain Python data (lists/dfs)."""
     # Containers for this file
     method_pairs_rows = []
@@ -495,7 +572,9 @@ def _worker_process_file(h5_path: str,
                 grp_loop = grp_well[loop_str]
 
                 img = grp_loop["input_image"][...]
-                img2d = np.mean(img[0], axis=0) if img.ndim == 4 else np.mean(img, axis=0)
+                img2d = (
+                    np.mean(img[0], axis=0) if img.ndim == 4 else np.mean(img, axis=0)
+                )
                 mask2d = grp_loop["mask"][...].squeeze().astype(np.float32)
                 mask_for_series = mask2d
 
@@ -509,9 +588,13 @@ def _worker_process_file(h5_path: str,
                     model_maps = {}
                     for fn in gmodel.keys():
                         if not baseline:
-                            atr = gmodel[fn]["trained"][...].squeeze().astype(np.float32)
+                            atr = (
+                                gmodel[fn]["trained"][...].squeeze().astype(np.float32)
+                            )
                         else:
-                            atr = gmodel[fn]["baseline"][...].squeeze().astype(np.float32)
+                            atr = (
+                                gmodel[fn]["baseline"][...].squeeze().astype(np.float32)
+                            )
                         atr = zscore_in_mask(atr, mask2d)
                         model_maps[fn] = atr
                         maps_per_method.setdefault(fn, []).append(atr)
@@ -534,15 +617,17 @@ def _worker_process_file(h5_path: str,
                                 Ma = topk_mask_from_abs(md[a], k, mask2d)
                                 Mb = topk_mask_from_abs(md[b], k, mask2d)
                                 scores.append(dice(Ma, Mb))
-                            method_pairs_rows.append({
-                                "experiment": exp,
-                                "well": well_key,
-                                "loop": loop,
-                                "model": model,
-                                "method_a": a,
-                                "method_b": b,
-                                "dice_avg": float(np.mean(scores)),
-                            })
+                            method_pairs_rows.append(
+                                {
+                                    "experiment": exp,
+                                    "well": well_key,
+                                    "loop": loop,
+                                    "model": model,
+                                    "method_a": a,
+                                    "method_b": b,
+                                    "dice_avg": float(np.mean(scores)),
+                                }
+                            )
 
                 # (2) cross-model consistency (rank corr per method)
                 rank_maps = {
@@ -559,19 +644,25 @@ def _worker_process_file(h5_path: str,
                             r1 = rank_maps[m1][fn]
                             r2 = rank_maps[m2][fn]
                             corr = kendall_tau_like(r1, r2)
-                            cross_model_rows.append({
-                                "experiment": exp,
-                                "well": well_key,
-                                "loop": loop,
-                                "method": fn,
-                                "model_a": m1,
-                                "model_b": m2,
-                                "rank_corr": float(corr),
-                            })
+                            cross_model_rows.append(
+                                {
+                                    "experiment": exp,
+                                    "well": well_key,
+                                    "loop": loop,
+                                    "method": fn,
+                                    "model_a": m1,
+                                    "model_b": m2,
+                                    "rank_corr": float(corr),
+                                }
+                            )
 
                 # (3) region votes (per model, per loop)
-                labels = slic_regions(img2d, (mask2d > 0).astype(np.uint8),
-                                      n_segments=n_segments, compactness=compactness)
+                labels = slic_regions(
+                    img2d,
+                    (mask2d > 0).astype(np.uint8),
+                    n_segments=n_segments,
+                    compactness=compactness,
+                )
                 for _model, _md in maps_by_model.items():
                     rv_df = region_vote(_md, labels, top_quantile=0.9)  # {_method: map}
                     if not rv_df.empty:
@@ -595,7 +686,9 @@ def _worker_process_file(h5_path: str,
             for (_model, _method), series_dict in mm_series.items():
                 if not series_dict:
                     continue
-                ed_mm = entropy_and_drift(series_dict, mask_for_series, mode = "top_pct", top_pct = 10.0)  # expects {loop: map}
+                ed_mm = entropy_and_drift(
+                    series_dict, mask_for_series, mode="top_pct", top_pct=10.0
+                )  # expects {loop: map}
                 ed_mm["experiment"] = exp
                 ed_mm["well"] = well_key
                 ed_mm["model"] = _model
@@ -608,26 +701,36 @@ def _worker_process_file(h5_path: str,
                     if series_peak_loop not in series_dict:
                         continue
                     peak_map_mm = series_dict[series_peak_loop]
-                    peak_mask_mm = topk_mask_from_abs(peak_map_mm, topk_pct, mask_for_series)
+                    peak_mask_mm = topk_mask_from_abs(
+                        peak_map_mm, topk_pct, mask_for_series
+                    )
                     for t, amap in sorted(series_dict.items()):
                         Mt = topk_mask_from_abs(amap, topk_pct, mask_for_series)
-                        dice_to_peak_rows.append({
-                            "experiment": exp,
-                            "well": well_key,
-                            "loop": t,
-                            "model": _model,
-                            "method": _method,
-                            "dice_to_peak": dice(Mt, peak_mask_mm),
-                        })
+                        dice_to_peak_rows.append(
+                            {
+                                "experiment": exp,
+                                "well": well_key,
+                                "loop": t,
+                                "model": _model,
+                                "method": _method,
+                                "dice_to_peak": dice(Mt, peak_mask_mm),
+                            }
+                        )
 
     return {
         "pairs": method_pairs_rows,
         "cross": cross_model_rows,
-        "votes": (pd.concat(region_votes_frames, ignore_index=True)
-                  if region_votes_frames else pd.DataFrame()),
+        "votes": (
+            pd.concat(region_votes_frames, ignore_index=True)
+            if region_votes_frames
+            else pd.DataFrame()
+        ),
         "d2p": dice_to_peak_rows,
-        "ed": (pd.concat(ent_drift_frames, ignore_index=True)
-               if ent_drift_frames else pd.DataFrame()),
+        "ed": (
+            pd.concat(ent_drift_frames, ignore_index=True)
+            if ent_drift_frames
+            else pd.DataFrame()
+        ),
     }
 
 
@@ -673,8 +776,7 @@ def attach_readout_metadata(
 
     # ensure one row per (experiment, well) in metadata
     meta_key_counts = (
-        metadata
-        .groupby(list(on_cols), as_index=False)
+        metadata.groupby(list(on_cols), as_index=False)
         .size()
         .rename(columns={"size": "_n"})
     )
@@ -707,25 +809,28 @@ def attach_readout_metadata(
 
     return merged
 
-def run_saliency_analysis_parallel(saliency_input_dir: str,
-                                   readout: Readouts,
-                                   raw_data_dir: str,
-                                   morphometrics_dir: str,
-                                   hyperparameter_dir: str,
-                                   rpe_classification_dir: str,
-                                   lens_classification_dir: str,
-                                   rpe_classes_classification_dir: str,
-                                   lens_classes_classification_dir: str,
-                                   annotations_dir: str,
-                                   figure_data_dir: str,
-                                   evaluator_results_dir: str,
-                                   loops: list[int] | None = None,
-                                   n_segments: int = 100,
-                                   compactness: float = 0.01,
-                                   topk_pct: float = 5.0,
-                                   max_workers: int = 6,
-                                   baseline: bool = False,
-                                   **kwargs) -> None:
+
+def run_saliency_analysis_parallel(
+    saliency_input_dir: str,
+    readout: Readouts,
+    raw_data_dir: str,
+    morphometrics_dir: str,
+    hyperparameter_dir: str,
+    rpe_classification_dir: str,
+    lens_classification_dir: str,
+    rpe_classes_classification_dir: str,
+    lens_classes_classification_dir: str,
+    annotations_dir: str,
+    figure_data_dir: str,
+    evaluator_results_dir: str,
+    loops: list[int] | None = None,
+    n_segments: int = 100,
+    compactness: float = 0.01,
+    topk_pct: float = 5.0,
+    max_workers: int = 6,
+    baseline: bool = False,
+    **kwargs,
+) -> None:
     """Parallel version: one process per H5 file."""
 
     # keep BLAS threads in check inside workers
@@ -752,8 +857,11 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
         raw_data_dir=raw_data_dir,
         evaluator_results_dir=evaluator_results_dir,
     )
-    f1_scores: pd.DataFrame = (f1_scores[f1_scores["classifier"] == "Ensemble_val"]
-                               .copy().reset_index(drop=True))
+    f1_scores: pd.DataFrame = (
+        f1_scores[f1_scores["classifier"] == "Ensemble_val"]
+        .copy()
+        .reset_index(drop=True)
+    )
 
     metadata = get_dataset_annotations(annotations_dir, figure_data_dir)
 
@@ -792,9 +900,19 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
     all_cross_model = list(itertools.chain.from_iterable(r["cross"] for r in results))
     all_d2p = list(itertools.chain.from_iterable(r["d2p"] for r in results))
 
-    votes_list = [r["votes"] for r in results if isinstance(r["votes"], pd.DataFrame) and not r["votes"].empty]
-    ed_list = [r["ed"] for r in results if isinstance(r["ed"], pd.DataFrame) and not r["ed"].empty]
-    votes_df = pd.concat(votes_list, ignore_index=True) if votes_list else pd.DataFrame()
+    votes_list = [
+        r["votes"]
+        for r in results
+        if isinstance(r["votes"], pd.DataFrame) and not r["votes"].empty
+    ]
+    ed_list = [
+        r["ed"]
+        for r in results
+        if isinstance(r["ed"], pd.DataFrame) and not r["ed"].empty
+    ]
+    votes_df = (
+        pd.concat(votes_list, ignore_index=True) if votes_list else pd.DataFrame()
+    )
     ed_df = pd.concat(ed_list, ignore_index=True) if ed_list else pd.DataFrame()
 
     # save
@@ -804,64 +922,96 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
 
     if all_method_pairs:
         all_method_pairs_df = pd.DataFrame(all_method_pairs)
-        all_method_pairs_df = attach_readout_metadata(all_method_pairs_df, metadata, readout_col = readout)
+        all_method_pairs_df = attach_readout_metadata(
+            all_method_pairs_df, metadata, readout_col=readout
+        )
         all_method_pairs_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"agreement_method_pairwise_{readout}{baseline_flag}.csv"),
+            os.path.join(
+                figure_data_dir,
+                "metrics",
+                f"agreement_method_pairwise_{readout}{baseline_flag}.csv",
+            ),
             index=False,
         )
     if all_cross_model:
         all_cross_model_df = pd.DataFrame(all_cross_model)
-        all_cross_model_df = attach_readout_metadata(all_cross_model_df, metadata, readout_col = readout)
+        all_cross_model_df = attach_readout_metadata(
+            all_cross_model_df, metadata, readout_col=readout
+        )
         all_cross_model_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"cross_model_correlation_{readout}{baseline_flag}.csv"),
+            os.path.join(
+                figure_data_dir,
+                "metrics",
+                f"cross_model_correlation_{readout}{baseline_flag}.csv",
+            ),
             index=False,
         )
     if not votes_df.empty:
-        votes_df = attach_readout_metadata(votes_df, metadata, readout_col = readout)
+        votes_df = attach_readout_metadata(votes_df, metadata, readout_col=readout)
         votes_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"region_votes_summary_{readout}{baseline_flag}.csv"),
+            os.path.join(
+                figure_data_dir,
+                "metrics",
+                f"region_votes_summary_{readout}{baseline_flag}.csv",
+            ),
             index=False,
         )
     if all_d2p:
         all_d2p_df = pd.DataFrame(all_d2p)
-        all_d2p_df = attach_readout_metadata(all_d2p_df, metadata, readout_col = readout)
+        all_d2p_df = attach_readout_metadata(all_d2p_df, metadata, readout_col=readout)
         all_d2p_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"dice_to_peak_timeseries_{readout}{baseline_flag}.csv"),
+            os.path.join(
+                figure_data_dir,
+                "metrics",
+                f"dice_to_peak_timeseries_{readout}{baseline_flag}.csv",
+            ),
             index=False,
         )
     if not ed_df.empty:
-        ed_df = attach_readout_metadata(ed_df, metadata, readout_col = readout)
+        ed_df = attach_readout_metadata(ed_df, metadata, readout_col=readout)
         ed_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"entropy_drift_timeseries_{readout}{baseline_flag}.csv"),
+            os.path.join(
+                figure_data_dir,
+                "metrics",
+                f"entropy_drift_timeseries_{readout}{baseline_flag}.csv",
+            ),
             index=False,
         )
 
     return
 
-SaliencyResults = Literal["agreement_method_pairwise", "cross_model_correlation",
-                          "dice_to_peak_timeseries", "entropy_drift_timeseries",
-                          "region_votes_summary"]
 
-def get_saliency_results(result: SaliencyResults,
-                         readout: Readouts,
-                         saliency_input_dir: str,
-                         raw_data_dir: str,
-                         morphometrics_dir: str,
-                         hyperparameter_dir: str,
-                         rpe_classification_dir: str,
-                         lens_classification_dir: str,
-                         rpe_classes_classification_dir: str,
-                         lens_classes_classification_dir: str,
-                         annotations_dir: str,
-                         figure_data_dir: str,
-                         evaluator_results_dir: str,
-                         loops: list[int] | None = None,
-                         n_segments: int = 100,
-                         compactness: float = 0.01,
-                         topk_pct: float = 5.0,
-                         max_workers: int = 6,
-                         baseline: bool = False,
-                         **kwargs) -> Optional[pd.DataFrame]:
+SaliencyResults = Literal[
+    "agreement_method_pairwise",
+    "cross_model_correlation",
+    "dice_to_peak_timeseries",
+    "entropy_drift_timeseries",
+    "region_votes_summary",
+]
+
+
+def get_saliency_results(
+    result: SaliencyResults,
+    readout: Readouts,
+    saliency_input_dir: str,
+    raw_data_dir: str,
+    morphometrics_dir: str,
+    hyperparameter_dir: str,
+    rpe_classification_dir: str,
+    lens_classification_dir: str,
+    rpe_classes_classification_dir: str,
+    lens_classes_classification_dir: str,
+    annotations_dir: str,
+    figure_data_dir: str,
+    evaluator_results_dir: str,
+    loops: list[int] | None = None,
+    n_segments: int = 100,
+    compactness: float = 0.01,
+    topk_pct: float = 5.0,
+    max_workers: int = 6,
+    baseline: bool = False,
+    **kwargs,
+) -> Optional[pd.DataFrame]:
     saliency_kwargs = locals()
     saliency_kwargs.pop("result")
     output_dir = os.path.join(figure_data_dir, "metrics")
@@ -880,4 +1030,3 @@ def get_saliency_results(result: SaliencyResults,
         return existing_file
 
     raise ValueError("This shouldnt happen!")
-

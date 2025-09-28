@@ -13,42 +13,42 @@ import torch.nn as nn
 
 from typing import Optional, Literal, Union, Any
 
-from captum.attr import (IntegratedGradients,
-                         NoiseTunnel,
-                         Saliency,
-                         DeepLiftShap,
-                         GradientShap,
-                         LayerGradCam,
-                         GuidedGradCam,
-                         Occlusion,
-                         FeatureAblation,
-                         KernelShap)
+from captum.attr import (
+    IntegratedGradients,
+    NoiseTunnel,
+    Saliency,
+    DeepLiftShap,
+    GradientShap,
+    LayerGradCam,
+    GuidedGradCam,
+    Occlusion,
+    FeatureAblation,
+    KernelShap,
+)
 
 from ..classification._dataset import OrganoidDataset
 from ..classification._utils import create_dataloader
-from ..classification.models import (DenseNet121,
-                                     ResNet50,
-                                     MobileNetV3_Large)
+from ..classification.models import DenseNet121, ResNet50, MobileNetV3_Large
 
 
-def initialize_model(model: torch.nn.Module,
-                     state_dict_path: str) -> torch.nn.Module:
+def initialize_model(model: torch.nn.Module, state_dict_path: str) -> torch.nn.Module:
     model.load_state_dict(torch.load(state_dict_path))
     model.eval()
     model.cuda()
     return model
 
-def instantiate_model(model_name: str,
-                      readout: str) -> torch.nn.Module:
+
+def instantiate_model(model_name: str, readout: str) -> torch.nn.Module:
     n_classes = 4 if "_classes" in readout else 2
     if model_name == "DenseNet121":
-        return DenseNet121(num_classes = n_classes)
+        return DenseNet121(num_classes=n_classes)
     elif model_name == "ResNet50":
-        return ResNet50(num_classes = n_classes)
+        return ResNet50(num_classes=n_classes)
     elif model_name == "MobileNetV3_Large":
-        return MobileNetV3_Large(num_classes = n_classes)
+        return MobileNetV3_Large(num_classes=n_classes)
     else:
         raise ValueError(f"Model name not known: {model_name}")
+
 
 def remove_relu_modules(model: nn.Module) -> nn.Module:
     """\
@@ -72,59 +72,69 @@ def remove_relu_modules(model: nn.Module) -> nn.Module:
     gm.recompile()
     return gm
 
-def initialize_models(models: list[str],
-                      experiment: str,
-                      readout: str,
-                      model_directory: str,
-                      baseline_directory: str) -> dict[str, torch.nn.Module]:
+
+def initialize_models(
+    models: list[str],
+    experiment: str,
+    readout: str,
+    model_directory: str,
+    baseline_directory: str,
+) -> dict[str, torch.nn.Module]:
     model_dict = {}
     for model_name in models:
         state_dict_path = os.path.join(
             model_directory,
-            f"{model_name}_val_f1_{experiment}_{readout}_base_model.pth"
+            f"{model_name}_val_f1_{experiment}_{readout}_base_model.pth",
         )
         baseline_state_dict_path = os.path.join(
             baseline_directory,
-            f"{model_name}_val_f1_{experiment}_{readout}_base_model.pth"
+            f"{model_name}_val_f1_{experiment}_{readout}_base_model.pth",
         )
-        raw_model = instantiate_model(model_name, readout = readout)
+        raw_model = instantiate_model(model_name, readout=readout)
         if model_name == "ResNet50":
             raw_model = remove_relu_modules(raw_model)
             # disable_inplace_relu(raw_model)
         model_dict[model_name] = initialize_model(raw_model, state_dict_path)
 
-        raw_model = instantiate_model(model_name, readout = readout)
+        raw_model = instantiate_model(model_name, readout=readout)
         if model_name == "ResNet50":
             raw_model = remove_relu_modules(raw_model)
             # disable_inplace_relu(raw_model)
-        model_dict[f"{model_name}_baseline"] = initialize_model(raw_model, baseline_state_dict_path)
+        model_dict[f"{model_name}_baseline"] = initialize_model(
+            raw_model, baseline_state_dict_path
+        )
 
     return model_dict
 
+
 Readouts = Literal["RPE_Final", "Lens_Final", "RPE_classes", "Lens_classes"]
-def get_dataloader(dataset: OrganoidDataset,
-                   well: str,
-                   readout: Readouts) -> DataLoader:
+
+
+def get_dataloader(
+    dataset: OrganoidDataset, well: str, readout: Readouts
+) -> DataLoader:
     metadata = dataset.metadata[
-        (dataset.metadata["well"] == well) &
-        (dataset.metadata["slice"].isin(dataset.dataset_metadata.slices))
+        (dataset.metadata["well"] == well)
+        & (dataset.metadata["slice"].isin(dataset.dataset_metadata.slices))
     ].copy()
-    metadata = metadata.sort_values("loop", ascending = True)
+    metadata = metadata.sort_values("loop", ascending=True)
     well_idxs = metadata["IMAGE_ARRAY_INDEX"].to_numpy()
     data_images = dataset.X[well_idxs]
     data_classes = dataset.y[readout][well_idxs]
-    return create_dataloader(data_images, data_classes,
-                             batch_size = 1,
-                             shuffle = False,
-                             train = False)
+    return create_dataloader(
+        data_images, data_classes, batch_size=1, shuffle=False, train=False
+    )
+
 
 def masks_to_tensor(mask_stack: np.ndarray) -> torch.Tensor:
     return torch.from_numpy(mask_stack).float()  # (n_images,1,224,224)
 
 
-def create_baseline_image(img: Union[torch.Tensor, np.ndarray],
-                          mask: Union[torch.Tensor, np.ndarray],
-                          method: Literal["gaussian", "mean", "zero"] = "mean") -> torch.Tensor:
+def create_baseline_image(
+    img: Union[torch.Tensor, np.ndarray],
+    mask: Union[torch.Tensor, np.ndarray],
+    method: Literal["gaussian", "mean", "zero"] = "mean",
+) -> torch.Tensor:
     """
     Given a three‐channel image and its single‐channel mask (shapes (1,3,H,W) and (1,1,H,W)),
     produce a baseline of shape (1,3,H,W) according to:
@@ -165,22 +175,22 @@ def create_baseline_image(img: Union[torch.Tensor, np.ndarray],
         return torch.zeros_like(img_t)
 
     # Prepare numpy arrays for processing
-    img_np = img_t.numpy()[0]        # shape (3, H, W)
-    mask_np = mask_t.numpy()[0, 0]   # shape (H, W)
+    img_np = img_t.numpy()[0]  # shape (3, H, W)
+    mask_np = mask_t.numpy()[0, 0]  # shape (H, W)
 
     baseline_np = np.zeros((3, H, W), dtype=np.float32)
 
     if method == "gaussian":
         # Blur each channel and apply mask
         for c in range(3):
-            channel = img_np[c]                   # (H, W)
+            channel = img_np[c]  # (H, W)
             blurred = gaussian_filter(channel, sigma=5)
             baseline_np[c] = blurred * mask_np
 
     elif method == "mean":
         # For each channel, compute mean over foreground and fill
         for c in range(3):
-            channel = img_np[c]               # (H, W)
+            channel = img_np[c]  # (H, W)
             fg_vals = channel[mask_np == 1]
             if fg_vals.size == 0:
                 mean_val = 0.0
@@ -195,6 +205,7 @@ def create_baseline_image(img: Union[torch.Tensor, np.ndarray],
     # Convert back to torch with shape (1,3,H,W)
     baseline_t = torch.from_numpy(baseline_np).unsqueeze(0).float()
     return baseline_t
+
 
 def compute_integrated_gradients(**kwargs: Any) -> torch.Tensor:
     """
@@ -213,20 +224,20 @@ def compute_integrated_gradients(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     baseline = kwargs["baseline"]
-    
+
     # Determine target
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
     else:
         with torch.no_grad():
             target = torch.argmax(model(image), dim=1).item()
-    
+
     nt_samples = kwargs.get("nt_samples", 50)
-    stdevs     = kwargs.get("stdevs", 0.1)
-    
+    stdevs = kwargs.get("stdevs", 0.1)
+
     ig = IntegratedGradients(model)
     nt = NoiseTunnel(ig)
-    
+
     attributions = nt.attribute(
         inputs=image,
         baselines=baseline,
@@ -234,9 +245,10 @@ def compute_integrated_gradients(**kwargs: Any) -> torch.Tensor:
         nt_type="smoothgrad",
         nt_samples=nt_samples,
         n_steps=10,
-        stdevs=stdevs
+        stdevs=stdevs,
     )
     return attributions
+
 
 def compute_saliency(**kwargs: Any) -> torch.Tensor:
     """
@@ -255,27 +267,28 @@ def compute_saliency(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     # baseline is accepted but not used by Saliency
-    
+
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
     else:
         with torch.no_grad():
             target = torch.argmax(model(image), dim=1).item()
-    
+
     nt_samples = kwargs.get("nt_samples", 50)
     stdevs = kwargs.get("stdevs", 0.1)
-    
+
     sal = Saliency(model)
-    nt  = NoiseTunnel(sal)
-    
+    nt = NoiseTunnel(sal)
+
     attributions = nt.attribute(
         inputs=image,
         target=target,
         nt_type="smoothgrad",
         nt_samples=nt_samples,
-        stdevs=stdevs
+        stdevs=stdevs,
     )
     return attributions
+
 
 def compute_deeplift_shap_equal_baseline(**kwargs: Any) -> torch.Tensor:
     """
@@ -294,20 +307,21 @@ def compute_deeplift_shap_equal_baseline(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     baseline = kwargs["baseline"]
-    
+
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
     else:
         with torch.no_grad():
             target = torch.argmax(model(image), dim=1).item()
-    
+
     n_baselines = kwargs.get("nt_samples", 10)
     # Repeat the single baseline n_baselines times
     b = baseline.repeat(n_baselines, 1, 1, 1)  # (n_baselines,3,224,224)
-    
+
     dls = DeepLiftShap(model)
     attributions = dls.attribute(inputs=image, baselines=b, target=target)
     return attributions
+
 
 def compute_gradient_shap_equal_baseline(**kwargs: Any) -> torch.Tensor:
     """
@@ -326,23 +340,24 @@ def compute_gradient_shap_equal_baseline(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     baseline = kwargs["baseline"]
-    
+
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
     else:
         with torch.no_grad():
             target = torch.argmax(model(image), dim=1).item()
-    
+
     n_baselines = kwargs.get("nt_samples", 10)
     b = baseline.repeat(n_baselines, 1, 1, 1)
-    
+
     gs = GradientShap(model)
     attributions = gs.attribute(inputs=image, baselines=b, target=target)
     return attributions
 
+
 def compute_gradient_shap(**kwargs: Any) -> torch.Tensor:
     """
-    GradientShap attributions, but with 
+    GradientShap attributions, but with
     Expects in kwargs:
       - model
       - image   (1,3,224,224) on device
@@ -357,13 +372,13 @@ def compute_gradient_shap(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     baseline = kwargs["baseline"]
-    
+
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
     else:
         with torch.no_grad():
             target = torch.argmax(model(image), dim=1).item()
-    
+
     n_baselines = kwargs.get("nt_samples", 10)
     eps = 1
     noisy_refs = []
@@ -371,10 +386,11 @@ def compute_gradient_shap(**kwargs: Any) -> torch.Tensor:
         noise = torch.randn_like(baseline) * eps
         noisy_refs.append(baseline + noise)
     b = torch.clamp(torch.cat(noisy_refs, dim=0), 0.0, 1.0)
-    
+
     gs = GradientShap(model)
     attributions = gs.attribute(inputs=image, baselines=b, target=target)
     return attributions
+
 
 def compute_deeplift_shap(**kwargs: Any) -> torch.Tensor:
     """
@@ -393,13 +409,13 @@ def compute_deeplift_shap(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     baseline = kwargs["baseline"]
-    
+
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
     else:
         with torch.no_grad():
             target = torch.argmax(model(image), dim=1).item()
-    
+
     n_baselines = kwargs.get("nt_samples", 10)
     eps = 1
     noisy_refs = []
@@ -407,10 +423,11 @@ def compute_deeplift_shap(**kwargs: Any) -> torch.Tensor:
         noise = torch.randn_like(baseline) * eps
         noisy_refs.append(baseline + noise)
     b = torch.clamp(torch.cat(noisy_refs, dim=0), 0.0, 1.0)
-    
+
     dls = DeepLiftShap(model)
     attributions = dls.attribute(inputs=image, baselines=b, target=target)
     return attributions
+
 
 def compute_grad_cam(**kwargs: Any) -> torch.Tensor:
     """
@@ -429,26 +446,29 @@ def compute_grad_cam(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     target_layer = kwargs["target_layer"]
-    
+
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
     else:
         with torch.no_grad():
             target = torch.argmax(model(image), dim=1).item()
-    
+
     layer_gc = LayerGradCam(model, target_layer)
     cam = layer_gc.attribute(inputs=image, target=target)  # (1, C', h', w')
-    
+
     # If C' > 1, average over channel dimension
     if cam.shape[1] > 1:
         spatial = cam.mean(dim=1, keepdim=True)  # (1,1,h',w')
     else:
         spatial = cam  # already (1,1,h',w')
-    
-    cam_upsampled = F.interpolate(spatial, size=image.shape[-2:], mode='bilinear', align_corners=False)
-    cam_relu = torch.relu(cam_upsampled)       # (1,1,224,224)
-    heatmap_3ch = cam_relu.repeat(1, 3, 1, 1)      # (1,3,224,224)
+
+    cam_upsampled = F.interpolate(
+        spatial, size=image.shape[-2:], mode="bilinear", align_corners=False
+    )
+    cam_relu = torch.relu(cam_upsampled)  # (1,1,224,224)
+    heatmap_3ch = cam_relu.repeat(1, 3, 1, 1)  # (1,3,224,224)
     return heatmap_3ch
+
 
 def compute_guided_grad_cam(**kwargs: Any) -> torch.Tensor:
     """
@@ -467,16 +487,17 @@ def compute_guided_grad_cam(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     target_layer = kwargs["target_layer"]
-    
+
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
     else:
         with torch.no_grad():
             target = torch.argmax(model(image), dim=1).item()
-    
+
     guided_gc = GuidedGradCam(model, target_layer)
     attributions = guided_gc.attribute(inputs=image, target=target)  # (1,3,224,224)
     return attributions
+
 
 def compute_smooth_occlusion(**kwargs: Any) -> torch.Tensor:
     """
@@ -491,8 +512,8 @@ def compute_smooth_occlusion(**kwargs: Any) -> torch.Tensor:
 
     Returns: (1,3,H,W) tensor
     """
-    model    = kwargs["model"]
-    image    = kwargs["image"]            # (1,3,H,W)
+    model = kwargs["model"]
+    image = kwargs["image"]  # (1,3,H,W)
     baseline = kwargs["baseline"]
 
     if "target" in kwargs and kwargs["target"] is not None:
@@ -506,22 +527,23 @@ def compute_smooth_occlusion(**kwargs: Any) -> torch.Tensor:
     stride_val = kwargs.get("stride", 15)
 
     # patch covers all 3 channels; stride likewise
-    patch_shape  = (3, patch, patch)
+    patch_shape = (3, patch, patch)
     stride_shape = (3, stride_val, stride_val)
 
     occ = Occlusion(model)
-    nt  = NoiseTunnel(occ)
+    nt = NoiseTunnel(occ)
 
     attr = nt.attribute(
         inputs=image,
         baselines=baseline,
         sliding_window_shapes=patch_shape,
         strides=stride_shape,
-        nt_type="smoothgrad_sq",    # SmoothGrad-like averaging
+        nt_type="smoothgrad_sq",  # SmoothGrad-like averaging
         nt_samples=nt_samples,
-        target=target
+        target=target,
     )
     return attr
+
 
 def compute_feature_ablation(**kwargs: Any) -> torch.Tensor:
     """
@@ -536,7 +558,7 @@ def compute_feature_ablation(**kwargs: Any) -> torch.Tensor:
     model = kwargs["model"]
     image = kwargs["image"]
     baseline = kwargs["baseline"]
-    feature_mask = kwargs["feature_mask"]    # (1,1,H,W)
+    feature_mask = kwargs["feature_mask"]  # (1,1,H,W)
 
     if "target" in kwargs and kwargs["target"] is not None:
         target = kwargs["target"]
@@ -554,9 +576,10 @@ def compute_feature_ablation(**kwargs: Any) -> torch.Tensor:
         baselines=baseline,
         additional_forward_args=None,
         feature_mask=mask_2d.long(),
-        target=target
+        target=target,
     )
     return attr
+
 
 def compute_kernel_shap(**kwargs: Any) -> torch.Tensor:
     """
@@ -571,7 +594,7 @@ def compute_kernel_shap(**kwargs: Any) -> torch.Tensor:
     """
     model = kwargs["model"]
     image = kwargs["image"]
-    baseline = kwargs.get("baseline", 0.0)      # KernelShap can take scalar
+    baseline = kwargs.get("baseline", 0.0)  # KernelShap can take scalar
     fmask = kwargs.get("feature_mask", None)
 
     if "target" in kwargs and kwargs["target"] is not None:
@@ -589,13 +612,14 @@ def compute_kernel_shap(**kwargs: Any) -> torch.Tensor:
         target=target,
         feature_mask=fmask.squeeze(0).squeeze(0).long() if fmask is not None else None,
         n_samples=n_samples,
-        return_input_shape=True
+        return_input_shape=True,
     )
     return attr
 
-def preprocess_attribution(att: torch.Tensor,
-                           take_abs: bool = True,
-                           eps: float = 1e-8) -> np.ndarray:
+
+def preprocess_attribution(
+    att: torch.Tensor, take_abs: bool = True, eps: float = 1e-8
+) -> np.ndarray:
     """
     Average the 3 channels of an attribution map → 2‑D
     then z‑score normalise (optional abs).
@@ -619,6 +643,7 @@ def preprocess_attribution(att: torch.Tensor,
     hm = (hm - hm.mean()) / (hm.std() + eps)
     return hm.numpy().astype(np.float32)
 
+
 def pearson_similarity(A: np.ndarray, B: np.ndarray) -> float:
     """Pixel‑wise Pearson r between two normalised maps."""
     return float(np.corrcoef(A.flatten(), B.flatten())[0, 1])
@@ -629,8 +654,9 @@ def ssim_similarity(A: np.ndarray, B: np.ndarray) -> float:
     return float(ssim(A, B, gaussian_weights=True, data_range=B.max() - B.min()))
 
 
-def jaccard_topk_similarity(A: np.ndarray, B: np.ndarray,
-                            topk_ratio: float = 0.01) -> float:
+def jaccard_topk_similarity(
+    A: np.ndarray, B: np.ndarray, topk_ratio: float = 0.01
+) -> float:
     """
     Convert each map to a binary mask that keeps the
     top k% pixels then compute Jaccard |A∩B| / |A∪B|.
@@ -651,9 +677,11 @@ _METRIC_FUNS = {
     "jaccard": jaccard_topk_similarity,
 }
 
-def compute_similarity_matrix(attributions: dict[str, torch.Tensor],
-                              metrics: tuple[str, ...] = ("pearson", "ssim", "jaccard")
-                              ) -> dict[str, np.ndarray]:
+
+def compute_similarity_matrix(
+    attributions: dict[str, torch.Tensor],
+    metrics: tuple[str, ...] = ("pearson", "ssim", "jaccard"),
+) -> dict[str, np.ndarray]:
     """
     Build a |M|×|M| similarity matrix per metric for one image.
 
@@ -673,7 +701,7 @@ def compute_similarity_matrix(attributions: dict[str, torch.Tensor],
 
     for i, ni in enumerate(names):
         for j, nj in enumerate(names):
-            if j < i:   # matrix is symmetric, copy later
+            if j < i:  # matrix is symmetric, copy later
                 continue
             Ai = processed[ni]
             Aj = processed[nj]
@@ -682,7 +710,10 @@ def compute_similarity_matrix(attributions: dict[str, torch.Tensor],
                 sims[m][i, j] = sims[m][j, i] = s
     return sims
 
-def average_similarity_matrices(list_of_mats: list[dict[str, np.ndarray]]) -> dict[str, np.ndarray]:
+
+def average_similarity_matrices(
+    list_of_mats: list[dict[str, np.ndarray]],
+) -> dict[str, np.ndarray]:
     """
     Average a list of per‑image similarity dictionaries.
 
@@ -696,9 +727,12 @@ def average_similarity_matrices(list_of_mats: list[dict[str, np.ndarray]]) -> di
     avg = {m: np.mean([d[m] for d in list_of_mats], axis=0) for m in metrics}
     return avg
 
-def compute_snr(real_atts: dict[str, torch.Tensor],
-                baseline_atts: dict[str, torch.Tensor],
-                metric: str = "pearson") -> dict[str, float]:
+
+def compute_snr(
+    real_atts: dict[str, torch.Tensor],
+    baseline_atts: dict[str, torch.Tensor],
+    metric: str = "pearson",
+) -> dict[str, float]:
     """
     For each method, compare its attribution map on the
     real model to its map from a shuffled‑label baseline.
@@ -724,6 +758,7 @@ def compute_snr(real_atts: dict[str, torch.Tensor],
         snr[name] = float(1.0 / (noise_sim + 1e-8))
     return snr
 
+
 def _flatten_probs(att, mask=None, eps=1e-12):
     """Return p (1-D np.array) with positive entries summing to 1."""
     if torch.is_tensor(att):
@@ -740,10 +775,12 @@ def _flatten_probs(att, mask=None, eps=1e-12):
     p = p / (p.sum() + eps)
     return p
 
+
 def struct_entropy(att, mask=None) -> float:
     p = _flatten_probs(att, mask)
-    H = entropy(p)                             # natural log base e
-    return 1.0 - H / np.log(p.size) # 0 (uniform) … 1 (single pixel)
+    H = entropy(p)  # natural log base e
+    return 1.0 - H / np.log(p.size)  # 0 (uniform) … 1 (single pixel)
+
 
 def struct_gini(att, mask=None) -> float:
     p = _flatten_probs(att, mask)
@@ -751,22 +788,25 @@ def struct_gini(att, mask=None) -> float:
     n = p.size
     cum = np.cumsum(sorted_p)
     gini = 1.0 - 2.0 * np.sum(cum) / (n - 1)
-    return gini # 0 = uniform, 1 = spike
+    return gini  # 0 = uniform, 1 = spike
+
 
 def struct_topk(att, mask=None, k_ratio=0.01) -> float:
     p = _flatten_probs(att, mask)
     k = max(1, int(k_ratio * p.size))
     thresh = np.partition(p, -k)[-k]
     mass = p[p >= thresh].sum()
-    return mass # ∈ (0,1], larger = denser
+    return mass  # ∈ (0,1], larger = denser
+
 
 def struct_kurtosis(att, mask=None, normalise=True, C=10.0) -> float:
     p = _flatten_probs(att, mask)
-    k = kurtosis(p, fisher=False) # Pearson form (3 = Gaussian)
+    k = kurtosis(p, fisher=False)  # Pearson form (3 = Gaussian)
     if not normalise:
         return float(k)
     # Rescale via k / (k + C) so that k→∞ → 1  and k=0 → 0
     return float(k / (k + C))
+
 
 def area_fraction_for_mass(att, mask=None, mass_thr=0.9) -> float:
     """
@@ -779,11 +819,10 @@ def area_fraction_for_mass(att, mask=None, mass_thr=0.9) -> float:
     n_needed = np.searchsorted(cum, mass_thr) + 1
     return n_needed / p.size
 
-def combined_struct_score(att,
-                          mask=None,
-                          weights=None,
-                          k_ratio=0.01,
-                          mass_thr=0.9) -> float:
+
+def combined_struct_score(
+    att, mask=None, weights=None, k_ratio=0.01, mass_thr=0.9
+) -> float:
     """
     Combine four monotone-increasing metrics into one score in [0,1].
 
@@ -811,12 +850,14 @@ def combined_struct_score(att,
 
     return float((metrics * weights).sum())
 
-def compute_structuredness_for_dicts(real_atts: dict[str, torch.Tensor],
-                                     baseline_atts: dict[str, torch.Tensor],
-                                     mask: Optional[torch.Tensor] = None,
-                                     k_ratio: float = 0.01,
-                                     mass_thr: float = 0.90
-                                    ) -> dict[str, dict[str, float]]:
+
+def compute_structuredness_for_dicts(
+    real_atts: dict[str, torch.Tensor],
+    baseline_atts: dict[str, torch.Tensor],
+    mask: Optional[torch.Tensor] = None,
+    k_ratio: float = 0.01,
+    mass_thr: float = 0.90,
+) -> dict[str, dict[str, float]]:
     """
     Parameters
     ----------
@@ -858,31 +899,37 @@ def compute_structuredness_for_dicts(real_atts: dict[str, torch.Tensor],
         else:
             m = None
 
-        e  = struct_entropy(A_real, m)
+        e = struct_entropy(A_real, m)
         eb = struct_entropy(A_base, m)
 
-        g  = struct_gini(A_real, m)
+        g = struct_gini(A_real, m)
         gb = struct_gini(A_base, m)
 
-        t  = struct_topk(A_real, m, k_ratio=k_ratio)
+        t = struct_topk(A_real, m, k_ratio=k_ratio)
         tb = struct_topk(A_base, m, k_ratio=k_ratio)
 
-        k  = struct_kurtosis(A_real, m)
+        k = struct_kurtosis(A_real, m)
         kb = struct_kurtosis(A_base, m)
 
-        a  = 1.0 - area_fraction_for_mass(A_real, m, mass_thr=mass_thr)
+        a = 1.0 - area_fraction_for_mass(A_real, m, mass_thr=mass_thr)
         ab = 1.0 - area_fraction_for_mass(A_base, m, mass_thr=mass_thr)
 
-        c  = combined_struct_score(A_real, m, k_ratio=k_ratio, mass_thr=mass_thr)
+        c = combined_struct_score(A_real, m, k_ratio=k_ratio, mass_thr=mass_thr)
         cb = combined_struct_score(A_base, m, k_ratio=k_ratio, mass_thr=mass_thr)
 
         out[name] = dict(
-            entropy=e, entropy_base=eb,
-            gini=g, gini_base=gb,
-            topk=t, topk_base=tb,
-            kurtosis=k, kurtosis_base=kb,
-            area_inv=a, area_inv_base=ab,
-            combined=c, combined_base=cb
+            entropy=e,
+            entropy_base=eb,
+            gini=g,
+            gini_base=gb,
+            topk=t,
+            topk_base=tb,
+            kurtosis=k,
+            kurtosis_base=kb,
+            area_inv=a,
+            area_inv_base=ab,
+            combined=c,
+            combined_base=cb,
         )
 
     return out

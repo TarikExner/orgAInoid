@@ -5,29 +5,27 @@ import skimage
 
 from typing import Optional
 
+
 class OrganoidImage:
     """\
     Class to represent an image and its corresponding methods.
     """
 
-    def __init__(self,
-                 path: Optional[str]):
+    def __init__(self, path: Optional[str]):
         if path is None:
-            self._img = np.zeros(shape = (0,0))
+            self._img = np.zeros(shape=(0, 0))
         else:
             self._img = self._read_image(path)
 
-    def set_image(self,
-                  img: np.ndarray) -> None:
+    def set_image(self, img: np.ndarray) -> None:
         self.image = img
 
-    def _read_image(self,
-                    path: str) -> np.ndarray:
+    def _read_image(self, path: str) -> np.ndarray:
         """\
         Reads an image from disk and returns it with its original bitdepth.
         We make sure that we actually directly return it as 32bit float.
         """
-        img = cv2.imread(path, -1) # -1 for original bitdepth
+        img = cv2.imread(path, -1)  # -1 for original bitdepth
         return img.astype(np.float32)
 
     @property
@@ -35,8 +33,7 @@ class OrganoidImage:
         return self._img
 
     @image.setter
-    def image(self,
-              img: np.ndarray):
+    def image(self, img: np.ndarray):
         self._img = img
 
     @property
@@ -55,21 +52,17 @@ class OrganoidMask(OrganoidImage):
     and are not necessarily binary already!
     """
 
-    def __init__(self,
-                 raw_mask: np.ndarray):
-        super().__init__(path = None)
+    def __init__(self, raw_mask: np.ndarray):
+        super().__init__(path=None)
         self._img = raw_mask
 
-    def is_clean(self,
-                 thresholded_image: np.ndarray) -> bool:
+    def is_clean(self, thresholded_image: np.ndarray) -> bool:
         """Checks if there is only one label after thresholding"""
         assert self._is_binary(thresholded_image)
         _, num_labels = self.label_mask_with_counts(thresholded_image)
         return num_labels == 1
 
-    def clean_mask(self,
-                   min_size_perc: float):
-
+    def clean_mask(self, min_size_perc: float):
         assert self.is_binary()
 
         min_size = int(self.dimension**2 * (min_size_perc / 100))
@@ -86,25 +79,20 @@ class OrganoidMask(OrganoidImage):
             if num_labels == 0:
                 raise ValueError("Removed only Label")
             elif num_labels > 1:
-                raise ValueError("More than one object left after removing small objects.")
+                raise ValueError(
+                    "More than one object left after removing small objects."
+                )
 
         self.image = labeled_mask.astype(np.uint8)
 
-    def label_mask(self,
-                   img_array: np.ndarray) -> np.ndarray:
-        labels = skimage.measure.label(
-            img_array,
-            background = 0
-        )
+    def label_mask(self, img_array: np.ndarray) -> np.ndarray:
+        labels = skimage.measure.label(img_array, background=0)
         assert isinstance(labels, np.ndarray)
         return labels
 
-    def label_mask_with_counts(self,
-                               img_array: np.ndarray) -> tuple[np.ndarray, int]:
+    def label_mask_with_counts(self, img_array: np.ndarray) -> tuple[np.ndarray, int]:
         labels, num_labels = skimage.measure.label(
-            img_array,
-            background = 0,
-            return_num = True
+            img_array, background=0, return_num=True
         )
         assert isinstance(labels, np.ndarray)
         assert isinstance(num_labels, int)
@@ -113,8 +101,7 @@ class OrganoidMask(OrganoidImage):
     def is_binary(self):
         return self._is_binary(self._img)
 
-    def _is_binary(self,
-                   img: np.ndarray):
+    def _is_binary(self, img: np.ndarray):
         return np.isin(img, [0, 1]).all()
 
 
@@ -123,8 +110,7 @@ class OrganoidMaskImage(OrganoidImage):
     Class to represent a mask image. This mask is by definition binary.
     """
 
-    def __init__(self,
-                 path: str) -> None:
+    def __init__(self, path: str) -> None:
         """\
         Reads an image and directly converts it to the correct binary scale"""
         super().__init__(path)

@@ -28,6 +28,7 @@ Weights
 The paper sets λ = [5, 1, 5, 1, 1, 1] in that order; you can of course
 pass any floats when you instantiate each loss.
 """
+
 from __future__ import annotations
 
 from typing import Dict, Optional, Union
@@ -37,12 +38,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
 
-def sample_z_noise(batch_size: int, latent_dim: int, device: torch.device) -> torch.Tensor:
+
+def sample_z_noise(
+    batch_size: int, latent_dim: int, device: torch.device
+) -> torch.Tensor:
     """
     Draws z_noise ∼ N(0, I).
     Returns: Tensor of shape (batch_size, latent_dim) on the given device.
     """
     return torch.randn(batch_size, latent_dim, device=device)
+
 
 class GanLoss(nn.Module):
     """
@@ -58,6 +63,7 @@ class GanLoss(nn.Module):
         # During generator (encoder) update:
         loss_g = gan_loss.g_loss(fake_scores)
     """
+
     def __init__(self, weight: float = 1.0):
         """
         Args:
@@ -66,10 +72,9 @@ class GanLoss(nn.Module):
         super().__init__()
         self.weight = weight
 
-    def d_loss(self,
-               real_scores: torch.Tensor,
-               fake_scores: torch.Tensor
-               ) -> torch.Tensor:
+    def d_loss(
+        self, real_scores: torch.Tensor, fake_scores: torch.Tensor
+    ) -> torch.Tensor:
         """
         Discriminator loss L_disc = −E[ log(real_scores) ] − E[ log(1 − fake_scores) ].
 
@@ -83,15 +88,12 @@ class GanLoss(nn.Module):
         real_clamped = real_scores.clamp(min=eps, max=1.0 - eps)
         fake_clamped = fake_scores.clamp(min=eps, max=1.0 - eps)
 
-        loss_real = -torch.log(real_clamped).mean()         # −E[log D(z_noise)]
-        loss_fake = -torch.log(1.0 - fake_clamped).mean()   # −E[log(1 − D(z_real))]
+        loss_real = -torch.log(real_clamped).mean()  # −E[log D(z_noise)]
+        loss_fake = -torch.log(1.0 - fake_clamped).mean()  # −E[log(1 − D(z_real))]
 
         return self.weight * (loss_real + loss_fake)
 
-    def g_loss(
-        self,
-        fake_scores: torch.Tensor
-    ) -> torch.Tensor:
+    def g_loss(self, fake_scores: torch.Tensor) -> torch.Tensor:
         """
         Generator/Encoder adversarial loss L_adv = −E[ log(fake_scores) ].
 
@@ -104,6 +106,7 @@ class GanLoss(nn.Module):
         fake_clamped = fake_scores.clamp(min=eps, max=1.0 - eps)
         return self.weight * (-torch.log(fake_clamped).mean())
 
+
 class VggPerceptual(nn.Module):
     """
     Computes sum of L1 losses between feature maps of x and x_rec
@@ -113,6 +116,7 @@ class VggPerceptual(nn.Module):
        block5_conv1 (28), block5_conv2 (30), block5_conv3 (32), block5_conv4 (34)]
     Assumes x and x_rec are already normalized with ImageNet mean/std.
     """
+
     def __init__(self, weight: float = 1.0, resize: bool = False):
         super().__init__()
         self.weight = weight
@@ -146,9 +150,9 @@ class VggPerceptual(nn.Module):
         """
         if self.resize and x_rec.shape[-1] != 224:
             x_rec = F.interpolate(x_rec, size=224, mode="bilinear", align_corners=False)
-            x     = F.interpolate(x, size=224, mode="bilinear", align_corners=False)
+            x = F.interpolate(x, size=224, mode="bilinear", align_corners=False)
 
-        feats_x     = self._extract_features(x)
+        feats_x = self._extract_features(x)
         feats_x_rec = self._extract_features(x_rec)
 
         loss = 0.0
@@ -157,19 +161,20 @@ class VggPerceptual(nn.Module):
 
         return self.weight * loss
 
+
 class FeatureHook:
     def __init__(self, model: nn.Module, layer_names: list[str]):
         """
         Registers forward hooks on `model` at every layer whose “dotted” name
         matches one of `layer_names`.  Captured outputs are stored in self.features.
-        
+
         Example of a “dotted” name: "layer3.0.conv1" in ResNet50, or "features.denseblock3"
-        in DenseNet121, or "features.15" in MobileNetV3_Large.  
+        in DenseNet121, or "features.15" in MobileNetV3_Large.
         """
         self.model = model
         self.layer_names = set(layer_names)
         self.features = {}  # maps layer_name → output tensor
-        
+
         # Walk all submodules and their names; register hook if name matches
         for name, module in model.named_modules():
             if name in self.layer_names:
@@ -179,11 +184,13 @@ class FeatureHook:
         def hook_fn(module, inp, out):
             # Store a copy to avoid accidental in-place modifications
             self.features[name] = out.detach()
+
         return hook_fn
 
     def clear(self):
         """Clear captured feature maps before a new forward pass."""
         self.features.clear()
+
 
 """\
 This extracts the bottom 10 conv layers for better runtime
@@ -205,19 +212,15 @@ MOBILENETV3_LAYER_NAMES_TOP10_LAST = [
     "mobilenet_v3_large.features.13.conv.0",
     "mobilenet_v3_large.features.13.conv.3",
     "mobilenet_v3_large.features.13.conv.6",
-
     "mobilenet_v3_large.features.14.conv.0",
     "mobilenet_v3_large.features.14.conv.3",
     "mobilenet_v3_large.features.14.conv.6",
-
     "mobilenet_v3_large.features.15.conv.0",
     "mobilenet_v3_large.features.15.conv.3",
     "mobilenet_v3_large.features.15.conv.6",
-
     "mobilenet_v3_large.features.16.conv",
-
     "mobilenet_v3_large.avgpool",
-    "mobilenet_v3_large.classifier.3"
+    "mobilenet_v3_large.classifier.3",
 ]
 
 DENSENET121_LAYER_NAMES_TOP10 = [
@@ -245,7 +248,7 @@ DENSENET121_LAYER_NAMES_TOP10_LAST = [
     "densenet121.features.denseblock4.denselayer15.conv1",
     "densenet121.features.denseblock4.denselayer15.conv2",
     "densenet121.features.norm5",
-    "densenet121.classifier.1"
+    "densenet121.classifier.1",
 ]
 
 RESNET50_LAYER_NAMES_TOP10 = [
@@ -271,48 +274,58 @@ RESNET50_LAYER_NAMES_TOP10_LAST = [
     "resnet50.layer4.0.conv3",
     "resnet50.layer4.0.conv2",
     "resnet50.layer4.0.conv1",
-
     "resnet50.layer3.5.conv3",
     "resnet50.avgpool",
-    "resnet50.fc.1"
+    "resnet50.fc.1",
 ]
 
 RESNET50_LAYER_NAMES_FULL = [
-    "resnet50.layer3.0.conv1", "resnet50.layer3.0.conv2", "resnet50.layer3.0.conv3",
-    "resnet50.layer3.1.conv1", "resnet50.layer3.1.conv2", "resnet50.layer3.1.conv3",
-    "resnet50.layer3.2.conv1", "resnet50.layer3.2.conv2", "resnet50.layer3.2.conv3",
-    "resnet50.layer3.3.conv1", "resnet50.layer3.3.conv2", "resnet50.layer3.3.conv3",
-    "resnet50.layer3.4.conv1", "resnet50.layer3.4.conv2", "resnet50.layer3.4.conv3",
-    "resnet50.layer3.5.conv1", "resnet50.layer3.5.conv2", "resnet50.layer3.5.conv3",
-
-    "resnet50.layer4.1.conv1", "resnet50.layer4.1.conv2", "resnet50.layer4.1.conv3",
-    "resnet50.layer4.2.conv1", "resnet50.layer4.2.conv2", "resnet50.layer4.2.conv3",
-
+    "resnet50.layer3.0.conv1",
+    "resnet50.layer3.0.conv2",
+    "resnet50.layer3.0.conv3",
+    "resnet50.layer3.1.conv1",
+    "resnet50.layer3.1.conv2",
+    "resnet50.layer3.1.conv3",
+    "resnet50.layer3.2.conv1",
+    "resnet50.layer3.2.conv2",
+    "resnet50.layer3.2.conv3",
+    "resnet50.layer3.3.conv1",
+    "resnet50.layer3.3.conv2",
+    "resnet50.layer3.3.conv3",
+    "resnet50.layer3.4.conv1",
+    "resnet50.layer3.4.conv2",
+    "resnet50.layer3.4.conv3",
+    "resnet50.layer3.5.conv1",
+    "resnet50.layer3.5.conv2",
+    "resnet50.layer3.5.conv3",
+    "resnet50.layer4.1.conv1",
+    "resnet50.layer4.1.conv2",
+    "resnet50.layer4.1.conv3",
+    "resnet50.layer4.2.conv1",
+    "resnet50.layer4.2.conv2",
+    "resnet50.layer4.2.conv3",
     "resnet50.avgpool",
-    "resnet50.fc.1"
+    "resnet50.fc.1",
 ]
 
 MOBILENETV3_LAYER_NAMES_FULL = [
     "mobilenet_v3_large.features.15.conv.0",
     "mobilenet_v3_large.features.15.conv.3",
     "mobilenet_v3_large.features.15.conv.6",
-
     "mobilenet_v3_large.features.16.conv",
-
     "mobilenet_v3_large.avgpool",
-    "mobilenet_v3_large.classifier.3"
+    "mobilenet_v3_large.classifier.3",
 ]
 
 DENSENET121_LAYER_NAMES_FULL = [
     *[f"densenet121.features.denseblock3.denselayer{i}.conv1" for i in range(24)],
     *[f"densenet121.features.denseblock3.denselayer{i}.conv2" for i in range(24)],
-
     *[f"densenet121.features.denseblock4.denselayer{i}.conv1" for i in range(16)],
     *[f"densenet121.features.denseblock4.denselayer{i}.conv2" for i in range(16)],
-
     "densenet121.features.norm5",
-    "densenet121.classifier.1"
+    "densenet121.classifier.1",
 ]
+
 
 class ClassificationPerceptualLoss(nn.Module):
     """
@@ -354,12 +367,14 @@ class ClassificationPerceptualLoss(nn.Module):
 
     """
 
-    def __init__(self,
-                 clf_model: nn.Module,
-                 lightweight: bool = True,
-                 weight: float = 1.0,
-                 resize: bool = False,
-                 target_size: int = 224):
+    def __init__(
+        self,
+        clf_model: nn.Module,
+        lightweight: bool = True,
+        weight: float = 1.0,
+        resize: bool = False,
+        target_size: int = 224,
+    ):
         """
         Args:
             clf_model:   A pretrained (or partially frozen) classification network.
@@ -372,7 +387,7 @@ class ClassificationPerceptualLoss(nn.Module):
             target_size: The spatial size to resize to (only used if resize=True).
         """
         super().__init__()
-        self.model = clf_model.eval()   # Freeze the classifier—no grads through it.
+        self.model = clf_model.eval()  # Freeze the classifier—no grads through it.
         self.weight = weight
         self.resize = resize
         self.target_size = target_size
@@ -394,14 +409,25 @@ class ClassificationPerceptualLoss(nn.Module):
             if name in self.layer_names:
                 module.register_forward_hook(self._make_hook(name))
 
-    def _choose_layers(self,
-                       model_name: str):
+    def _choose_layers(self, model_name: str):
         if model_name == "DenseNet121":
-            return DENSENET121_LAYER_NAMES_TOP10 if self.lightweight else DENSENET121_LAYER_NAMES_FULL
+            return (
+                DENSENET121_LAYER_NAMES_TOP10
+                if self.lightweight
+                else DENSENET121_LAYER_NAMES_FULL
+            )
         elif model_name == "ResNet50":
-            return RESNET50_LAYER_NAMES_TOP10 if self.lightweight else RESNET50_LAYER_NAMES_FULL
+            return (
+                RESNET50_LAYER_NAMES_TOP10
+                if self.lightweight
+                else RESNET50_LAYER_NAMES_FULL
+            )
         elif model_name == "MobileNetV3_Large":
-            return MOBILENETV3_LAYER_NAMES_TOP10 if self.lightweight else MOBILENETV3_LAYER_NAMES_FULL
+            return (
+                MOBILENETV3_LAYER_NAMES_TOP10
+                if self.lightweight
+                else MOBILENETV3_LAYER_NAMES_FULL
+            )
         else:
             raise ValueError(f"Unknown model: {model_name}")
 
@@ -410,9 +436,11 @@ class ClassificationPerceptualLoss(nn.Module):
         Returns a hook function that saves the output of the submodule
         into self._features[layer_name].
         """
+
         def hook(module, input, output):
             # We detach so that no gradients flow back through the classification net.
             self._features[layer_name] = output.detach()
+
         return hook
 
     def forward(self, x_rec: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -427,18 +455,20 @@ class ClassificationPerceptualLoss(nn.Module):
             where feat_i is the activation at layer_names[i].
         """
         # 1) If requested, resize both to (target_size × target_size)
-        if self.resize and (x.shape[-1] != self.target_size or x_rec.shape[-1] != self.target_size):
+        if self.resize and (
+            x.shape[-1] != self.target_size or x_rec.shape[-1] != self.target_size
+        ):
             x_rec = F.interpolate(
                 x_rec,
                 size=(self.target_size, self.target_size),
                 mode="bilinear",
-                align_corners=False
+                align_corners=False,
             )
             x = F.interpolate(
                 x,
                 size=(self.target_size, self.target_size),
                 mode="bilinear",
-                align_corners=False
+                align_corners=False,
             )
 
         # 2) Forward‐pass on the original image x, capturing its features
@@ -459,6 +489,7 @@ class ClassificationPerceptualLoss(nn.Module):
             total_loss = total_loss + F.l1_loss(f_r, f_o, reduction="mean")
 
         return self.weight * total_loss
+
 
 class WhiteningLoss(nn.Module):
     """
@@ -481,8 +512,8 @@ class WhiteningLoss(nn.Module):
         B, D = z.shape  # Batch size, latent dimension
 
         # 1) Center each latent dimension
-        mean_z = z.mean(dim=0, keepdim=True)      # (1, D)
-        z_centered = z - mean_z                   # (B, D)
+        mean_z = z.mean(dim=0, keepdim=True)  # (1, D)
+        z_centered = z - mean_z  # (B, D)
 
         # 2) Covariance matrix: (D × D)
         cov = (z_centered.transpose(0, 1) @ z_centered) / (B - 1)  # (D, D)
@@ -491,11 +522,11 @@ class WhiteningLoss(nn.Module):
         diag_cov = torch.diagonal(cov, offset=0)  # (D,)
 
         cov_off = cov.clone()
-        cov_off.fill_diagonal_(0.0)               # zeros on diagonal
+        cov_off.fill_diagonal_(0.0)  # zeros on diagonal
 
         # 4) Compute squared differences
         diag_diff_squared = (diag_cov - 1.0).pow(2).sum()  # sum_i (cov_{ii}−1)^2
-        offdiag_squared = cov_off.pow(2).sum()            # sum_{i≠j} (cov_{ij})^2
+        offdiag_squared = cov_off.pow(2).sum()  # sum_{i≠j} (cov_{ij})^2
 
         # 5) Combine with ½ factors and apply weight
         loss = 0.5 * diag_diff_squared + 0.5 * offdiag_squared
@@ -523,9 +554,7 @@ class DisentangleLoss(nn.Module):
         self.weight = weight
 
     def forward(
-        self,
-        diff_images: torch.Tensor,
-        true_indices: torch.Tensor
+        self, diff_images: torch.Tensor, true_indices: torch.Tensor
     ) -> torch.Tensor:
         """
         Args:
@@ -560,8 +589,8 @@ class DisentangleLoss(nn.Module):
         p_true = preds[torch.arange(B, device=device), true_indices]  # (B,)
 
         # 6) Compute −(1/latent_dim) * sum_b log p_true[b]
-        log_p_true = torch.log(p_true)            # (B,)
-        loss = - (1.0 / latent_dim) * log_p_true.sum()
+        log_p_true = torch.log(p_true)  # (B,)
+        loss = -(1.0 / latent_dim) * log_p_true.sum()
 
         return self.weight * loss
 
@@ -576,6 +605,7 @@ class ClassificationSubsetLoss(nn.Module):
     In the paper, they wrote “Dense(14→1) with Sigmoid, then binary cross‐entropy against IVF-CLF(x).”
     Using BCEWithLogitsLoss here is mathematically identical but safe under torch.cuda.amp.
     """
+
     def __init__(self, subset_size: int = 14, weight: float = 1.0):
         """
         Args:
@@ -608,10 +638,10 @@ class ClassificationSubsetLoss(nn.Module):
         )
 
         # 1) Extract the first `subset_size` features from z
-        z_subset = z[:, : self.subset_size]    # shape (B, subset_size)
+        z_subset = z[:, : self.subset_size]  # shape (B, subset_size)
 
         # 2) Compute the raw logit (no sigmoid here)
-        logit = self.fc(z_subset)              # shape (B, 1)
+        logit = self.fc(z_subset)  # shape (B, 1)
 
         # 3) Ensure true_scores is shape (B, 1)
         if true_scores.dim() == 1:
@@ -624,12 +654,13 @@ class ClassificationSubsetLoss(nn.Module):
 
         return self.weight * loss
 
+
 def build_loss_dict(
     classifier: nn.Module,
     disentangler: nn.Module,
     *,
     lambdas: Optional[Dict[str, float]] = None,
-    device: Optional[Union[torch.device, str]] = None
+    device: Optional[Union[torch.device, str]] = None,
 ) -> Dict[str, nn.Module]:
     """
     Return a dictionary of loss modules, each moved to `device`.  The keys correspond to:
@@ -662,7 +693,7 @@ def build_loss_dict(
             "cls": 5.0,
             "cov": 1.0,
             "dis": 1.0,
-            "csl": 1.0
+            "csl": 1.0,
         }
 
     if device is None:
@@ -673,23 +704,18 @@ def build_loss_dict(
     losses: Dict[str, nn.Module] = {
         # Loss #1: ImageNet‐CLF perceptual loss (VGG)
         "vgg": VggPerceptual(weight=lambdas["vgg"]),
-
         # Loss #2: Adversarial GAN loss
         # (GanLoss is a class with static methods; store the class itself or an instance.
         #  Here we store an instance, even though no parameters are updated inside GanLoss.)
         "gan": GanLoss(weight=lambdas["gan"]),
-
         # Loss #3: IVF‐CLF perceptual loss (ClassificationPerceptualLoss wraps `classifier`)
         "cls": ClassificationPerceptualLoss(classifier, weight=lambdas["cls"]),
-
         # Loss #4: Covariance whitening loss
         "cov": WhiteningLoss(weight=lambdas["cov"]),
-
         # Loss #5: Disentanglement‐index classification loss (wraps `disentangler`)
         "dis": DisentangleLoss(disentangler, weight=lambdas["dis"]),
-
         # Loss #6: Classification‐driving subset BCE loss
-        "csl": ClassificationSubsetLoss(subset_size=14, weight=lambdas["csl"])
+        "csl": ClassificationSubsetLoss(subset_size=14, weight=lambdas["csl"]),
     }
 
     for loss_module in losses.values():

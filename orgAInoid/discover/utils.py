@@ -8,6 +8,7 @@ Common tasks:
 
 These helpers keep notebooks short and avoid boilerplate.
 """
+
 from __future__ import annotations
 
 import glob
@@ -19,10 +20,9 @@ from typing import Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torchvision
 from tensorboard.backend.event_processing import event_accumulator
 
-from .training import build_dataloader, build_dataloader_from_dir
+from .training import build_dataloader
 
 __all__ = [
     "build_loader_from_index",
@@ -33,24 +33,33 @@ __all__ = [
 
 # ─────────────────────────── data helper ──────────────────────────
 
+
 def build_loader_from_index(
     data: Sequence[torch.Tensor | np.ndarray],
     idx: Sequence[int] | slice,
     batch_size: int = 32,
 ):
     """Create DataLoader from a subset (index X) of an in‑memory dataset."""
-    subset = [data[i] for i in range(len(data))[idx]] if isinstance(idx, slice) else [data[i] for i in idx]
+    subset = (
+        [data[i] for i in range(len(data))[idx]]
+        if isinstance(idx, slice)
+        else [data[i] for i in idx]
+    )
     return build_dataloader(subset, batch_size=batch_size)
 
 
 # ───────────────────────── checkpoint utils ────────────────────────
 
-def get_checkpoint_paths(out_dir: str | Path, pattern: str = "discover_epoch*.pth") -> list[str]:
+
+def get_checkpoint_paths(
+    out_dir: str | Path, pattern: str = "discover_epoch*.pth"
+) -> list[str]:
     """Return sorted list of checkpoint paths in *out_dir*."""
     return sorted(glob.glob(str(Path(out_dir) / pattern)))
 
 
 # ───────────────────────── plot loss curves ───────────────────────
+
 
 def _extract_scalars(log_dir: str | Path, tag: str):
     ea = event_accumulator.EventAccumulator(str(log_dir))

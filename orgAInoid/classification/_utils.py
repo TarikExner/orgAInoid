@@ -22,15 +22,21 @@ from albumentations.pytorch import ToTensorV2
 
 from torch.utils.data import DataLoader
 
-from .._augmentation import val_transformations, CustomIntensityAdjustment, NormalizeSegmented
+from .._augmentation import (
+    val_transformations,
+    CustomIntensityAdjustment,
+    NormalizeSegmented,
+)
 
-from sklearn.experimental import enable_halving_search_cv
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, HalvingGridSearchCV, train_test_split
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, train_test_split
 
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from abc import abstractmethod
 from copy import deepcopy
-from sklearn.model_selection._search_successive_halving import _SubsampleMetaSplitter, _top_k
+from sklearn.model_selection._search_successive_halving import (
+    _SubsampleMetaSplitter,
+    _top_k,
+)
 from math import ceil, floor, log
 from sklearn.model_selection._search import BaseSearchCV
 from numbers import Integral, Real
@@ -54,6 +60,7 @@ LENS_MAX = 60_000
 
 RPE_ADJUSTED_CUTOFFS = list(np.array(RPE_CUTOFFS) / RPE_MAX)
 LENS_ADJUSTED_CUTOFFS = list(np.array(LENS_CUTOFFS) / LENS_MAX)
+
 
 class SegmentatorModel(Enum):
     DEEPLABV3 = "DEEPLABV3"
@@ -97,18 +104,18 @@ class ImageMetadata:
         if not isinstance(other, ImageMetadata):
             return NotImplemented
         return (
-            self.dimension == other.dimension and
-            self.cropped_bbox == other.cropped_bbox and
-            self.scaled_to_size == other.scaled_to_size and
-            self.crop_size == other.crop_size and
-            self.segmentator_model == other.segmentator_model and
-            self.segmentator_input_size == other.segmentator_input_size and
-            self.mask_threshold == other.mask_threshold and
-            self.cleaned_mask == other.cleaned_mask and
-            self.scale_masked_image == other.scale_masked_image and
-            self.crop_bounding_box == other.crop_bounding_box and
-            self.rescale_cropped_image == other.rescale_cropped_image and
-            self.crop_bounding_box_dimension == other.crop_bounding_box_dimension
+            self.dimension == other.dimension
+            and self.cropped_bbox == other.cropped_bbox
+            and self.scaled_to_size == other.scaled_to_size
+            and self.crop_size == other.crop_size
+            and self.segmentator_model == other.segmentator_model
+            and self.segmentator_input_size == other.segmentator_input_size
+            and self.mask_threshold == other.mask_threshold
+            and self.cleaned_mask == other.cleaned_mask
+            and self.scale_masked_image == other.scale_masked_image
+            and self.crop_bounding_box == other.crop_bounding_box
+            and self.rescale_cropped_image == other.rescale_cropped_image
+            and self.crop_bounding_box_dimension == other.crop_bounding_box_dimension
         )
 
 
@@ -122,7 +129,7 @@ class DatasetMetadata:
     stop_timepoint: int
     slices: list[str]
     z_projection: Optional[str]
-    n_slices: int = field(init = False)
+    n_slices: int = field(init=False)
     class_balance: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -130,9 +137,7 @@ class DatasetMetadata:
         self.timepoints = list(range(self.start_timepoint, self.stop_timepoint + 1))
         self.calculate_n_classes_dict()
 
-    def add_readout(self,
-                    readout_name,
-                    readout_n_classes):
+    def add_readout(self, readout_name, readout_n_classes):
         self.readouts.append(readout_name)
         self.readouts_n_classes.append(readout_n_classes)
         self.calculate_n_classes_dict()
@@ -140,8 +145,7 @@ class DatasetMetadata:
     def calculate_n_classes_dict(self):
         self.n_classes_dict = {
             readout: n_class
-            for readout, n_class
-            in zip(self.readouts, self.readouts_n_classes)
+            for readout, n_class in zip(self.readouts, self.readouts_n_classes)
         }
 
     def calculate_start_and_stop_timepoint(self):
@@ -165,14 +169,15 @@ class DatasetMetadata:
         if not isinstance(other, DatasetMetadata):
             return NotImplemented
         return (
-            self.dataset_id == other.dataset_id and
-            self.experiment_dir == other.experiment_dir and
-            self.readouts == other.readouts and
-            self.start_timepoint == other.start_timepoint and
-            self.stop_timepoint == other.stop_timepoint and
-            self.slices == other.slices and
-            self.class_balance == other.class_balance
+            self.dataset_id == other.dataset_id
+            and self.experiment_dir == other.experiment_dir
+            and self.readouts == other.readouts
+            and self.start_timepoint == other.start_timepoint
+            and self.stop_timepoint == other.stop_timepoint
+            and self.slices == other.slices
+            and self.class_balance == other.class_balance
         )
+
 
 class ClassificationDataset(Dataset):
     def __init__(self, image_arr: np.ndarray, classes: np.ndarray, transforms):
@@ -180,36 +185,28 @@ class ClassificationDataset(Dataset):
         self.classes = classes
         self.transforms = transforms
         self.image_shape = image_arr.shape[2]
-    
+
     def __len__(self):
         return self.image_arr.shape[0]
-    
-    def __getitem__(self, idx):
 
+    def __getitem__(self, idx):
         image = self.image_arr[idx, :, :, :]
 
         if image.shape[0] == 1:
             binary_image = np.where(image > 0, 1, image)
-            kernel = np.ones((10,10), np.uint8)
+            kernel = np.ones((10, 10), np.uint8)
             label = skimage.measure.label(
                 binary_image.reshape(self.image_shape, self.image_shape)
             )
             assert isinstance(label, np.ndarray)
-            label = cv2.morphologyEx(
-                label.astype(np.uint8),
-                cv2.MORPH_CLOSE,
-                kernel
-            )
+            label = cv2.morphologyEx(label.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
             assert isinstance(label, np.ndarray)
 
-            zero_pixel_mask = np.expand_dims(
-                label,
-                axis = 0
-            )
+            zero_pixel_mask = np.expand_dims(label, axis=0)
 
             # Duplicate the single channel to create a 3-channel image
-            image_3ch = np.repeat(image, 3, axis = 0)
-            zero_pixel_mask = np.repeat(zero_pixel_mask, 3, axis = 0)
+            image_3ch = np.repeat(image, 3, axis=0)
+            zero_pixel_mask = np.repeat(zero_pixel_mask, 3, axis=0)
         else:
             image_3ch = image
 
@@ -231,33 +228,39 @@ class ClassificationDataset(Dataset):
 
         return (image, corr_class)
 
+
 class F1_Loss(nn.Module):
-    '''Calculate F1 score. Can work with gpu tensors
-    
+    """Calculate F1 score. Can work with gpu tensors
+
     The original implmentation is written by Michal Haltuf on Kaggle.
-    
+
     Returns
     -------
     torch.Tensor
         `ndim` == 1. epsilon <= val <= 1
-    
+
     Reference
     ---------
     - https://www.kaggle.com/rejpalcz/best-loss-function-for-f1-score-metric
     - https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score
     - https://discuss.pytorch.org/t/calculating-precision-recall-and-f1-score-in-case-of-multi-label-classification/28265/6
     - http://www.ryanzhang.info/python/writing-your-own-loss-function-module-for-pytorch/
-    '''
+    """
+
     def __init__(self, epsilon=1e-7):
         super().__init__()
         self.epsilon = epsilon
-        
-    def forward(self, y_pred, y_true,):
+
+    def forward(
+        self,
+        y_pred,
+        y_true,
+    ):
         assert y_pred.ndim == 2
         assert y_true.ndim == 1
         y_true = F.one_hot(y_true, 2).to(torch.float32)
         y_pred = F.softmax(y_pred, dim=1)
-        
+
         tp = (y_true * y_pred).sum(dim=0).to(torch.float32)
         tn = ((1 - y_true) * (1 - y_pred)).sum(dim=0).to(torch.float32)
         fp = ((1 - y_true) * y_pred).sum(dim=0).to(torch.float32)
@@ -266,36 +269,41 @@ class F1_Loss(nn.Module):
         precision = tp / (tp + fp + self.epsilon)
         recall = tp / (tp + fn + self.epsilon)
 
-        f1 = 2* (precision*recall) / (precision + recall + self.epsilon)
-        f1 = f1.clamp(min=self.epsilon, max=1-self.epsilon)
+        f1 = 2 * (precision * recall) / (precision + recall + self.epsilon)
+        f1 = f1.clamp(min=self.epsilon, max=1 - self.epsilon)
         return 1 - f1.mean()
 
-def find_ideal_learning_rate(model: nn.Module,
-                             criterion: nn.Module,
-                             optimizer: Optimizer,
-                             train_loader: DataLoader,
-                             start_lr: Optional[float] = None,
-                             end_lr: Optional[float] = None,
-                             num_iter: Optional[int] = None,
-                             n_tests: int = 5,
-                             return_dataframe: bool = False) -> Union[float, pd.DataFrame]:
+
+def find_ideal_learning_rate(
+    model: nn.Module,
+    criterion: nn.Module,
+    optimizer: Optimizer,
+    train_loader: DataLoader,
+    start_lr: Optional[float] = None,
+    end_lr: Optional[float] = None,
+    num_iter: Optional[int] = None,
+    n_tests: int = 5,
+    return_dataframe: bool = False,
+) -> Union[float, pd.DataFrame]:
     start_lr = start_lr or 1e-7
     end_lr = end_lr or 5e-2
     num_iter = num_iter or 500
     device = "cuda" if torch.cuda.is_available() else "cpu"
     full_data = pd.DataFrame()
     for i in range(n_tests):
-        lr_finder = LRFinder(model, optimizer, criterion, device = device)
-        lr_finder.range_test(train_loader, start_lr = start_lr, end_lr = end_lr, num_iter = num_iter)
+        lr_finder = LRFinder(model, optimizer, criterion, device=device)
+        lr_finder.range_test(
+            train_loader, start_lr=start_lr, end_lr=end_lr, num_iter=num_iter
+        )
         data = pd.DataFrame(lr_finder.history)
-        data = data.rename(columns = {"loss": f"run{i}"})
+        data = data.rename(columns={"loss": f"run{i}"})
         if i == 0:
             full_data = data
         else:
-            full_data = full_data.merge(data, on = "lr")
+            full_data = full_data.merge(data, on="lr")
 
         lr_finder.reset()
-    full_data["mean"] = full_data.groupby(["lr"]).mean().mean(axis = 1).tolist()
+    full_data["mean"] = full_data.groupby(["lr"]).mean().mean(axis=1).tolist()
     full_data["mean"] = _smooth_curve(full_data["mean"])
 
     if return_dataframe:
@@ -305,19 +313,20 @@ def find_ideal_learning_rate(model: nn.Module,
 
     # evaluation window is set to 1e-5 to 1e-2 for now
 
+
 def _calculate_ideal_learning_rate(df: pd.DataFrame):
-    
     lr_at_min_loss = df.loc[df["mean"] == df["mean"].min(), "lr"].iloc[0]
     window = df[df["lr"] <= lr_at_min_loss]
     window_start = window.index[0]
     inf_points = _calculate_inflection_points(window["mean"])
-    
+
     # we take the last one which should be closest to the minimum of the fitted function
     inf_point = inf_points[-1] + window_start
 
     ideal_learning_rate = df.iloc[inf_point]["lr"]
 
     return ideal_learning_rate
+
 
 def _smooth_curve(arr, degree: int = 5):
     x = np.arange(arr.shape[0])
@@ -328,81 +337,73 @@ def _smooth_curve(arr, degree: int = 5):
     polynomial = np.poly1d(coeff)
     return polynomial(x)
 
+
 def _calculate_inflection_points(y) -> np.ndarray:
     x = np.arange(y.shape[0])
-    dy_dx = np.gradient(y,x)
+    dy_dx = np.gradient(y, x)
     d2y_dx2 = np.gradient(dy_dx, x)
     inflection_points = np.where(np.diff(np.sign(d2y_dx2)))[0]
     return inflection_points
 
 
 def train_transformations(image_size: int = 224) -> A.Compose:
-    return A.Compose([
-        A.HorizontalFlip(p=0.5),  # Random horizontal flip
-        A.VerticalFlip(p=0.5),    # Random vertical flip
-        A.Rotate(limit=360, p=0.5),  # Random rotation by any angle between -45 and 45 degrees
-        A.ShiftScaleRotate(
-            shift_limit=0.0625,
-            scale_limit=0.2,
-            rotate_limit=0,  # Set rotate limit to 0 if using Rotate separately
-            mask_value = 0,
-            p=0.5
-        ),  # Shift and scale
-        A.RandomResizedCrop(
-            height=image_size,
-            width=image_size,
-            scale=(0.8, 1),
-            p=0.5
-        ),  # Resized crop
-        A.GridDistortion(
-            num_steps=5,
-            distort_limit=0.3,
-            mask_value = 0,
-            p=0.5
-        ),
-        A.Affine(
-            scale=1,
-            translate_percent=(-0.3, 0.3),
-            rotate=0,
-            shear=(-15, 15),
-            p=0.5
-        ),
-        A.ElasticTransform(
-            alpha=120,
-            sigma=120 * 0.05,
-            p=0.5,
-            approximate = True,
-            same_dxdy = True
-        ),
-        A.Perspective(scale=(0.05, 0.1), p=0.5),
-        # A.PiecewiseAffine(scale=(0.01, 0.05), p=0.5),
+    return A.Compose(
+        [
+            A.HorizontalFlip(p=0.5),  # Random horizontal flip
+            A.VerticalFlip(p=0.5),  # Random vertical flip
+            A.Rotate(
+                limit=360, p=0.5
+            ),  # Random rotation by any angle between -45 and 45 degrees
+            A.ShiftScaleRotate(
+                shift_limit=0.0625,
+                scale_limit=0.2,
+                rotate_limit=0,  # Set rotate limit to 0 if using Rotate separately
+                mask_value=0,
+                p=0.5,
+            ),  # Shift and scale
+            A.RandomResizedCrop(
+                height=image_size, width=image_size, scale=(0.8, 1), p=0.5
+            ),  # Resized crop
+            A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
+            A.Affine(
+                scale=1, translate_percent=(-0.3, 0.3), rotate=0, shear=(-15, 15), p=0.5
+            ),
+            A.ElasticTransform(
+                alpha=120, sigma=120 * 0.05, p=0.5, approximate=True, same_dxdy=True
+            ),
+            A.Perspective(scale=(0.05, 0.1), p=0.5),
+            # A.PiecewiseAffine(scale=(0.01, 0.05), p=0.5),
+            A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.3, alpha_coef=0.08, p=0.5),
+            A.RandomShadow(
+                shadow_roi=(0, 0.5, 1, 1),
+                num_shadows_lower=1,
+                num_shadows_upper=2,
+                shadow_dimension=8,
+                p=0.5,
+            ),
+            # Apply intensity modifications only to non-masked pixels
+            CustomIntensityAdjustment(p=0.5),
+            A.CoarseDropout(
+                max_holes=20, min_holes=10, max_height=12, max_width=12, p=0.5
+            ),
+            # Normalization
+            # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
+            NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            # Convert to PyTorch tensor
+            ToTensorV2(),
+        ],
+        additional_targets={"mask": "mask"},
+    )
 
-        A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.3, alpha_coef=0.08, p=0.5),
-        A.RandomShadow(
-            shadow_roi=(0, 0.5, 1, 1), num_shadows_lower=1, num_shadows_upper=2,
-            shadow_dimension=8, p=0.5
-        ),
-        # Apply intensity modifications only to non-masked pixels
-        CustomIntensityAdjustment(p=0.5),
-
-        A.CoarseDropout(
-            max_holes=20,
-            min_holes=10,
-            max_height=12,
-            max_width=12,
-            p=0.5
-        ),
-
-        # Normalization
-        # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1),
-        NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-
-        # Convert to PyTorch tensor
-        ToTensorV2()
-    ], additional_targets={'mask': 'mask'})
 
 class AugmentationScheduler:
-    def __init__(self, stage_epochs: dict, image_size: int = 224, mix_prob: float = 0.5, alpha: float = 1.0):
+    def __init__(
+        self,
+        stage_epochs: dict,
+        image_size: int = 224,
+        mix_prob: float = 0.5,
+        alpha: float = 1.0,
+    ):
         """
         Initialize the scheduler with augmentation stages and transition epochs.
 
@@ -421,94 +422,98 @@ class AugmentationScheduler:
         self.stages = {
             1: self._basic_augmentations(),
             2: self._intermediate_augmentations(),
-            3: self._full_augmentations()
+            3: self._full_augmentations(),
         }
 
     def _normalization(self):
         return NormalizeSegmented(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         # return A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value = 1)
 
-
     def _basic_augmentations(self):
         """Define basic augmentations."""
-        return A.Compose([
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.5),
-            A.RandomResizedCrop(
-                height=self.image_size,
-                width=self.image_size,
-                scale=(0.8, 1.0),
-                p=0.5
-            ),
-            self._normalization(),
-            ToTensorV2()
-        ], additional_targets={'mask': 'mask'})
+        return A.Compose(
+            [
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5),
+                A.RandomResizedCrop(
+                    height=self.image_size,
+                    width=self.image_size,
+                    scale=(0.8, 1.0),
+                    p=0.5,
+                ),
+                self._normalization(),
+                ToTensorV2(),
+            ],
+            additional_targets={"mask": "mask"},
+        )
 
     def _intermediate_augmentations(self):
         """Define intermediate augmentations."""
-        return A.Compose([
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.5),
-            A.Rotate(limit=360, p=0.5),
-            A.ShiftScaleRotate(
-                shift_limit=0.0625,
-                scale_limit=0.2,
-                rotate_limit=0,
-                mask_value=0,
-                p=0.5
-            ),
-            A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
-            A.Affine(
-                scale=1,
-                translate_percent=(-0.3, 0.3),
-                rotate=0,
-                shear=(-15, 15),
-                p=0.5
-            ),
-            self._normalization(),
-            ToTensorV2()
-        ], additional_targets={'mask': 'mask'})
+        return A.Compose(
+            [
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5),
+                A.Rotate(limit=360, p=0.5),
+                A.ShiftScaleRotate(
+                    shift_limit=0.0625,
+                    scale_limit=0.2,
+                    rotate_limit=0,
+                    mask_value=0,
+                    p=0.5,
+                ),
+                A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
+                A.Affine(
+                    scale=1,
+                    translate_percent=(-0.3, 0.3),
+                    rotate=0,
+                    shear=(-15, 15),
+                    p=0.5,
+                ),
+                self._normalization(),
+                ToTensorV2(),
+            ],
+            additional_targets={"mask": "mask"},
+        )
 
     def _full_augmentations(self):
         """Define full augmentations."""
-        return A.Compose([
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.5),
-            A.Rotate(limit=360, p=0.5),
-            A.ShiftScaleRotate(
-                shift_limit=0.0625,
-                scale_limit=0.2,
-                rotate_limit=0,
-                mask_value=0,
-                p=0.5
-            ),
-            A.RandomResizedCrop(
-                height=self.image_size,
-                width=self.image_size,
-                scale=(0.8, 1),
-                p=0.5
-            ),
-            A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
-            A.Affine(
-                scale=1,
-                translate_percent=(-0.3, 0.3),
-                rotate=0,
-                shear=(-15, 15),
-                p=0.5
-            ),
-
-            A.CoarseDropout(
-                max_holes=30,
-                min_holes=10,
-                max_height=12,
-                max_width=12,
-                fill_value = 0,
-                p=0.5
-            ),
-            CustomIntensityAdjustment(p=0.5),
-            self._normalization(),
-            ToTensorV2()
-        ], additional_targets={'mask': 'mask'})
+        return A.Compose(
+            [
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5),
+                A.Rotate(limit=360, p=0.5),
+                A.ShiftScaleRotate(
+                    shift_limit=0.0625,
+                    scale_limit=0.2,
+                    rotate_limit=0,
+                    mask_value=0,
+                    p=0.5,
+                ),
+                A.RandomResizedCrop(
+                    height=self.image_size, width=self.image_size, scale=(0.8, 1), p=0.5
+                ),
+                A.GridDistortion(num_steps=5, distort_limit=0.3, mask_value=0, p=0.5),
+                A.Affine(
+                    scale=1,
+                    translate_percent=(-0.3, 0.3),
+                    rotate=0,
+                    shear=(-15, 15),
+                    p=0.5,
+                ),
+                A.CoarseDropout(
+                    max_holes=30,
+                    min_holes=10,
+                    max_height=12,
+                    max_width=12,
+                    fill_value=0,
+                    p=0.5,
+                ),
+                CustomIntensityAdjustment(p=0.5),
+                self._normalization(),
+                ToTensorV2(),
+            ],
+            additional_targets={"mask": "mask"},
+        )
 
     def get_transforms(self, epoch):
         """
@@ -528,17 +533,16 @@ class AugmentationScheduler:
         else:
             transforms = self.stages[3]
 
-
         return transforms
 
     def apply_mix(self, data, targets, epoch):
         """
         Apply CutMix or MixUp augmentation dynamically or pass through.
-        
+
         Args:
             data (torch.Tensor): Batch of input images.
             targets (torch.Tensor): Batch of labels.
-        
+
         Returns:
             data (torch.Tensor): Augmented or original batch of input images.
             targets_a (torch.Tensor): Primary labels (original or mixed).
@@ -549,7 +553,7 @@ class AugmentationScheduler:
             augmentation_type = "none"
         else:
             augmentation_type = "mixup"
-            # augmentation_type = np.random.choice(["cutmix", "mixup", "none"], 
+            # augmentation_type = np.random.choice(["cutmix", "mixup", "none"],
             #                                      p=[self.mix_prob, self.mix_prob, 1 - 2 * self.mix_prob])
         if augmentation_type == "cutmix":
             return self.cutmix(data, targets)
@@ -565,7 +569,7 @@ class AugmentationScheduler:
         index = torch.randperm(batch_size)
 
         H, W = data.size(2), data.size(3)
-        cut_rat = np.sqrt(1. - lam)
+        cut_rat = np.sqrt(1.0 - lam)
         cut_w = int(W * cut_rat)
         cut_h = int(H * cut_rat)
 
@@ -598,6 +602,7 @@ class AugmentationScheduler:
         mixed_targets = lam * targets + (1 - lam) * targets[index, :]
         return mixed_data, mixed_targets
 
+
 def exclude_batchnorm_weight_decay(model, weight_decay=1e-3):
     decay = []
     no_decay = []
@@ -609,34 +614,36 @@ def exclude_batchnorm_weight_decay(model, weight_decay=1e-3):
         else:
             decay.append(param)
     return [
-        {'params': no_decay, 'weight_decay': 0.},
-        {'params': decay, 'weight_decay': weight_decay}
+        {"params": no_decay, "weight_decay": 0.0},
+        {"params": decay, "weight_decay": weight_decay},
     ]
 
-def create_dataset(img_array: np.ndarray,
-                   class_array: np.ndarray,
-                   transformations) -> ClassificationDataset:
+
+def create_dataset(
+    img_array: np.ndarray, class_array: np.ndarray, transformations
+) -> ClassificationDataset:
     return ClassificationDataset(img_array, class_array, transformations)
 
-def create_dataloader(img_array: np.ndarray,
-                      class_array: np.ndarray,
-                      batch_size: int,
-                      shuffle: bool,
-                      train: bool,
-                      transformations: Optional[A.Compose] = None,
-                      **kwargs) -> DataLoader:
+
+def create_dataloader(
+    img_array: np.ndarray,
+    class_array: np.ndarray,
+    batch_size: int,
+    shuffle: bool,
+    train: bool,
+    transformations: Optional[A.Compose] = None,
+    **kwargs,
+) -> DataLoader:
     if transformations is None:
         transformations = train_transformations() if train else val_transformations()
 
     dataset = create_dataset(img_array, class_array, transformations)
-    return DataLoader(dataset, batch_size = batch_size, shuffle = shuffle, **kwargs)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, **kwargs)
+
 
 def _get_model_from_enum(model_name: str):
-    return [
-        model for model
-        in SegmentatorModel
-        if model.value == model_name
-    ][0]
+    return [model for model in SegmentatorModel if model.value == model_name][0]
+
 
 class BaseSuccessiveHalving_TE(BaseSearchCV):
     """Implements successive halving.
@@ -737,7 +744,9 @@ class BaseSuccessiveHalving_TE(BaseSearchCV):
                 magic_factor = 2
                 self.min_resources_ = n_splits * magic_factor
                 if is_classifier(self.estimator):
-                    y = self._validate_data(X="no_validation", y=y, **{"multi_output": True})
+                    y = self._validate_data(
+                        X="no_validation", y=y, **{"multi_output": True}
+                    )
                     check_classification_targets(y)
                     n_classes = np.unique(y).shape[0]
                     self.min_resources_ *= n_classes
@@ -963,6 +972,7 @@ class BaseSuccessiveHalving_TE(BaseSearchCV):
             }
         )
         return tags
+
 
 class HalvingRandomSearchCV_TE(BaseSuccessiveHalving_TE):
     """Randomized search on hyper parameters.
@@ -1329,40 +1339,48 @@ class HalvingRandomSearchCV_TE(BaseSuccessiveHalving_TE):
         )
 
 
-def conduct_hyperparameter_search(pipeline,
-                                  grid: dict,
-                                  method: Literal["HalvingRandomSearchCV",
-                                                  "HalvingGridSearchCV",
-                                                  "RandomizedSearchCV",
-                                                  "GridSearchCV"],
-                                  X_train: np.ndarray,
-                                  y_train: np.ndarray,
-                                  group_kfold,
-                                  groups: list[str]) -> Union[RandomizedSearchCV, GridSearchCV]:
+def conduct_hyperparameter_search(
+    pipeline,
+    grid: dict,
+    method: Literal[
+        "HalvingRandomSearchCV",
+        "HalvingGridSearchCV",
+        "RandomizedSearchCV",
+        "GridSearchCV",
+    ],
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    group_kfold,
+    groups: list[str],
+) -> Union[RandomizedSearchCV, GridSearchCV]:
     n_jobs = 16
     if method == "RandomizedSearchCV":
         total_params = sum(len(grid[key]) for key in grid)
-        grid_result = RandomizedSearchCV(estimator = pipeline,
-                                         param_distributions = grid,
-                                         scoring = "f1_weighted",
-                                         n_iter = min(total_params, 20),
-                                         verbose = 3,
-                                         n_jobs = 8,
-                                         cv = 5,
-                                         error_score = 0.0,
-                                         random_state = 187).fit(X_train, y_train)
+        grid_result = RandomizedSearchCV(
+            estimator=pipeline,
+            param_distributions=grid,
+            scoring="f1_weighted",
+            n_iter=min(total_params, 20),
+            verbose=3,
+            n_jobs=8,
+            cv=5,
+            error_score=0.0,
+            random_state=187,
+        ).fit(X_train, y_train)
     elif method == "GridSearchCV":
-        grid_result = GridSearchCV(estimator = pipeline,
-                                   param_grid = grid,
-                                   scoring = "f1_weighted",
-                                   cv = 5,
-                                   n_jobs = 8,
-                                   verbose = 3,
-                                   error_score = 0.0).fit(X_train, y_train)
-        
+        grid_result = GridSearchCV(
+            estimator=pipeline,
+            param_grid=grid,
+            scoring="f1_weighted",
+            cv=5,
+            n_jobs=8,
+            verbose=3,
+            error_score=0.0,
+        ).fit(X_train, y_train)
+
     elif method == "HalvingGridSearchCV":
         raise NotImplementedError("Needs a seperate class")
-        #grid_result = HalvingGridSearchCV(estimator = model,
+        # grid_result = HalvingGridSearchCV(estimator = model,
         #                                  param_grid = grid,
         #                                  scoring = "f1_macro",
         #                                  factor = 3,
@@ -1375,29 +1393,30 @@ def conduct_hyperparameter_search(pipeline,
         #                                  random_state = 187).fit(X_train, y_train)
 
     elif method == "HalvingRandomSearchCV":
-        grid_result = HalvingRandomSearchCV_TE(estimator = pipeline,
-                                               param_distributions = grid,
-                                               scoring = "f1_weighted",
-                                               factor = 3,
-                                               resource = "n_samples",
-                                               min_resources = 1000,
-                                               cv = group_kfold,
-                                               n_jobs = n_jobs,
-                                               verbose = 3,
-                                               error_score = 0.0,
-                                               random_state = 187).fit(X_train, y_train, groups = groups)    
+        grid_result = HalvingRandomSearchCV_TE(
+            estimator=pipeline,
+            param_distributions=grid,
+            scoring="f1_weighted",
+            factor=3,
+            resource="n_samples",
+            min_resources=1000,
+            cv=group_kfold,
+            n_jobs=n_jobs,
+            verbose=3,
+            error_score=0.0,
+            random_state=187,
+        ).fit(X_train, y_train, groups=groups)
 
     return grid_result
 
 
-def _one_hot_encode_labels(labels_array: np.ndarray,
-                           readout: str) -> np.ndarray:
+def _one_hot_encode_labels(labels_array: np.ndarray, readout: str) -> np.ndarray:
     n_classes_dict = {
         "RPE_Final": 2,
         "Lens_Final": 2,
         "RPE_classes": 4,
         "Lens_classes": 4,
-        "morph_classes": 4
+        "morph_classes": 4,
     }
     n_classes = n_classes_dict[readout]
     n_appended = 0
@@ -1416,7 +1435,7 @@ def _one_hot_encode_labels(labels_array: np.ndarray,
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(labels_array)
     assert isinstance(integer_encoded, np.ndarray)
-    
+
     onehot_encoder = OneHotEncoder()
     integer_encoded = integer_encoded.reshape(-1, 1)
     classification = onehot_encoder.fit_transform(integer_encoded).toarray()
@@ -1426,16 +1445,20 @@ def _one_hot_encode_labels(labels_array: np.ndarray,
 
     return classification
 
-def _filter_wells(df: pd.DataFrame,
-                  combinations: np.ndarray,
-                  columns: list[str]):
+
+def _filter_wells(df: pd.DataFrame, combinations: np.ndarray, columns: list[str]):
     combinations_df = pd.DataFrame(combinations, columns=columns)
-    return df.merge(combinations_df, on=columns, how='inner')
+    return df.merge(combinations_df, on=columns, how="inner")
+
 
 def _apply_train_test_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     cols_to_match = ["experiment", "well"]
-    unique_well_per_exp = df[cols_to_match].drop_duplicates().reset_index(drop = True).to_numpy()
-    train_wells, test_wells = train_test_split(unique_well_per_exp, test_size = 0.1, random_state = 187)
+    unique_well_per_exp = (
+        df[cols_to_match].drop_duplicates().reset_index(drop=True).to_numpy()
+    )
+    train_wells, test_wells = train_test_split(
+        unique_well_per_exp, test_size=0.1, random_state=187
+    )
 
     assert isinstance(train_wells, np.ndarray)
     assert isinstance(test_wells, np.ndarray)
@@ -1445,15 +1468,14 @@ def _apply_train_test_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
 
     return train_df, test_df
 
-def _get_data_array(df: pd.DataFrame,
-                    data_columns: list[str],
-                    slice_col: str = "slice") -> np.ndarray:
 
+def _get_data_array(
+    df: pd.DataFrame, data_columns: list[str], slice_col: str = "slice"
+) -> np.ndarray:
     slice_order = np.sort(df[slice_col].unique())
 
     wide = (
-        df
-        .set_index(["experiment", "well", "loop", slice_col])[data_columns]
+        df.set_index(["experiment", "well", "loop", slice_col])[data_columns]
         .unstack(slice_col)
         .reindex(columns=pd.MultiIndex.from_product([data_columns, slice_order]))
         .fillna(0)
@@ -1461,41 +1483,35 @@ def _get_data_array(df: pd.DataFrame,
 
     return wide.to_numpy(copy=False)
 
-def _get_groups(df: pd.DataFrame,
-                data_columns: list[str],
-                slice_col: str = "slice") -> list[str]:
 
+def _get_groups(
+    df: pd.DataFrame, data_columns: list[str], slice_col: str = "slice"
+) -> list[str]:
     slice_order = np.sort(df[slice_col].unique())
 
     wide = (
-        df
-        .set_index(["experiment", "well", "loop", slice_col])[data_columns]
+        df.set_index(["experiment", "well", "loop", slice_col])[data_columns]
         .unstack(slice_col)
         .reindex(columns=pd.MultiIndex.from_product([data_columns, slice_order]))
         .fillna(0)
     )
 
-    return [
-        f"{experiment}_{well}"
-        for experiment, well, loop
-        in wide.index
-    ]
+    return [f"{experiment}_{well}" for experiment, well, loop in wide.index]
 
-def _get_labels_array(df: pd.DataFrame,
-                      readout: str,
-                      idx_cols: tuple = ("experiment", "well", "loop")) -> np.ndarray:
-    labels = (
-        df 
-        .drop_duplicates(subset=idx_cols, keep="first")[readout]
-        .to_numpy(copy=False)
+
+def _get_labels_array(
+    df: pd.DataFrame, readout: str, idx_cols: tuple = ("experiment", "well", "loop")
+) -> np.ndarray:
+    labels = df.drop_duplicates(subset=idx_cols, keep="first")[readout].to_numpy(
+        copy=False
     )
 
     return _one_hot_encode_labels(labels, readout=readout)
 
-def create_data_dfs(df: pd.DataFrame,
-                    experiment: str,
-                    data_columns: list[str],
-                    readout: str) -> tuple[pd.DataFrame, ...]:
+
+def create_data_dfs(
+    df: pd.DataFrame, experiment: str, data_columns: list[str], readout: str
+) -> tuple[pd.DataFrame, ...]:
     scaler = StandardScaler()
 
     non_val_df = df[df["experiment"] != experiment].copy()
@@ -1529,14 +1545,13 @@ def create_data_dfs(df: pd.DataFrame,
 
     return train_df, test_df, val_df
 
-def create_data_arrays(df: pd.DataFrame,
-                       experiment: str,
-                       data_columns: list[str],
-                       readout: str) -> tuple[np.ndarray, ...]:
-    train_df, test_df, val_df = create_data_dfs(df = df,
-                                                experiment = experiment,
-                                                data_columns = data_columns,
-                                                readout = readout)
+
+def create_data_arrays(
+    df: pd.DataFrame, experiment: str, data_columns: list[str], readout: str
+) -> tuple[np.ndarray, ...]:
+    train_df, test_df, val_df = create_data_dfs(
+        df=df, experiment=experiment, data_columns=data_columns, readout=readout
+    )
     X_train = _get_data_array(train_df, data_columns)
     y_train = _get_labels_array(train_df, readout)
 
@@ -1548,68 +1563,72 @@ def create_data_arrays(df: pd.DataFrame,
 
     return X_train, y_train, X_test, y_test, X_val, y_val
 
-def _run_classifier_fit_and_val(df: pd.DataFrame,
-                                experiment: str,
-                                data_columns: list[str],
-                                readout: str,
-                                clf,
-                                classifier_name: str,
-                                output_dir: str,
-                                score_key: str) -> None:
+
+def _run_classifier_fit_and_val(
+    df: pd.DataFrame,
+    experiment: str,
+    data_columns: list[str],
+    readout: str,
+    clf,
+    classifier_name: str,
+    output_dir: str,
+    score_key: str,
+) -> None:
     """Master function to run a classifier fit and validation"""
     X_train, y_train, X_test, y_test, X_val, y_val = create_data_arrays(
-        df = df,
-        experiment = experiment,
-        data_columns = data_columns,
-        readout = readout
+        df=df, experiment=experiment, data_columns=data_columns, readout=readout
     )
     start = time.time()
     clf.fit(X_train, y_train)
     train_time = time.time() - start
 
-    y_train_argmax = np.argmax(y_train, axis = 1)
-    y_test_argmax = np.argmax(y_test, axis = 1)
-    y_val_argmax = np.argmax(y_val, axis = 1)
-    
+    y_train_argmax = np.argmax(y_train, axis=1)
+    y_test_argmax = np.argmax(y_test, axis=1)
+    y_val_argmax = np.argmax(y_val, axis=1)
+
     start = time.time()
     pred_train = clf.predict(X_train)
-    pred_train_argmax = np.argmax(pred_train, axis = 1)
+    pred_train_argmax = np.argmax(pred_train, axis=1)
     pred_time_train = time.time() - start
 
     start = time.time()
     pred_test = clf.predict(X_test)
-    pred_test_argmax = np.argmax(pred_test, axis = 1)
+    pred_test_argmax = np.argmax(pred_test, axis=1)
     pred_time_test = time.time() - start
 
     start = time.time()
     pred_val = clf.predict(X_val)
-    pred_val_argmax = np.argmax(pred_val, axis = 1)
-    pred_time_val= time.time() - start
+    pred_val_argmax = np.argmax(pred_val, axis=1)
+    pred_time_val = time.time() - start
 
-    scores = score_classifier(true_arr = y_train_argmax,
-                              pred_arr = pred_train_argmax,
-                              readout = readout)
+    scores = score_classifier(
+        true_arr=y_train_argmax, pred_arr=pred_train_argmax, readout=readout
+    )
     score_string = ",".join(scores)
-    write_to_scores(f"{classifier_name},{readout},train,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                    output_dir = output_dir,
-                    key = score_key)
+    write_to_scores(
+        f"{classifier_name},{readout},train,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+        output_dir=output_dir,
+        key=score_key,
+    )
 
-    scores = score_classifier(true_arr = y_test_argmax,
-                              pred_arr = pred_test_argmax,
-                              readout = readout)
+    scores = score_classifier(
+        true_arr=y_test_argmax, pred_arr=pred_test_argmax, readout=readout
+    )
     score_string = ",".join(scores)
-    write_to_scores(f"{classifier_name},{readout},test,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                    output_dir = output_dir,
-                    key = score_key)
-    scores = score_classifier(true_arr = y_val_argmax,
-                              pred_arr = pred_val_argmax,
-                              readout = readout)
+    write_to_scores(
+        f"{classifier_name},{readout},test,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+        output_dir=output_dir,
+        key=score_key,
+    )
+    scores = score_classifier(
+        true_arr=y_val_argmax, pred_arr=pred_val_argmax, readout=readout
+    )
     score_string = ",".join(scores)
-    write_to_scores(f"{classifier_name},{readout},val,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
-                    output_dir = output_dir,
-                    key = score_key)
+    write_to_scores(
+        f"{classifier_name},{readout},val,{experiment},{train_time},{pred_time_train},{pred_time_test},{pred_time_val},{score_string}",
+        output_dir=output_dir,
+        key=score_key,
+    )
 
     del clf, X_train, X_test, X_val, y_train, y_test, y_val
     gc.collect()
-
-

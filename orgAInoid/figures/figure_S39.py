@@ -13,12 +13,14 @@ def _extract_loop_key(loop: int | str) -> str:
         return loop
     return f"LO{int(loop):03d}"
 
+
 def _make_gray(img):
     if img.ndim == 4:
         return np.mean(img[0], axis=0)
     if img.ndim == 3:
         return np.mean(img, axis=0)
     return img.squeeze()
+
 
 def _zscore_in_mask(arr: np.ndarray, mask2d: np.ndarray) -> np.ndarray:
     m = mask2d > 0
@@ -32,18 +34,18 @@ def _zscore_in_mask(arr: np.ndarray, mask2d: np.ndarray) -> np.ndarray:
     out = (arr.astype(np.float32) - mu) / sd
     return out
 
+
 def _effective_pixel_size_um(
-    original_px: int = 2048,
-    downscaled_px: int = 512,
-    original_nm_per_px: float = 650.0
+    original_px: int = 2048, downscaled_px: int = 512, original_nm_per_px: float = 650.0
 ) -> float:
     """
     Compute the microns-per-pixel after downscaling 2048->512 and then cropping.
     650 nm/px at 2048; after 4x downscale -> 2600 nm/px = 2.6 µm/px.
     """
     scale = original_px / float(downscaled_px)  # 4.0
-    nm_per_px = original_nm_per_px * scale      # 2600 nm
-    return nm_per_px / 1000.0                   # µm/px
+    nm_per_px = original_nm_per_px * scale  # 2600 nm
+    return nm_per_px / 1000.0  # µm/px
+
 
 def add_scalebar(
     ax,
@@ -52,7 +54,7 @@ def add_scalebar(
     bar_um: float = 100.0,
     thickness_px: int = 4,
     margin_px: int = 10,
-    label: str | None = None
+    label: str | None = None,
 ):
     """
     Draw a simple scalebar in bottom-right (two-layer bar for contrast).
@@ -62,15 +64,39 @@ def add_scalebar(
     x0 = W - margin_px - bar_px
     y0 = H - margin_px - thickness_px
 
-    ax.add_patch(Rectangle((x0-1, y0-1), bar_px+2, thickness_px+2,
-                           facecolor='black', edgecolor='none', zorder=5))
-    ax.add_patch(Rectangle((x0, y0), bar_px, thickness_px,
-                           facecolor='white', edgecolor='none', zorder=6))
+    ax.add_patch(
+        Rectangle(
+            (x0 - 1, y0 - 1),
+            bar_px + 2,
+            thickness_px + 2,
+            facecolor="black",
+            edgecolor="none",
+            zorder=5,
+        )
+    )
+    ax.add_patch(
+        Rectangle(
+            (x0, y0),
+            bar_px,
+            thickness_px,
+            facecolor="white",
+            edgecolor="none",
+            zorder=6,
+        )
+    )
     if label is None:
         label = f"{int(bar_um)} µm"
-    ax.text(x0 + bar_px/2, y0 - 4, label,
-            ha='center', va='bottom', fontsize=8, color='white',
-            path_effects=[], zorder=7)
+    ax.text(
+        x0 + bar_px / 2,
+        y0 - 4,
+        label,
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        color="white",
+        path_effects=[],
+        zorder=7,
+    )
 
 
 def visualize_models_at_loops(
@@ -93,7 +119,6 @@ def visualize_models_at_loops(
     draw_separators: bool = True,
     sep_kwargs: dict | None = None,
 ):
-
     if sep_kwargs is None:
         sep_kwargs = {"color": "black", "linewidth": 3.0, "alpha": 0.9}
 
@@ -130,10 +155,12 @@ def visualize_models_at_loops(
                     continue
                 common = probe if common is None else (common & probe)
             if not common:
-                raise ValueError("Could not find a common set of methods across the given models.")
+                raise ValueError(
+                    "Could not find a common set of methods across the given models."
+                )
             found_methods = sorted(list(common))
             ordered = [m for m in METHOD_ORDER if m in found_methods]
-            extras  = [m for m in found_methods if m not in ordered]
+            extras = [m for m in found_methods if m not in ordered]
             methods = ordered + sorted(extras)
 
         rows = []
@@ -152,19 +179,25 @@ def visualize_models_at_loops(
                     grp_model = grp_loop[mdl]
                     for m in methods:
                         if m in grp_model and "trained" in grp_model[m]:
-                            arr = grp_model[m]["trained"][...].squeeze().astype(np.float32)
+                            arr = (
+                                grp_model[m]["trained"][...]
+                                .squeeze()
+                                .astype(np.float32)
+                            )
                             if mask is not None:
                                 arr = _zscore_in_mask(arr, mask)
                             arr = np.clip(arr, -clip_sigma, clip_sigma)
                             maps[m] = arr
 
-                rows.append({
-                    "model": mdl,
-                    "loop": k,
-                    "img2d": img2d,
-                    "mask": mask,
-                    "maps": maps
-                })
+                rows.append(
+                    {
+                        "model": mdl,
+                        "loop": k,
+                        "img2d": img2d,
+                        "mask": mask,
+                        "maps": maps,
+                    }
+                )
 
     n_rows = len(rows)
     n_cols = (1 if include_input else 0) + len(methods)
@@ -196,11 +229,18 @@ def visualize_models_at_loops(
                 add_scalebar(ax0, img2d.shape, pixel_size_um, 100.0)
 
             tp_label = loop_row_labels.get(loop_key, loop_key)
-            ax0.text(-0.06, 0.5, tp_label, transform=ax0.transAxes,
-                     ha='right', va='center', fontsize=fontsize)
+            ax0.text(
+                -0.06,
+                0.5,
+                tp_label,
+                transform=ax0.transAxes,
+                ha="right",
+                va="center",
+                fontsize=fontsize,
+            )
 
             if r in model_block_starts:
-                ax0.set_title(model, fontsize=fontsize+2, pad=6)
+                ax0.set_title(model, fontsize=fontsize + 2, pad=6)
 
             ax0.axis("off")
             col += 1
@@ -230,15 +270,14 @@ def visualize_models_at_loops(
         cb = plt.colorbar(im_last, cax=cax)
         cb.set_label("z-scored saliency", fontsize=fontsize)
 
-    fig.suptitle(f"{experiment} | {well} | {readout}", y=0.995, fontsize=fontsize+1)
+    fig.suptitle(f"{experiment} | {well} | {readout}", y=0.995, fontsize=fontsize + 1)
     plt.tight_layout(rect=[0.01, 0.01, 0.90, 0.97])
 
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.pdf")
-    plt.savefig(output_dir, dpi =300, bbox_inches = "tight")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
 
-def figure_S39_generation(figure_output_dir,
-                          **kwargs):
+def figure_S39_generation(figure_output_dir, **kwargs):
     visualize_models_at_loops(
         h5_dir="../classification/saliencies/results/",
         readout="Lens_classes",
@@ -252,5 +291,5 @@ def figure_S39_generation(figure_output_dir,
         clip_sigma=3.0,
         include_input=True,
         figure_output_dir=figure_output_dir,
-        figure_name = "Supplementary_Figure_S39"
+        figure_name="Supplementary_Figure_S39",
     )

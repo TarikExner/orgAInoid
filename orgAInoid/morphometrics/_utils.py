@@ -9,7 +9,7 @@ EXTRA_PROPERTIES = [
     methods.integrated_density,
     methods.raw_integrated_density,
     methods.skewness,
-    methods.kurtosis
+    methods.kurtosis,
 ]
 
 PROPERTIES = [
@@ -40,17 +40,17 @@ PROPERTIES = [
     "intensity_mean",
     "intensity_min",
     "intensity_std",
-    "moments", # array
-    "moments_central", # array
-    "moments_hu", # array
-    "moments_normalized", # array
-    "moments_weighted", # array
-    "moments_weighted_central", # array
-    "moments_weighted_hu", # tuple
-    "moments_weighted_normalized", # array
+    "moments",  # array
+    "moments_central",  # array
+    "moments_hu",  # array
+    "moments_normalized",  # array
+    "moments_weighted",  # array
+    "moments_weighted_central",  # array
+    "moments_weighted_hu",  # tuple
+    "moments_weighted_normalized",  # array
     "num_pixels",
     "orientation",
     "perimeter",
     "perimeter_crofton",
-    "solidity"
+    "solidity",
 ]
