@@ -237,7 +237,7 @@ def visualize_models_at_loops(
     plt.savefig(output_dir, dpi =300, bbox_inches = "tight")
 
 
-def figure_S36_generation(figure_output_dir,
+def figure_S39_generation(figure_output_dir,
                           **kwargs):
     visualize_models_at_loops(
         h5_dir="../classification/saliencies/results/",

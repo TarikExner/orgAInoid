@@ -1,4 +1,3 @@
-
 import os
 import h5py
 import numpy as np
@@ -238,7 +237,7 @@ def visualize_models_at_loops(
     plt.savefig(output_dir, dpi =300, bbox_inches = "tight")
 
 
-def figure_S36_generation(figure_output_dir,
+def figure_S38_generation(figure_output_dir,
                           **kwargs):
     visualize_models_at_loops(
         h5_dir="../classification/saliencies/results/",
