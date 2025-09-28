@@ -31,6 +31,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
         readout = "RPE emergence"
 
         data = rpe_sal.copy()
+        data = data[data["time"] != 1].copy()
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
@@ -102,6 +103,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
         readout = "Lens emergence"
 
         data = lens_sal.copy()
+        data = data[data["time"] != 1].copy()
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
@@ -175,6 +177,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
         readout = "RPE area"
 
         data = rpe_classes_sal.copy()
+        data = data[data["time"] != 1].copy()
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
@@ -249,6 +252,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
         readout = "Lens sizes"
 
         data = lens_classes_sal.copy()
+        data = data[data["time"] != 1].copy()
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
