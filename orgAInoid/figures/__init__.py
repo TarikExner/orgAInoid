@@ -22,6 +22,13 @@ from .figure_S8 import figure_S8_generation
 # from .figure_S9 import figure_S9_generation
 from .figure_S10 import figure_S10_generation
 
+from .figure_S15 import figure_S15_generation
+from .figure_S16 import figure_S16_generation
+from .figure_S17 import figure_S17_generation
+from .figure_S18 import figure_S18_generation
+from .figure_S19 import figure_S19_generation
+from .figure_S20 import figure_S20_generation
+from .figure_S21 import figure_S21_generation
 from .figure_S22 import figure_S22_generation
 from .figure_S23 import figure_S23_generation
 from .figure_S24 import figure_S24_generation
@@ -63,6 +70,15 @@ __all__ = [
     "figure_S9_generation",
     "figure_S10_generation",
 
+    "figure_S14_generation",
+    "figure_S15_generation",
+    "figure_S16_generation",
+    "figure_S17_generation",
+    "figure_S18_generation",
+    "figure_S19_generation",
+    "figure_S20_generation",
+    "figure_S21_generation",
+    "figure_S22_generation",
     "figure_S23_generation",
     "figure_S24_generation",
     "figure_S25_generation",
@@ -176,6 +192,13 @@ def generate_final_figures():
     # figure_S9_generation(**DIRECTORIES)
     figure_S10_generation(**DIRECTORIES)
 
+    figure_S15_generation(**DIRECTORIES)
+    figure_S16_generation(**DIRECTORIES)
+    figure_S17_generation(**DIRECTORIES)
+    figure_S18_generation(**DIRECTORIES)
+    figure_S19_generation(**DIRECTORIES)
+    figure_S20_generation(**DIRECTORIES)
+    figure_S21_generation(**DIRECTORIES)
     figure_S22_generation(**DIRECTORIES)
     figure_S23_generation(**DIRECTORIES)
     figure_S24_generation(**DIRECTORIES)
