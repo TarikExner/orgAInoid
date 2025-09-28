@@ -21,6 +21,11 @@ from .figure_S8 import figure_S8_generation
 from .figure_S9 import figure_S9_generation
 from .figure_S10 import figure_S10_generation
 
+from .figure_S26 import figure_S26_generation
+from .figure_S27 import figure_S27_generation
+from .figure_S28 import figure_S28_generation
+from .figure_S29 import figure_S29_generation
+from .figure_S30 import figure_S30_generation
 from .figure_S31 import figure_S31_generation
 from .figure_S32 import figure_S32_generation
 from .figure_S33 import figure_S33_generation
@@ -53,6 +58,11 @@ __all__ = [
     "figure_S9_generation",
     "figure_S10_generation",
 
+    "figure_S26_generation",
+    "figure_S27_generation",
+    "figure_S28_generation",
+    "figure_S29_generation",
+    "figure_S30_generation",
     "figure_S31_generation",
     "figure_S32_generation",
     "figure_S33_generation",

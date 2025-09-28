@@ -327,26 +327,99 @@ def dice_to_peak_timeseries(consensus_by_time: Dict[int, np.ndarray], mask2d: np
     return pd.DataFrame(rows)
 
 
-def entropy_and_drift(consensus_by_time: Dict[int, np.ndarray], mask2d: np.ndarray) -> pd.DataFrame:
+def entropy_and_drift(consensus_by_time: dict[int, np.ndarray],
+                      mask2d: np.ndarray,
+                      mode: str | None = None,   # None (original), or 'quantile' | 'top_pct' | 'abs'
+                      q: float = 0.9,            # for mode='quantile'
+                      top_pct: float = 5.0,      # for mode='top_pct' (percent of pixels)
+                      abs_value: float = 0.0,    # for mode='abs'
+                      binarize: bool = False     # if True: entropy over binary suprathreshold area
+                      ) -> pd.DataFrame:
+    """
+    Drop-in replacement for your original entropy_and_drift.
+
+    Default (mode=None) replicates the original behavior:
+      - Entropy of the full |map| distribution inside mask.
+      - Drift = CoM movement across time.
+
+    If mode is set ('quantile'/'top_pct'/'abs'), entropy and CoM are computed
+    on *suprathreshold* values only. If binarize=True, suprathreshold pixels
+    are treated as 1's (area-entropy); otherwise use their weights (weighted-entropy).
+    """
+    def _threshold_mask(vals: np.ndarray) -> np.ndarray:
+        if vals.size == 0:
+            return np.zeros_like(vals, dtype=bool)
+        if mode == "quantile":
+            thr = np.quantile(vals, q)
+            return vals >= thr
+        elif mode == "top_pct":
+            k = max(1, int(np.ceil(vals.size * (top_pct / 100.0))))
+            thr = np.partition(vals, -k)[-k]
+            return vals >= thr
+        elif mode == "abs":
+            return vals >= abs_value
+        else:
+            # no thresholding
+            return np.ones_like(vals, dtype=bool)
+
     rows = []
     com_prev = None
+    organoid = mask2d > 0
+
     for t in sorted(consensus_by_time.keys()):
-        cmap = np.abs(consensus_by_time[t])
-        m = mask2d > 0
-        vals = cmap[m].astype(np.float64)
-        if vals.size == 0:
-            ent = 0.0
-            com = (np.nan, np.nan)
+        amap = np.abs(consensus_by_time[t]).astype(np.float64)
+
+        # original path (no thresholding)
+        if mode is None:
+            m = organoid
+            vals = amap[m]
+            if vals.size == 0:
+                ent = 0.0
+                com = (np.nan, np.nan)
+            else:
+                p = vals / (vals.sum() + 1e-12)
+                ent = float(-(p * (np.log(p + 1e-12))).sum())
+
+                grid = np.zeros_like(amap, dtype=np.float64)
+                grid[m] = vals
+                com = center_of_mass(grid)
         else:
-            p = vals / (vals.sum() + 1e-12)
-            ent = float(-(p * (np.log(p + 1e-12))).sum())
-            # center of mass in (row, col)
-            grid = np.zeros_like(cmap, dtype=np.float64)
-            grid[m] = vals
-            com = center_of_mass(grid)
-        drift = float(np.linalg.norm(np.array(com) - np.array(com_prev))) if (com_prev is not None and not np.any(np.isnan(com))) else 0.0
+            # thresholded path
+            vals = amap[organoid]
+            if vals.size == 0:
+                ent = 0.0
+                com = (np.nan, np.nan)
+            else:
+                keep = _threshold_mask(vals)
+                if keep.sum() == 0:
+                    ent = 0.0
+                    com = (np.nan, np.nan)
+                else:
+                    # entropy on suprathreshold values (weighted or binary)
+                    use_vals = (vals[keep] > 0).astype(np.float64) if binarize else vals[keep].astype(np.float64)
+                    s = use_vals.sum()
+                    if s <= 0:
+                        ent = 0.0
+                    else:
+                        p = use_vals / (s + 1e-12)
+                        ent = float(-(p * (np.log(p + 1e-12))).sum())
+
+                    # CoM on a 2D suprathreshold field
+                    grid = np.zeros_like(amap, dtype=np.float64)
+                    flat_idx = np.where(organoid.ravel())[0]
+                    active = np.zeros_like(flat_idx, dtype=np.float64)
+                    active_vals = (vals > 0).astype(np.float64) if binarize else vals
+                    active[keep] = active_vals[keep]
+                    grid.ravel()[flat_idx] = active
+                    com = center_of_mass(grid) if grid.sum() > 0 else (np.nan, np.nan)
+
+        drift = float(np.linalg.norm(np.array(com) - np.array(com_prev))) if (
+            com_prev is not None and not np.any(np.isnan(com))
+        ) else 0.0
+
         rows.append({"time": t, "entropy": ent, "drift": drift})
         com_prev = com
+
     return pd.DataFrame(rows)
 
 def build_consensus(norm_maps: Dict[str, np.ndarray], mask2d: np.ndarray, weights: Dict[str, float] | None = None) -> np.ndarray:
@@ -522,7 +595,7 @@ def _worker_process_file(h5_path: str,
             for (_model, _method), series_dict in mm_series.items():
                 if not series_dict:
                     continue
-                ed_mm = entropy_and_drift(series_dict, mask_for_series)  # expects {loop: map}
+                ed_mm = entropy_and_drift(series_dict, mask_for_series, mode = "top_pct", top_pct = 10.0)  # expects {loop: map}
                 ed_mm["experiment"] = exp
                 ed_mm["well"] = well_key
                 ed_mm["model"] = _model
