@@ -39,6 +39,7 @@ from .figure_S31 import figure_S31_generation
 from .figure_S32 import figure_S32_generation
 from .figure_S33 import figure_S33_generation
 from .figure_S34 import figure_S34_generation
+from .figure_S35 import figure_S35_generation
 
 from .supp_file_S1 import supplementary_file_S1_generation
 
@@ -87,11 +88,12 @@ __all__ = [
     "figure_S27_generation",
     "figure_S28_generation",
     "figure_S29_generation",
-    "figure_S30_generation",
+    # "figure_S30_generation",
     "figure_S31_generation",
     "figure_S32_generation",
     "figure_S33_generation",
     "figure_S34_generation",
+    "figure_S35_generation",
 
     "supplementary_file_S1_generation"
 ]
@@ -153,20 +155,6 @@ DESCRIPTIONS = {
 
         
 }
-# Reviewer_Figure_1: figure_2.py
-# Reviewer_Figure_2: figure_2_reviewer
-
-# Reviewer_Figure_3: figure_3_reviewer
-# Reviewer_Figure_4: figure_3_reviewer
-
-# Reviewer_Figure_5: figure_S3_reviewer
-# Reviewer_Figure_6: figure_S3_reviewer
-
-# Reviewer_Figure_7: figure_3_reviewer_morph_classes
-# Reviewer_Figure_8: figure_3_external_experiment
-
-# Reviewer_Figure_9: figure_S7_reviewer
-# Reviewer_Figure_10: figure_S7_reviewer
 
 def generate_final_figures():
     figure_1_generation(**DIRECTORIES)
@@ -209,6 +197,7 @@ def generate_final_figures():
     figure_S32_generation(**DIRECTORIES)
     figure_S33_generation(**DIRECTORIES)
     figure_S34_generation(**DIRECTORIES)
+    figure_S35_generation(**DIRECTORIES)
 
     supplementary_file_S1_generation(**DIRECTORIES)
 

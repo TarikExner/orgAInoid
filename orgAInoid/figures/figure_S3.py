@@ -221,10 +221,10 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
 
     return
 
-def figure_2_reviewer_generation(morphometrics_dir: str,
-                                 figure_data_dir: str,
-                                 figure_output_dir: str,
-                                 **kwargs):
+def figure_S3_generation(morphometrics_dir: str,
+                         figure_data_dir: str,
+                         figure_output_dir: str,
+                         **kwargs):
 
     morphometrics = get_morphometrics_frame(morphometrics_dir)
     data_columns = get_data_columns_morphometrics(morphometrics)

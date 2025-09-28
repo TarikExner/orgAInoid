@@ -339,7 +339,7 @@ def _generate_main_figure(rpe_sal: pd.DataFrame,
 
     return
 
-def figure_S33_generation(sketch_dir: str,
+def figure_S35_generation(sketch_dir: str,
                           figure_output_dir: str,
                           saliency_input_dir: str,
                           raw_data_dir: str,
