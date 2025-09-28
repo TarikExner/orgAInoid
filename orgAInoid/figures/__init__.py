@@ -2,26 +2,23 @@ from .figure_1 import figure_1_generation
 from .figure_2 import figure_2_generation
 from .figure_2_reviewer import figure_2_reviewer_generation
 from .figure_3 import figure_3_generation
-from .figure_3_reviewer import figure_3_reviewer_generation
-# from .figure_3_reviewer_morph_classes import figure_3_reviewer_morph_classes_generation
-
-from .figure_3_external_experiment import figure_3_reviewer_external_experiment_generation
 from .figure_4 import figure_4_generation
 from .figure_5 import figure_5_generation
 
 from .figure_S1 import figure_S1_generation
 from .figure_S2 import figure_S2_generation
 from .figure_S3 import figure_S3_generation
-from .figure_S3_reviewer import figure_S3_reviewer_generation
 from .figure_S4 import figure_S4_generation
 from .figure_S5 import figure_S5_generation
 from .figure_S6 import figure_S6_generation
 from .figure_S7 import figure_S7_generation
-from .figure_S7_reviewer import figure_S7_reviewer_generation
 from .figure_S8 import figure_S8_generation
-# from .figure_S9 import figure_S9_generation
+from .figure_S9 import figure_S9_generation
 from .figure_S10 import figure_S10_generation
-
+from .figure_S11 import figure_S11_generation
+from .figure_S12 import figure_S12_generation
+from .figure_S13 import figure_S13_generation
+from .figure_S14 import figure_S14_generation
 from .figure_S15 import figure_S15_generation
 from .figure_S16 import figure_S16_generation
 from .figure_S17 import figure_S17_generation
@@ -70,6 +67,10 @@ __all__ = [
     "figure_S9_generation",
     "figure_S10_generation",
 
+
+    "figure_S11_generation",
+    "figure_S12_generation",
+    "figure_S13_generation",
     "figure_S14_generation",
     "figure_S15_generation",
     "figure_S16_generation",
@@ -174,13 +175,6 @@ def generate_final_figures():
     figure_4_generation(**DIRECTORIES)
     figure_5_generation(**DIRECTORIES)
 
-    figure_2_reviewer_generation(**DIRECTORIES)
-    figure_3_reviewer_generation(**DIRECTORIES)
-    # figure_3_reviewer_morph_classes_generation(**DIRECTORIES)
-    figure_3_reviewer_external_experiment_generation(**DIRECTORIES)
-    figure_S3_reviewer_generation(**DIRECTORIES)
-    figure_S7_reviewer_generation(**DIRECTORIES)
-
     figure_S1_generation(**DIRECTORIES)
     figure_S2_generation(**DIRECTORIES)
     figure_S3_generation(**DIRECTORIES)
@@ -189,9 +183,12 @@ def generate_final_figures():
     figure_S6_generation(**DIRECTORIES)
     figure_S7_generation(**DIRECTORIES)
     figure_S8_generation(**DIRECTORIES)
-    # figure_S9_generation(**DIRECTORIES)
+    figure_S9_generation(**DIRECTORIES)
     figure_S10_generation(**DIRECTORIES)
-
+    figure_S11_generation(**DIRECTORIES)
+    figure_S12_generation(**DIRECTORIES)
+    figure_S13_generation(**DIRECTORIES)
+    figure_S14_generation(**DIRECTORIES)
     figure_S15_generation(**DIRECTORIES)
     figure_S16_generation(**DIRECTORIES)
     figure_S17_generation(**DIRECTORIES)

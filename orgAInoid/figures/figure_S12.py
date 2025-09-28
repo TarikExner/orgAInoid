@@ -14,12 +14,13 @@ from . import figure_utils as utils
 from .figure_data_generation import (get_classification_f1_data,
                                      create_confusion_matrix_frame)
 
+
 def _generate_main_figure(rpe_f1_data: pd.DataFrame,
                           lens_f1_data: pd.DataFrame,
-                          rpe_clf_test_cm: pd.DataFrame,
-                          rpe_clf_val_cm: pd.DataFrame,
-                          lens_clf_test_cm: pd.DataFrame,
-                          lens_clf_val_cm: pd.DataFrame,
+                          rpe_cnn_test_cm: pd.DataFrame,
+                          rpe_cnn_val_cm: pd.DataFrame,
+                          lens_cnn_test_cm: pd.DataFrame,
+                          lens_cnn_val_cm: pd.DataFrame,
                           figure_output_dir: str,
                           figure_name: str):
 
@@ -37,18 +38,10 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,2)
 
         accuracy_plot_test = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(
-            data = data[data["classifier"] == "Morphometrics_test"],
-            x = "hours",
-            y = "F1",
-            hue = "experiment",
-            ax = accuracy_plot_test,
-            errorbar = "se",
-            palette = cfg.EXPERIMENT_LEGEND_CMAP
-        )
+        sns.lineplot(data = data[data["classifier"] == "Ensemble_test"], x = "hours", y = "F1", hue = "experiment", ax = accuracy_plot_test, errorbar = "se", palette = cfg.EXPERIMENT_LEGEND_CMAP)
         accuracy_plot_test.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot_test.text(x = 40, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-        accuracy_plot_test.set_title("Prediction accuracy: Emergence of RPE\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_test.set_title("Prediction accuracy: Emergence of RPE\nin validation organoids by deep learning", fontsize = cfg.TITLE_SIZE)
         accuracy_plot_test.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot_test.set_ylim(-0.1, 1.1)
         accuracy_plot_test.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -56,18 +49,10 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         accuracy_plot_test.legend().remove()
 
         accuracy_plot_val = fig.add_subplot(fig_sgs[1])
-        sns.lineplot(
-            data = data[data["classifier"] == "Morphometrics_val"],
-            x = "hours",
-            y = "F1",
-            hue = "experiment",
-            ax = accuracy_plot_val,
-            errorbar = "se",
-            palette = "tab20"
-        )
+        sns.lineplot(data = data[data["classifier"] == "Ensemble_val"], x = "hours", y = "F1", hue = "experiment", ax = accuracy_plot_val, errorbar = "se", palette = "tab20")
         accuracy_plot_val.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot_val.text(x = 40, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-        accuracy_plot_val.set_title("Prediction accuracy: Emergence of RPE\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_val.set_title("Prediction accuracy: Emergence of RPE\nin test organoids by deep learning", fontsize = cfg.TITLE_SIZE)
         accuracy_plot_val.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot_val.set_ylim(-0.1, 1.1)
         accuracy_plot_val.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -83,8 +68,8 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
-        test_data = rpe_clf_test_cm
-        val_data = rpe_clf_val_cm
+        test_data = rpe_cnn_test_cm
+        val_data = rpe_cnn_val_cm
 
         colors = cfg.CONF_MATRIX_COLORS
         
@@ -115,7 +100,7 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         test_conf_matrix.set_ylim(0, 100)
         test_conf_matrix.set_xlim(0, 72)
         test_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
-        test_conf_matrix.set_title("Confusion matrix: Emergence of RPE\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        test_conf_matrix.set_title("Confusion matrix: Emergence of RPE\nin validation organoids by deep learning", fontsize = cfg.TITLE_SIZE)
 
         val_conf_matrix = fig.add_subplot(fig_sgs[1])
         cumulative_base = np.zeros_like(val_data.values)
@@ -142,7 +127,7 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         val_conf_matrix.set_ylim(0, 100)
         val_conf_matrix.set_xlim(0, 72)
         val_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
-        val_conf_matrix.set_title("Confusion matrix: Emergence of RPE\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        val_conf_matrix.set_title("Confusion matrix: Emergence of RPE\nin test organoids by deep learning", fontsize = cfg.TITLE_SIZE)
 
         return
 
@@ -160,10 +145,10 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,2)
 
         accuracy_plot_test = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(data = data[data["classifier"] == "Morphometrics_test"], x = "hours", y = "F1", hue = "experiment", ax = accuracy_plot_test, errorbar = "se", palette = cfg.EXPERIMENT_LEGEND_CMAP)
+        sns.lineplot(data = data[data["classifier"] == "Ensemble_test"], x = "hours", y = "F1", hue = "experiment", ax = accuracy_plot_test, errorbar = "se", palette = cfg.EXPERIMENT_LEGEND_CMAP)
         accuracy_plot_test.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot_test.text(x = 40, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-        accuracy_plot_test.set_title("Prediction accuracy: Emergence of lenses\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_test.set_title("Prediction accuracy: Emergence of lenses\nin validation organoids by deep learning", fontsize = cfg.TITLE_SIZE)
         accuracy_plot_test.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot_test.set_ylim(-0.1, 1.1)
         accuracy_plot_test.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -171,10 +156,10 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         accuracy_plot_test.legend().remove()
 
         accuracy_plot_val = fig.add_subplot(fig_sgs[1])
-        sns.lineplot(data = data[data["classifier"] == "Morphometrics_val"], x = "hours", y = "F1", hue = "experiment", ax = accuracy_plot_val, errorbar = "se", palette = "tab20")
+        sns.lineplot(data = data[data["classifier"] == "Ensemble_val"], x = "hours", y = "F1", hue = "experiment", ax = accuracy_plot_val, errorbar = "se", palette = "tab20")
         accuracy_plot_val.axhline(y = 0.5, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot_val.text(x = 40, y = 0.52, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
-        accuracy_plot_val.set_title("Prediction accuracy: Emergence of lenses\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        accuracy_plot_val.set_title("Prediction accuracy: Emergence of lenses\nin test organoids by deep learning", fontsize = cfg.TITLE_SIZE)
         accuracy_plot_val.set_ylabel("F1 score", fontsize = cfg.AXIS_LABEL_SIZE)
         accuracy_plot_val.set_ylim(-0.1, 1.1)
         accuracy_plot_val.tick_params(**cfg.TICKPARAMS_PARAMS)
@@ -190,8 +175,8 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.4)
 
-        test_data = lens_clf_test_cm
-        val_data = lens_clf_val_cm
+        test_data = lens_cnn_test_cm
+        val_data = lens_cnn_val_cm
 
         colors = cfg.CONF_MATRIX_COLORS
         
@@ -222,7 +207,7 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         test_conf_matrix.set_ylim(0, 100)
         test_conf_matrix.set_xlim(0, 72)
         test_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
-        test_conf_matrix.set_title("Confusion matrix: Emergence of lenses\nin validation organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        test_conf_matrix.set_title("Confusion matrix: Emergence of lenses\nin validation organoids by deep learning", fontsize = cfg.TITLE_SIZE)
 
         val_conf_matrix = fig.add_subplot(fig_sgs[1])
         cumulative_base = np.zeros_like(val_data.values)
@@ -249,7 +234,7 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
         val_conf_matrix.set_ylim(0, 100)
         val_conf_matrix.set_xlim(0, 72)
         val_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
-        val_conf_matrix.set_title("Confusion matrix: Emergence of lenses\nin test organoids by morphometrics", fontsize = cfg.TITLE_SIZE)
+        val_conf_matrix.set_title("Confusion matrix: Emergence of lenses\nin test organoids by deep learning", fontsize = cfg.TITLE_SIZE)
 
         return
 
@@ -282,77 +267,75 @@ def _generate_main_figure(rpe_f1_data: pd.DataFrame,
 
     return
 
-
-def figure_S9_generation(sketch_dir: str,
-                         figure_output_dir: str,
-                         raw_data_dir: str,
-                         morphometrics_dir: str,
-                         hyperparameter_dir: str,
-                         rpe_classification_dir: str,
-                         lens_classification_dir: str,
-                         rpe_baseline_dir: str,
-                         lens_baseline_dir: str,
-                         figure_data_dir: str,
-                         evaluator_results_dir: str,
-                         **kwargs) -> None:
-
+def figure_S12_generation(sketch_dir: str,
+                          figure_output_dir: str,
+                          raw_data_dir: str,
+                          morphometrics_dir: str,
+                          hyperparameter_dir: str,
+                          rpe_classification_dir: str,
+                          lens_classification_dir: str,
+                          rpe_baseline_dir: str,
+                          lens_baseline_dir: str,
+                          figure_data_dir: str,
+                          evaluator_results_dir: str,
+                          **kwargs) -> None:
 
     rpe_final_f1s = get_classification_f1_data(
         readout = "RPE_Final",
         output_dir = figure_data_dir,
-        proj = "sum",
+        proj = "",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = rpe_classification_dir,
-        baseline_dir = None,
+        baseline_dir = rpe_baseline_dir,
         morphometrics_dir = morphometrics_dir,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
-    rpe_clf_test_cm = create_confusion_matrix_frame(readout = "RPE_Final",
-                                                    classifier = "classifier",
+    rpe_cnn_test_cm = create_confusion_matrix_frame(readout = "RPE_Final",
+                                                    classifier = "neural_net",
                                                     eval_set = "test",
-                                                    proj = "sum",
+                                                    proj = "",
                                                     figure_data_dir = figure_data_dir,
                                                     morphometrics_dir = morphometrics_dir)
-    rpe_clf_val_cm = create_confusion_matrix_frame(readout = "RPE_Final",
-                                                    classifier = "classifier",
+    rpe_cnn_val_cm = create_confusion_matrix_frame(readout = "RPE_Final",
+                                                    classifier = "neural_net",
                                                     eval_set = "val",
-                                                    proj = "sum",
+                                                    proj = "",
                                                     figure_data_dir = figure_data_dir,
                                                     morphometrics_dir = morphometrics_dir)
 
     lens_final_f1s = get_classification_f1_data(
         readout = "Lens_Final",
         output_dir = figure_data_dir,
-        proj = "sum",
+        proj = "",
         hyperparameter_dir = hyperparameter_dir,
         classification_dir = lens_classification_dir,
-        baseline_dir = None,
+        baseline_dir = lens_baseline_dir,
         morphometrics_dir = morphometrics_dir,
         raw_data_dir = raw_data_dir,
         evaluator_results_dir = evaluator_results_dir
     )
 
-    lens_clf_test_cm = create_confusion_matrix_frame(readout = "Lens_Final",
-                                                     classifier = "classifier",
+    lens_cnn_test_cm = create_confusion_matrix_frame(readout = "Lens_Final",
+                                                     classifier = "neural_net",
                                                      eval_set = "test",
-                                                     proj = "sum",
+                                                     proj = "",
                                                      figure_data_dir = figure_data_dir,
                                                      morphometrics_dir = morphometrics_dir)
-    lens_clf_val_cm = create_confusion_matrix_frame(readout = "Lens_Final",
-                                                    classifier = "classifier",
+    lens_cnn_val_cm = create_confusion_matrix_frame(readout = "Lens_Final",
+                                                    classifier = "neural_net",
                                                     eval_set = "val",
-                                                    proj = "sum",
+                                                    proj = "",
                                                     figure_data_dir = figure_data_dir,
                                                     morphometrics_dir = morphometrics_dir)
 
     _generate_main_figure(rpe_f1_data = rpe_final_f1s,
                           lens_f1_data = lens_final_f1s,
-                          rpe_clf_test_cm = rpe_clf_test_cm,
-                          rpe_clf_val_cm = rpe_clf_val_cm,
-                          lens_clf_test_cm = lens_clf_test_cm,
-                          lens_clf_val_cm = lens_clf_val_cm,
+                          rpe_cnn_test_cm = rpe_cnn_test_cm,
+                          rpe_cnn_val_cm = rpe_cnn_val_cm,
+                          lens_cnn_test_cm = lens_cnn_test_cm,
+                          lens_cnn_val_cm = lens_cnn_val_cm,
                           figure_output_dir = figure_output_dir,
-                          figure_name = "Supplementary_Figure_S9")
+                          figure_name = "Supplementary_Figure_S12")
 
 
