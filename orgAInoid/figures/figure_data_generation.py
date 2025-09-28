@@ -433,7 +433,7 @@ def get_ground_truth_annotations(morphometrics_dir: str = "",
                                  output_dir: str = "./figure_data",
                                  output_filename: str = "human_ground_truth_annotations") -> pd.DataFrame:
     
-    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    output_file = os.path.join(output_dir, f"{output_filename}_{n_timeframes}.csv")
     existing_file = check_for_file(output_file)
     if existing_file is not None:
         return existing_file
