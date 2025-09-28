@@ -39,6 +39,10 @@ from .figure_S32 import figure_S32_generation
 from .figure_S33 import figure_S33_generation
 from .figure_S34 import figure_S34_generation
 from .figure_S35 import figure_S35_generation
+from .figure_S36 import figure_S36_generation
+from .figure_S37 import figure_S37_generation
+from .figure_S38 import figure_S38_generation
+from .figure_S39 import figure_S39_generation
 
 from .supp_file_S1 import supplementary_file_S1_generation
 
@@ -84,6 +88,10 @@ __all__ = [
     "figure_S33_generation",
     "figure_S34_generation",
     "figure_S35_generation",
+    "figure_S36_generation",
+    "figure_S37_generation",
+    "figure_S38_generation",
+    "figure_S39_generation",
 
     "supplementary_file_S1_generation"
 ]
@@ -188,6 +196,10 @@ def generate_final_figures():
     figure_S33_generation(**DIRECTORIES)
     figure_S34_generation(**DIRECTORIES)
     figure_S35_generation(**DIRECTORIES)
+    figure_S36_generation(**DIRECTORIES)
+    figure_S37_generation(**DIRECTORIES)
+    figure_S38_generation(**DIRECTORIES)
+    figure_S39_generation(**DIRECTORIES)
 
     supplementary_file_S1_generation(**DIRECTORIES)
 

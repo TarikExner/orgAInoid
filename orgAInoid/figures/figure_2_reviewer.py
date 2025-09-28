@@ -34,26 +34,10 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
                              gs: SubplotSpec,
                              subfigure_label) -> None:
 
-        sns.violinplot
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x = -0.45)
 
         fig_sgs = gs.subgridspec(1,1)
-        data = jaccard_tsne_pca.copy()
-        data["hours"] = data["loop"] / 2
-        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("experiment", ascending = True)
-        data["experiment"] = data["experiment"].astype("category")
-
-        fig_sgs = gs.subgridspec(1,1)
-        distance_plot = fig.add_subplot(fig_sgs[0])
-        
-        sns.lineplot(data = data, x = "hours", y = "mean_jaccard", hue = "experiment", ax = distance_plot, palette = "tab20")
-        distance_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        distance_plot.set_xlabel('hours', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.set_ylabel('jaccard score', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
-        distance_plot.set_title("Jaccard scores of 30 neighbors in TSNE space vs. 30 neighbors in PCA space (euclidean distance)", fontsize = cfg.TITLE_SIZE)
         return
 
     def generate_subfigure_b(fig: Figure,
@@ -64,21 +48,6 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.45)
 
         fig_sgs = gs.subgridspec(1,1)
-        data = jaccard_tsne_raw.copy()
-        data["hours"] = data["loop"] / 2
-        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("experiment", ascending = True)
-        data["experiment"] = data["experiment"].astype("category")
-
-        fig_sgs = gs.subgridspec(1,1)
-        distance_plot = fig.add_subplot(fig_sgs[0])
-        
-        sns.lineplot(data = data, x = "hours", y = "mean_jaccard", hue = "experiment", ax = distance_plot, palette = "tab20")
-        distance_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        distance_plot.set_xlabel('hours', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.set_ylabel('jaccard score', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
-        distance_plot.set_title("Jaccard scores of 30 neighbors in TSNE space vs. 30 neighbors in raw data space (euclidean distance)", fontsize = cfg.TITLE_SIZE)
         return
 
     def generate_subfigure_c(fig: Figure,
@@ -89,22 +58,6 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.45)
 
         fig_sgs = gs.subgridspec(1,1)
-        data = jaccard_umap_pca.copy()
-        data["hours"] = data["loop"] / 2
-        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("experiment", ascending = True)
-        data["experiment"] = data["experiment"].astype("category")
-
-        fig_sgs = gs.subgridspec(1,1)
-        distance_plot = fig.add_subplot(fig_sgs[0])
-        
-        sns.lineplot(data = data, x = "hours", y = "mean_jaccard", hue = "experiment", ax = distance_plot, palette = "tab20")
-        distance_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        distance_plot.set_xlabel('hours', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.set_ylabel('jaccard score', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
-        distance_plot.set_title("Jaccard scores of 30 neighbors in UMAP space vs. 30 neighbors in PCA space (euclidean distance)", fontsize = cfg.TITLE_SIZE)
-
         return
 
     def generate_subfigure_d(fig: Figure,
@@ -115,76 +68,8 @@ def _generate_main_figure(jaccard_tsne_pca: pd.DataFrame,
         utils._figure_label(ax, subfigure_label, x = -0.45)
 
         fig_sgs = gs.subgridspec(1,1)
-        data = jaccard_umap_raw.copy()
-        data["hours"] = data["loop"] / 2
-        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("experiment", ascending = True)
-        data["experiment"] = data["experiment"].astype("category")
-
-        fig_sgs = gs.subgridspec(1,1)
-        distance_plot = fig.add_subplot(fig_sgs[0])
-        
-        sns.lineplot(data = data, x = "hours", y = "mean_jaccard", hue = "experiment", ax = distance_plot, palette = "tab20")
-        distance_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        distance_plot.set_xlabel('hours', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.set_ylabel('jaccard score', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
-        distance_plot.set_title("Jaccard scores of 30 neighbors in UMAP space vs. 30 neighbors in raw_data space (euclidean distance)", fontsize = cfg.TITLE_SIZE)
-
         return
 
-    def generate_subfigure_e(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
-        ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.45)
-
-        fig_sgs = gs.subgridspec(1,1)
-        data = well_enrichment_pca.copy()
-        data["hours"] = data["loop"] / 2
-        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("experiment", ascending = True)
-        data["experiment"] = data["experiment"].astype("category")
-
-        fig_sgs = gs.subgridspec(1,1)
-        distance_plot = fig.add_subplot(fig_sgs[0])
-        
-        sns.lineplot(data = data, x = "hours", y = "obs_frac", hue = "experiment", ax = distance_plot, palette = "tab20")
-        distance_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        distance_plot.set_xlabel('hours', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.set_ylabel('fraction', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
-        distance_plot.set_title("Fraction of 30 nearest neighbors (pca space)\nwithin the same organoid", fontsize = cfg.TITLE_SIZE)
-
-        return    
-    
-    def generate_subfigure_f(fig: Figure,
-                             ax: Axes,
-                             gs: SubplotSpec,
-                             subfigure_label) -> None:
-        ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x = -0.45)
-
-        fig_sgs = gs.subgridspec(1,1)
-        data = well_enrichment_raw.copy()
-        data["hours"] = data["loop"] / 2
-        data["experiment"] = data["experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("experiment", ascending = True)
-        data["experiment"] = data["experiment"].astype("category")
-
-        fig_sgs = gs.subgridspec(1,1)
-        distance_plot = fig.add_subplot(fig_sgs[0])
-        
-        sns.lineplot(data = data, x = "hours", y = "obs_frac", hue = "experiment", ax = distance_plot, palette = "tab20")
-        distance_plot.legend(bbox_to_anchor = (1.01, 0.5), loc = "center left", fontsize = cfg.AXIS_LABEL_SIZE, ncols = 2)
-        distance_plot.set_xlabel('hours', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.set_ylabel('fraction', fontsize = cfg.AXIS_LABEL_SIZE)
-        distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
-        distance_plot.set_title("Fraction of 30 nearest neighbors (raw data space)\nwithin the same organoid", fontsize = cfg.TITLE_SIZE)
-
-        return
-    
     fig = plt.figure(layout = "constrained",
                      figsize = (cfg.FIGURE_WIDTH_FULL, cfg.FIGURE_HEIGHT_FULL))
     gs = GridSpec(ncols = 6,
