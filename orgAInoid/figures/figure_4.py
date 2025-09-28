@@ -55,10 +55,6 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         # white bar
         ax.add_patch(Rectangle((x0, y0), bar_px, thickness_px,
                                facecolor='white', edgecolor='none', zorder=6))
-        if label is None:
-            label = f"{int(bar_um)} µm"
-        ax.text(x0 + bar_px/2, y0 - 4, label,
-                ha='center', va='bottom', fontsize=label_fontsize, color='white', zorder=7)
 
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
