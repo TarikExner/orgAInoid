@@ -1,6 +1,5 @@
 from .figure_1 import figure_1_generation
 from .figure_2 import figure_2_generation
-from .figure_2_reviewer import figure_2_reviewer_generation
 from .figure_3 import figure_3_generation
 from .figure_4 import figure_4_generation
 from .figure_5 import figure_5_generation
@@ -50,13 +49,6 @@ __all__ = [
     "figure_4_generation",
     "figure_5_generation",
 
-    "figure_2_reviewer_generation",
-    "figure_3_reviewer_generation",
-    "figure_S3_reviewer_generation",
-    "figure_3_reviewer_morph_classes_generation",
-    "figure_3_reviewer_external_experiment_generation",
-    "figure_S7_reviewer_generation",
-
     "figure_S1_generation",
     "figure_S2_generation",
     "figure_S3_generation",
@@ -67,8 +59,6 @@ __all__ = [
     "figure_S8_generation",
     "figure_S9_generation",
     "figure_S10_generation",
-
-
     "figure_S11_generation",
     "figure_S12_generation",
     "figure_S13_generation",
