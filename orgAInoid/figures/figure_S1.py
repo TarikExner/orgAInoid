@@ -352,9 +352,10 @@ def figure_S1_generation(annotations_dir: str,
 
     human_evaluator_f1 = human_f1_per_evaluator(evaluator_results_dir = evaluator_results_dir,
                                                 morphometrics_dir = morphometrics_dir,
+                                                n_timeframes = 12,
                                                 average = "weighted",
                                                 output_dir = figure_data_dir)
-    human_evaluator_f1 = add_loop_from_timeframe(human_evaluator_f1)
+    human_evaluator_f1 = add_loop_from_timeframe(human_evaluator_f1, n_timeframes = 12)
 
     conf_matrix = human_f1_RPE_visibility_conf_matrix(evaluator_results_dir = evaluator_results_dir,
                                                       morphometrics_dir = morphometrics_dir,

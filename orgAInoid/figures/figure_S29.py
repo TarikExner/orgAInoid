@@ -261,5 +261,5 @@ def figure_S29_generation(sketch_dir: str,
                           lens_classes_val = f1d_lens_classes_val,
                           figure_output_dir = figure_output_dir,
                           classifier = "CLF",
-                          figure_name = "Supplementary_Figure_29")
+                          figure_name = "Supplementary_Figure_S29")
 

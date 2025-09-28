@@ -491,18 +491,20 @@ def create_human_ground_truth_comparison(evaluator_results_dir: str,
 def human_f1_per_evaluator(evaluator_results_dir: str,
                            morphometrics_dir: str,
                            average: str = "weighted",
+                           n_timeframes = 12,
                            output_dir: str = "./figure_data",
                            output_filename: str = "human_f1_per_evaluator") -> pd.DataFrame:
     """
     Weighted F1 scores per timeframe and evaluator for all human_eval_ columns.
     """
-    output_file = os.path.join(output_dir, f"{output_filename}.csv")
+    output_file = os.path.join(output_dir, f"{output_filename}_{n_timeframes}.csv")
     existing_file = check_for_file(output_file)
     if existing_file is not None:
         return existing_file
 
     df = create_human_ground_truth_comparison(evaluator_results_dir,
                                               morphometrics_dir,
+                                              n_timeframes = n_timeframes,
                                               output_dir = output_dir)
     f1_frame = f1_scores(df,
                          group_keys=["timeframe", "Evaluator_ID"],

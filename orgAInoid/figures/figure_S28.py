@@ -262,6 +262,6 @@ def figure_S28_generation(sketch_dir: str,
                           lens_classes_val = f1d_lens_classes_val,
                           figure_output_dir = figure_output_dir,
                           classifier = "CNN",
-                          figure_name = "Supplementary_Figure_28")
+                          figure_name = "Supplementary_Figure_S28")
 
 
