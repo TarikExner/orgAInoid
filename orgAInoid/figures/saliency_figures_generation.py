@@ -376,7 +376,8 @@ def _worker_process_file(h5_path: str,
                          n_segments: int,
                          compactness: float,
                          topk_pct: float,
-                         series_peak_loop: int | None):
+                         series_peak_loop: int | None,
+                         baseline: bool = False):
     """Runs all metrics for one H5 file. Returns plain Python data (lists/dfs)."""
     # Containers for this file
     method_pairs_rows = []
@@ -434,7 +435,10 @@ def _worker_process_file(h5_path: str,
                     gmodel = grp_loop[model]
                     model_maps = {}
                     for fn in gmodel.keys():
-                        atr = gmodel[fn]["trained"][...].squeeze().astype(np.float32)
+                        if not baseline:
+                            atr = gmodel[fn]["trained"][...].squeeze().astype(np.float32)
+                        else:
+                            atr = gmodel[fn]["baseline"][...].squeeze().astype(np.float32)
                         atr = zscore_in_mask(atr, mask2d)
                         model_maps[fn] = atr
                         maps_per_method.setdefault(fn, []).append(atr)
@@ -647,6 +651,7 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
                                    compactness: float = 0.01,
                                    topk_pct: float = 5.0,
                                    max_workers: int = 6,
+                                   baseline: bool = False,
                                    **kwargs) -> None:
     """Parallel version: one process per H5 file."""
 
@@ -722,37 +727,39 @@ def run_saliency_analysis_parallel(saliency_input_dir: str,
     # save
     os.makedirs(os.path.join(figure_data_dir, "metrics"), exist_ok=True)
 
+    baseline_flag = "" if not baseline else "_baseline"
+
     if all_method_pairs:
         all_method_pairs_df = pd.DataFrame(all_method_pairs)
         all_method_pairs_df = attach_readout_metadata(all_method_pairs_df, metadata, readout_col = readout)
         all_method_pairs_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"agreement_method_pairwise_{readout}.csv"),
+            os.path.join(figure_data_dir, "metrics", f"agreement_method_pairwise_{readout}{baseline_flag}.csv"),
             index=False,
         )
     if all_cross_model:
         all_cross_model_df = pd.DataFrame(all_cross_model)
         all_cross_model_df = attach_readout_metadata(all_cross_model_df, metadata, readout_col = readout)
         all_cross_model_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"cross_model_correlation_{readout}.csv"),
+            os.path.join(figure_data_dir, "metrics", f"cross_model_correlation_{readout}{baseline_flag}.csv"),
             index=False,
         )
     if not votes_df.empty:
         votes_df = attach_readout_metadata(votes_df, metadata, readout_col = readout)
         votes_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"region_votes_summary_{readout}.csv"),
+            os.path.join(figure_data_dir, "metrics", f"region_votes_summary_{readout}{baseline_flag}.csv"),
             index=False,
         )
     if all_d2p:
         all_d2p_df = pd.DataFrame(all_d2p)
         all_d2p_df = attach_readout_metadata(all_d2p_df, metadata, readout_col = readout)
         all_d2p_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"dice_to_peak_timeseries_{readout}.csv"),
+            os.path.join(figure_data_dir, "metrics", f"dice_to_peak_timeseries_{readout}{baseline_flag}.csv"),
             index=False,
         )
     if not ed_df.empty:
         ed_df = attach_readout_metadata(ed_df, metadata, readout_col = readout)
         ed_df.to_csv(
-            os.path.join(figure_data_dir, "metrics", f"entropy_drift_timeseries_{readout}.csv"),
+            os.path.join(figure_data_dir, "metrics", f"entropy_drift_timeseries_{readout}{baseline_flag}.csv"),
             index=False,
         )
 
@@ -780,11 +787,13 @@ def get_saliency_results(result: SaliencyResults,
                          compactness: float = 0.01,
                          topk_pct: float = 5.0,
                          max_workers: int = 6,
+                         baseline: bool = False,
                          **kwargs) -> Optional[pd.DataFrame]:
     saliency_kwargs = locals()
     saliency_kwargs.pop("result")
     output_dir = os.path.join(figure_data_dir, "metrics")
-    output_filename = f"{result}_{readout}"
+    baseline_flag = "" if not baseline else "_baseline"
+    output_filename = f"{result}_{readout}{baseline_flag}"
     output_file = os.path.join(output_dir, f"{output_filename}.csv")
 
     existing_file = check_for_file(output_file)
@@ -798,17 +807,4 @@ def get_saliency_results(result: SaliencyResults,
         return existing_file
 
     raise ValueError("This shouldnt happen!")
-
-    
-
-
-
-
-
-
-
-
-
-
-
 
