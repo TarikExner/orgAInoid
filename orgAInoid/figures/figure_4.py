@@ -21,6 +21,44 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
                           figure_output_dir: str = "",
                           sketch_dir: str = "",
                           figure_name: str = ""):
+    def _effective_pixel_size_um(
+        original_px: int = 2048,
+        downscaled_px: int = 512,
+        original_nm_per_px: float = 650.0
+    ) -> float:
+        """
+        650 nm/px at 2048 -> downscale 2048->512 (4x): 2600 nm/px = 2.6 µm/px.
+        Cropping does not change pixel size.
+        """
+        scale = original_px / float(downscaled_px)   # 4.0
+        nm_per_px = original_nm_per_px * scale       # 2600 nm
+        return nm_per_px / 1000.0                    # 2.6 µm/px
+
+    def _add_scalebar(ax: Axes,
+                      img_shape: tuple[int, int],
+                      pixel_size_um: float,
+                      bar_um: float = 100.0,
+                      thickness_px: int = 4,
+                      margin_px: int = 8,
+                      label: str | None = None,
+                      label_fontsize: int = 8) -> None:
+        from matplotlib.patches import Rectangle
+
+        H, W = img_shape[-2], img_shape[-1]
+        bar_px = max(1, int(round(bar_um / pixel_size_um)))
+        x0 = W - margin_px - bar_px
+        y0 = H - margin_px - thickness_px
+
+        # black halo
+        ax.add_patch(Rectangle((x0-1, y0-1), bar_px+2, thickness_px+2,
+                               facecolor='black', edgecolor='none', zorder=5))
+        # white bar
+        ax.add_patch(Rectangle((x0, y0), bar_px, thickness_px,
+                               facecolor='white', edgecolor='none', zorder=6))
+        if label is None:
+            label = f"{int(bar_um)} µm"
+        ax.text(x0 + bar_px/2, y0 - 4, label,
+                ha='center', va='bottom', fontsize=label_fontsize, color='white', zorder=7)
 
     def generate_subfigure_a(fig: Figure,
                              ax: Axes,
@@ -41,7 +79,8 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(data = data, x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
+        sns.lineplot(data = data[~data["classifier"].str.contains("Baseline")], x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
+        sns.lineplot(data = data[data["classifier"].str.contains("Baseline")], x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = None)
 
         accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot.text(x = 60, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
@@ -108,7 +147,9 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         fig_sgs = gs.subgridspec(1,1)
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(data = data, x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
+        sns.lineplot(data = data[~data["classifier"].str.contains("Baseline")], x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = "se")
+        sns.lineplot(data = data[data["classifier"].str.contains("Baseline")], x = "hours", y = "F1", hue = "classifier", ax = accuracy_plot, errorbar = None)
+
 
         accuracy_plot.axhline(y = 0.25, xmin = 0.03, xmax = 0.97, linestyle = "--", color = "black")
         accuracy_plot.text(x = 60, y = 0.27, s = "Random Prediction", fontsize = cfg.TITLE_SIZE, color = "black")
@@ -180,26 +221,31 @@ def _generate_main_figure(rpe_classes_f1: pd.DataFrame,
         loops_to_show = [0,1,2]
         loop_idxs = [0, 30, 143]
 
+        pixel_size_um = _effective_pixel_size_um()  # 2.6 µm/px
+
         for loop in loops_to_show:
             img_plot = fig.add_subplot(fig_sgs[loop, 1])
-            img_plot.imshow(images[loop_idxs[loop]], cmap = "Greys_r")
+            img = images[loop_idxs[loop]]
+            img_plot.imshow(img, cmap = "Greys_r")
             img_plot.set_ylabel(f"hours: {int(np.ceil(loop_idxs[loop]/2))}", fontsize = cfg.TITLE_SIZE, labelpad = 0)
-            
+
+            _add_scalebar(img_plot, img.shape, pixel_size_um=pixel_size_um, bar_um=100.0)
+
             rpe_attr_plot = fig.add_subplot(fig_sgs[loop, 2])
             rpe_attr_plot.imshow(
                 _clip_to_percentile(rpe_attr[loop_idxs[loop]]), cmap = "hot"
             )
-            
+
             lens_attr_plot = fig.add_subplot(fig_sgs[loop, 3])
             lens_attr_plot.imshow(
                 _clip_to_percentile(lens_attr[loop_idxs[loop]]), cmap = "hot"
             )
-            
+
             rpe_classes_attr_plot = fig.add_subplot(fig_sgs[loop, 4])
             rpe_classes_attr_plot.imshow(
                 _clip_to_percentile(rpe_classes_attr[loop_idxs[loop]]), cmap = "hot"
             )
-            
+
             lens_classes_attr_plot = fig.add_subplot(fig_sgs[loop, 5])
             lens_classes_attr_plot.imshow(
                 _clip_to_percentile(lens_classes_attr[loop_idxs[loop]]), cmap = "hot"
