@@ -48,7 +48,10 @@ def _generate_main_figure(
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
         sns.lineplot(
-            data=data[~data["classifier"].str.contains("Baseline")],
+            data=data[
+                (~data["classifier"].str.contains("Baseline")) &
+                (data["classifier"] != "human")
+            ],
             x="hours",
             y="F1",
             hue="classifier",
@@ -56,7 +59,10 @@ def _generate_main_figure(
             errorbar="se",
         )
         sns.lineplot(
-            data=data[data["classifier"].str.contains("Baseline")],
+            data=data[
+                (data["classifier"].str.contains("Baseline")) &
+                (data["classifier"] == "human")
+            ],
             x="hours",
             y="F1",
             hue="classifier",
@@ -140,7 +146,10 @@ def _generate_main_figure(
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
         sns.lineplot(
-            data=data[~data["classifier"].str.contains("Baseline")],
+            data=data[
+                (~data["classifier"].str.contains("Baseline")) &
+                (data["classifier"] != "human")
+            ],
             x="hours",
             y="F1",
             hue="classifier",
@@ -148,13 +157,17 @@ def _generate_main_figure(
             errorbar="se",
         )
         sns.lineplot(
-            data=data[data["classifier"].str.contains("Baseline")],
+            data=data[
+                (data["classifier"].str.contains("Baseline")) &
+                (data["classifier"] == "human")
+            ],
             x="hours",
             y="F1",
             hue="classifier",
             ax=accuracy_plot,
             errorbar=None,
         )
+
 
         accuracy_plot.axhline(
             y=0.25, xmin=0.03, xmax=0.97, linestyle="--", color="black"
@@ -208,14 +221,6 @@ def _generate_main_figure(
         accuracy_plot.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
         accuracy_plot.yaxis.set_major_locator(MultipleLocator(0.1))
         return
-
-    def _crop_array(arr):
-        return arr[:, 40:180, 40:180]
-
-    def _clip_to_percentile(arr, lower: float = 0.05, upper: float = 0.995):
-        lower_q = np.quantile(arr, lower)
-        upper_q = np.quantile(arr, upper)
-        return np.clip(arr, lower_q, upper_q)
 
     def generate_subfigure_c(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label

@@ -62,7 +62,10 @@ def _generate_main_figure(
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
         sns.lineplot(
-            data=data[~data["classifier"].str.contains("Baseline")],
+            data=data[
+                (~data["classifier"].str.contains("Baseline")) &
+                (data["classifier"] != "human")
+            ],
             x="hours",
             y="F1",
             hue="classifier",
@@ -70,7 +73,10 @@ def _generate_main_figure(
             errorbar="se",
         )
         sns.lineplot(
-            data=data[data["classifier"].str.contains("Baseline")],
+            data=data[
+                (data["classifier"].str.contains("Baseline")) &
+                (data["classifier"] == "human")
+            ],
             x="hours",
             y="F1",
             hue="classifier",
@@ -156,7 +162,10 @@ def _generate_main_figure(
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
         sns.lineplot(
-            data=data[~data["classifier"].str.contains("Baseline")],
+            data=data[
+                (~data["classifier"].str.contains("Baseline")) &
+                (data["classifier"] != "human")
+            ],
             x="hours",
             y="F1",
             hue="classifier",
@@ -164,7 +173,10 @@ def _generate_main_figure(
             errorbar="se",
         )
         sns.lineplot(
-            data=data[data["classifier"].str.contains("Baseline")],
+            data=data[
+                (data["classifier"].str.contains("Baseline")) &
+                (data["classifier"] == "human")
+            ],
             x="hours",
             y="F1",
             hue="classifier",
