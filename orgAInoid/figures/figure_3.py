@@ -74,7 +74,7 @@ def _generate_main_figure(
         )
         sns.lineplot(
             data=data[
-                (data["classifier"].str.contains("Baseline")) &
+                (data["classifier"].str.contains("Baseline")) |
                 (data["classifier"] == "human")
             ],
             x="hours",
@@ -174,7 +174,7 @@ def _generate_main_figure(
         )
         sns.lineplot(
             data=data[
-                (data["classifier"].str.contains("Baseline")) &
+                (data["classifier"].str.contains("Baseline")) |
                 (data["classifier"] == "human")
             ],
             x="hours",
