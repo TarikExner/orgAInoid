@@ -341,7 +341,7 @@ def figure_4_generation(
         raw_data_dir=raw_data_dir,
         evaluator_results_dir=evaluator_results_dir,
     )
-    morph_classes_normal, _, _ = _generate_classification_results(
+    morph_classes_f1, _, _ = _generate_classification_results(
         readout="morph_classes",
         output_dir=figure_data_dir,
         proj="",
