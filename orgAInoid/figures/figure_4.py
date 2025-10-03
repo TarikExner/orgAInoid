@@ -47,6 +47,10 @@ def _generate_main_figure(
         fig_sgs = gs.subgridspec(1, 1)
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
+
+        unique_classifiers = data["classifier"].unique()
+        palette = sns.color_palette("tab10", n_colors=len(unique_classifiers))
+        palette_dict = dict(zip(unique_classifiers, palette))
         sns.lineplot(
             data=data[
                 (~data["classifier"].str.contains("Baseline")) &
@@ -57,6 +61,7 @@ def _generate_main_figure(
             hue="classifier",
             ax=accuracy_plot,
             errorbar="se",
+            palette=palette_dict
         )
         sns.lineplot(
             data=data[
@@ -68,6 +73,7 @@ def _generate_main_figure(
             hue="classifier",
             ax=accuracy_plot,
             errorbar=None,
+            palette=palette_dict
         )
 
         accuracy_plot.axhline(
@@ -145,6 +151,9 @@ def _generate_main_figure(
         fig_sgs = gs.subgridspec(1, 1)
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
+        unique_classifiers = data["classifier"].unique()
+        palette = sns.color_palette("tab10", n_colors=len(unique_classifiers))
+        palette_dict = dict(zip(unique_classifiers, palette))
         sns.lineplot(
             data=data[
                 (~data["classifier"].str.contains("Baseline")) &
@@ -155,6 +164,7 @@ def _generate_main_figure(
             hue="classifier",
             ax=accuracy_plot,
             errorbar="se",
+            palette=palette_dict
         )
         sns.lineplot(
             data=data[
@@ -166,6 +176,7 @@ def _generate_main_figure(
             hue="classifier",
             ax=accuracy_plot,
             errorbar=None,
+            palette=palette_dict
         )
 
 
