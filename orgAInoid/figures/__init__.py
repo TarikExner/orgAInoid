@@ -31,10 +31,9 @@ from .figure_S24 import figure_S24_generation
 from .figure_S25 import figure_S25_generation
 from .figure_S26 import figure_S26_generation
 from .figure_S27 import figure_S27_generation
-from .figure_S28 import figure_S28_generation
+# from .figure_S28 import figure_S28_generation
 from .figure_S29 import figure_S29_generation
-
-# from .figure_S30 import figure_S30_generation
+from .figure_S30 import figure_S30_generation
 from .figure_S31 import figure_S31_generation
 from .figure_S32 import figure_S32_generation
 from .figure_S33 import figure_S33_generation
@@ -42,8 +41,6 @@ from .figure_S34 import figure_S34_generation
 from .figure_S35 import figure_S35_generation
 from .figure_S36 import figure_S36_generation
 from .figure_S37 import figure_S37_generation
-from .figure_S38 import figure_S38_generation
-from .figure_S39 import figure_S39_generation
 
 from .supp_file_S1 import supplementary_file_S1_generation
 
@@ -80,9 +77,9 @@ __all__ = [
     "figure_S25_generation",
     "figure_S26_generation",
     "figure_S27_generation",
-    "figure_S28_generation",
+    # "figure_S28_generation",
     "figure_S29_generation",
-    # "figure_S30_generation",
+    "figure_S30_generation",
     "figure_S31_generation",
     "figure_S32_generation",
     "figure_S33_generation",
@@ -90,8 +87,6 @@ __all__ = [
     "figure_S35_generation",
     "figure_S36_generation",
     "figure_S37_generation",
-    "figure_S38_generation",
-    "figure_S39_generation",
     "supplementary_file_S1_generation",
 ]
 
@@ -172,9 +167,9 @@ def generate_final_figures():
     figure_S25_generation(**DIRECTORIES)
     figure_S26_generation(**DIRECTORIES)
     figure_S27_generation(**DIRECTORIES)
-    figure_S28_generation(**DIRECTORIES)
+    # figure_S28_generation(**DIRECTORIES)
     figure_S29_generation(**DIRECTORIES)
-    # figure_S30_generation(**DIRECTORIES)
+    figure_S30_generation(**DIRECTORIES)
     figure_S31_generation(**DIRECTORIES)
     figure_S32_generation(**DIRECTORIES)
     figure_S33_generation(**DIRECTORIES)
@@ -182,7 +177,5 @@ def generate_final_figures():
     figure_S35_generation(**DIRECTORIES)
     figure_S36_generation(**DIRECTORIES)
     figure_S37_generation(**DIRECTORIES)
-    figure_S38_generation(**DIRECTORIES)
-    figure_S39_generation(**DIRECTORIES)
 
     supplementary_file_S1_generation(**DIRECTORIES)

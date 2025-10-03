@@ -228,7 +228,7 @@ def _generate_main_figure(
     return
 
 
-def figure_S28_generation(
+def figure_S26_generation(
     sketch_dir: str,
     figure_output_dir: str,
     raw_data_dir: str,
