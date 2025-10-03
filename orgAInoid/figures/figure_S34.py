@@ -22,8 +22,6 @@ def _generate_main_figure(
     figure_output_dir: str = "",
     figure_name: str = "",
 ):
-    thresholds = (2, 3, 4)
-
     def generate_subfigure_a(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
     ) -> None:
@@ -34,91 +32,36 @@ def _generate_main_figure(
 
         data = rpe_sal.copy()
         data["loop"] = data["loop"].astype(int)
-        data["hours"] = data["loop"] / 2.0
-        data["voted"] = data["voted"].astype(int)
+        data["hours"] = data["loop"] / 2
 
-        vote_counts = (
-            data.groupby(
-                ["experiment", "well", "loop", "hours", "model", "region"],
-                as_index=False,
-            )["voted"]
-            .sum()
-            .rename(columns={"voted": "vote_count"})
+        agg = (
+            data.groupby(["method", "hours"])["rank_corr"]
+            .agg(["mean", "sem"])
+            .reset_index()
         )
 
-        models = sorted(vote_counts["model"].unique())
-        sub = gs.subgridspec(1, 4, wspace=0)
-        palette = "Set1"
+        sub = gs.subgridspec(1, 1)
+        axm = fig.add_subplot(sub[0, 0])
+        sns.lineplot(
+            data=agg,
+            x="hours",
+            y="mean",
+            hue="method",
+            marker="",
+            errorbar="se",
+            ax=axm,
+        )
 
-        axes = []
-        handles, labels = None, None
-        x_min, x_max = vote_counts["hours"].min(), vote_counts["hours"].max()
-
-        for i, m in enumerate(models[:3]):
-            axm = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
-            df_m = vote_counts[vote_counts["model"] == m]
-
-            curves = []
-            for t in thresholds:
-                per_well = (
-                    df_m.assign(hit=(df_m["vote_count"] >= t).astype(int))
-                    .groupby(["experiment", "well", "hours"], as_index=False)
-                    .agg(frac=("hit", lambda x: x.sum() / len(x)))
-                )
-                avg = (
-                    per_well.groupby("hours", as_index=False)["frac"]
-                    .mean()
-                    .assign(threshold=f"≥{t}")
-                )
-                curves.append(avg)
-
-            plotdf = pd.concat(curves, ignore_index=True)
-
-            sns.lineplot(
-                data=plotdf,
-                x="hours",
-                y="frac",
-                hue="threshold",
-                errorbar=None,
-                marker="",
-                linewidth=0.9,
-                palette=palette,
-                ax=axm,
-            )
-
-            axm.set_title(
-                f"Fraction of labeled regions\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE
-            )
-            axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
-            axm.set_xlim(x_min, x_max)
-            axm.set_ylim(0, 1)
-            axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
-
-            if i == 0:
-                axm.set_ylabel(
-                    "Fraction of regions (per well)", fontsize=cfg.AXIS_LABEL_SIZE
-                )
-                handles, labels = axm.get_legend_handles_labels()
-            else:
-                axm.set_ylabel("")
-
-            axm.get_legend().remove()
-            axes.append(axm)
-
-        ax_leg = fig.add_subplot(sub[0, 3])
-        ax_leg.axis("off")
-        if handles and labels:
-            leg = ax_leg.legend(
-                handles,
-                labels,
-                loc="center",
-                frameon=False,
-                title="Number of methods",
-                fontsize=cfg.AXIS_LABEL_SIZE,
-                markerscale=4,
-            )
-            for line in leg.get_lines():
-                line.set_linewidth(2.5)
+        axm.set_title(
+            f"{readout}: Cross-model consistency per saliency method",
+            fontsize=cfg.TITLE_SIZE,
+        )
+        axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
+        axm.legend(
+            bbox_to_anchor=(1.05, 0.5), loc="center left", fontsize=cfg.AXIS_LABEL_SIZE
+        )
 
     def generate_subfigure_b(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
@@ -130,91 +73,37 @@ def _generate_main_figure(
 
         data = lens_sal.copy()
         data["loop"] = data["loop"].astype(int)
-        data["hours"] = data["loop"] / 2.0
-        data["voted"] = data["voted"].astype(int)
+        data["hours"] = data["loop"] / 2
 
-        vote_counts = (
-            data.groupby(
-                ["experiment", "well", "loop", "hours", "model", "region"],
-                as_index=False,
-            )["voted"]
-            .sum()
-            .rename(columns={"voted": "vote_count"})
+        agg = (
+            data.groupby(["method", "hours"])["rank_corr"]
+            .agg(["mean", "sem"])
+            .reset_index()
         )
 
-        models = sorted(vote_counts["model"].unique())
-        sub = gs.subgridspec(1, 4, wspace=0)
-        palette = "Set1"
+        sub = gs.subgridspec(1, 1)
+        axm = fig.add_subplot(sub[0, 0])
+        sns.lineplot(
+            data=agg,
+            x="hours",
+            y="mean",
+            hue="method",
+            marker="",
+            errorbar="se",
+            ax=axm,
+        )
 
-        axes = []
-        handles, labels = None, None
-        x_min, x_max = vote_counts["hours"].min(), vote_counts["hours"].max()
-
-        for i, m in enumerate(models[:3]):
-            axm = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
-            df_m = vote_counts[vote_counts["model"] == m]
-
-            curves = []
-            for t in thresholds:
-                per_well = (
-                    df_m.assign(hit=(df_m["vote_count"] >= t).astype(int))
-                    .groupby(["experiment", "well", "hours"], as_index=False)
-                    .agg(frac=("hit", lambda x: x.sum() / len(x)))
-                )
-                avg = (
-                    per_well.groupby("hours", as_index=False)["frac"]
-                    .mean()
-                    .assign(threshold=f"≥{t}")
-                )
-                curves.append(avg)
-
-            plotdf = pd.concat(curves, ignore_index=True)
-
-            sns.lineplot(
-                data=plotdf,
-                x="hours",
-                y="frac",
-                hue="threshold",
-                errorbar=None,
-                marker="",
-                linewidth=0.9,
-                palette=palette,
-                ax=axm,
-            )
-
-            axm.set_title(
-                f"Fraction of labeled regions\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE
-            )
-            axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
-            axm.set_xlim(x_min, x_max)
-            axm.set_ylim(0, 1)
-            axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
-
-            if i == 0:
-                axm.set_ylabel(
-                    "Fraction of regions (per well)", fontsize=cfg.AXIS_LABEL_SIZE
-                )
-                handles, labels = axm.get_legend_handles_labels()
-            else:
-                axm.set_ylabel("")
-
-            axm.get_legend().remove()
-            axes.append(axm)
-
-        ax_leg = fig.add_subplot(sub[0, 3])
-        ax_leg.axis("off")
-        if handles and labels:
-            leg = ax_leg.legend(
-                handles,
-                labels,
-                loc="center",
-                frameon=False,
-                title="Number of methods",
-                fontsize=cfg.AXIS_LABEL_SIZE,
-                markerscale=4,
-            )
-            for line in leg.get_lines():
-                line.set_linewidth(2.5)
+        axm.set_title(
+            f"{readout}: Cross-model consistency per saliency method",
+            fontsize=cfg.TITLE_SIZE,
+        )
+        axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
+        axm.legend(
+            bbox_to_anchor=(1.05, 0.5), loc="center left", fontsize=cfg.AXIS_LABEL_SIZE
+        )
+        return
 
     def generate_subfigure_c(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
@@ -226,91 +115,36 @@ def _generate_main_figure(
 
         data = rpe_classes_sal.copy()
         data["loop"] = data["loop"].astype(int)
-        data["hours"] = data["loop"] / 2.0
-        data["voted"] = data["voted"].astype(int)
+        data["hours"] = data["loop"] / 2
 
-        vote_counts = (
-            data.groupby(
-                ["experiment", "well", "loop", "hours", "model", "region"],
-                as_index=False,
-            )["voted"]
-            .sum()
-            .rename(columns={"voted": "vote_count"})
+        agg = (
+            data.groupby(["method", "hours"])["rank_corr"]
+            .agg(["mean", "sem"])
+            .reset_index()
         )
 
-        models = sorted(vote_counts["model"].unique())
-        sub = gs.subgridspec(1, 4, wspace=0)
-        palette = "Set1"
+        sub = gs.subgridspec(1, 1)
+        axm = fig.add_subplot(sub[0, 0])
+        sns.lineplot(
+            data=agg,
+            x="hours",
+            y="mean",
+            hue="method",
+            marker="",
+            errorbar="se",
+            ax=axm,
+        )
 
-        axes = []
-        handles, labels = None, None
-        x_min, x_max = vote_counts["hours"].min(), vote_counts["hours"].max()
-
-        for i, m in enumerate(models[:3]):
-            axm = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
-            df_m = vote_counts[vote_counts["model"] == m]
-
-            curves = []
-            for t in thresholds:
-                per_well = (
-                    df_m.assign(hit=(df_m["vote_count"] >= t).astype(int))
-                    .groupby(["experiment", "well", "hours"], as_index=False)
-                    .agg(frac=("hit", lambda x: x.sum() / len(x)))
-                )
-                avg = (
-                    per_well.groupby("hours", as_index=False)["frac"]
-                    .mean()
-                    .assign(threshold=f"≥{t}")
-                )
-                curves.append(avg)
-
-            plotdf = pd.concat(curves, ignore_index=True)
-
-            sns.lineplot(
-                data=plotdf,
-                x="hours",
-                y="frac",
-                hue="threshold",
-                errorbar=None,
-                marker="",
-                linewidth=0.9,
-                palette=palette,
-                ax=axm,
-            )
-
-            axm.set_title(
-                f"Fraction of labeled regions\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE
-            )
-            axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
-            axm.set_xlim(x_min, x_max)
-            axm.set_ylim(0, 1)
-            axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
-
-            if i == 0:
-                axm.set_ylabel(
-                    "Fraction of regions (per well)", fontsize=cfg.AXIS_LABEL_SIZE
-                )
-                handles, labels = axm.get_legend_handles_labels()
-            else:
-                axm.set_ylabel("")
-
-            axm.get_legend().remove()
-            axes.append(axm)
-
-        ax_leg = fig.add_subplot(sub[0, 3])
-        ax_leg.axis("off")
-        if handles and labels:
-            leg = ax_leg.legend(
-                handles,
-                labels,
-                loc="center",
-                frameon=False,
-                title="Number of methods",
-                fontsize=cfg.AXIS_LABEL_SIZE,
-                markerscale=4,
-            )
-            for line in leg.get_lines():
-                line.set_linewidth(2.5)
+        axm.set_title(
+            f"{readout}: Cross-model consistency per saliency method",
+            fontsize=cfg.TITLE_SIZE,
+        )
+        axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
+        axm.legend(
+            bbox_to_anchor=(1.05, 0.5), loc="center left", fontsize=cfg.AXIS_LABEL_SIZE
+        )
 
         return
 
@@ -324,91 +158,36 @@ def _generate_main_figure(
 
         data = lens_classes_sal.copy()
         data["loop"] = data["loop"].astype(int)
-        data["hours"] = data["loop"] / 2.0
-        data["voted"] = data["voted"].astype(int)
+        data["hours"] = data["loop"] / 2
 
-        vote_counts = (
-            data.groupby(
-                ["experiment", "well", "loop", "hours", "model", "region"],
-                as_index=False,
-            )["voted"]
-            .sum()
-            .rename(columns={"voted": "vote_count"})
+        agg = (
+            data.groupby(["method", "hours"])["rank_corr"]
+            .agg(["mean", "sem"])
+            .reset_index()
         )
 
-        models = sorted(vote_counts["model"].unique())
-        sub = gs.subgridspec(1, 4, wspace=0)
-        palette = "Set1"
+        sub = gs.subgridspec(1, 1)
+        axm = fig.add_subplot(sub[0, 0])
+        sns.lineplot(
+            data=agg,
+            x="hours",
+            y="mean",
+            hue="method",
+            marker="",
+            errorbar="se",
+            ax=axm,
+        )
 
-        axes = []
-        handles, labels = None, None
-        x_min, x_max = vote_counts["hours"].min(), vote_counts["hours"].max()
-
-        for i, m in enumerate(models[:3]):
-            axm = fig.add_subplot(sub[0, i], sharey=axes[0] if axes else None)
-            df_m = vote_counts[vote_counts["model"] == m]
-
-            curves = []
-            for t in thresholds:
-                per_well = (
-                    df_m.assign(hit=(df_m["vote_count"] >= t).astype(int))
-                    .groupby(["experiment", "well", "hours"], as_index=False)
-                    .agg(frac=("hit", lambda x: x.sum() / len(x)))
-                )
-                avg = (
-                    per_well.groupby("hours", as_index=False)["frac"]
-                    .mean()
-                    .assign(threshold=f"≥{t}")
-                )
-                curves.append(avg)
-
-            plotdf = pd.concat(curves, ignore_index=True)
-
-            sns.lineplot(
-                data=plotdf,
-                x="hours",
-                y="frac",
-                hue="threshold",
-                errorbar=None,
-                marker="",
-                linewidth=0.9,
-                palette=palette,
-                ax=axm,
-            )
-
-            axm.set_title(
-                f"Fraction of labeled regions\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE
-            )
-            axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
-            axm.set_xlim(x_min, x_max)
-            axm.set_ylim(0, 1)
-            axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
-
-            if i == 0:
-                axm.set_ylabel(
-                    "Fraction of regions (per well)", fontsize=cfg.AXIS_LABEL_SIZE
-                )
-                handles, labels = axm.get_legend_handles_labels()
-            else:
-                axm.set_ylabel("")
-
-            axm.get_legend().remove()
-            axes.append(axm)
-
-        ax_leg = fig.add_subplot(sub[0, 3])
-        ax_leg.axis("off")
-        if handles and labels:
-            leg = ax_leg.legend(
-                handles,
-                labels,
-                loc="center",
-                frameon=False,
-                title="Number of methods",
-                fontsize=cfg.AXIS_LABEL_SIZE,
-                markerscale=4,
-            )
-            for line in leg.get_lines():
-                line.set_linewidth(2.5)
+        axm.set_title(
+            f"{readout}: Cross-model consistency per saliency method",
+            fontsize=cfg.TITLE_SIZE,
+        )
+        axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.set_ylabel("Rank correlation (mean ± SEM)", fontsize=cfg.AXIS_LABEL_SIZE)
+        axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
+        axm.legend(
+            bbox_to_anchor=(1.05, 0.5), loc="center left", fontsize=cfg.AXIS_LABEL_SIZE
+        )
 
         return
 
@@ -457,7 +236,7 @@ def figure_S34_generation(
     **kwargs,
 ) -> None:
     rpe_saliency_results = get_saliency_results(
-        result="region_votes_summary",
+        result="cross_model_correlation",
         readout="RPE_Final",
         saliency_input_dir=saliency_input_dir,
         raw_data_dir=raw_data_dir,
@@ -472,7 +251,7 @@ def figure_S34_generation(
         evaluator_results_dir=evaluator_results_dir,
     )
     lens_saliency_results = get_saliency_results(
-        result="region_votes_summary",
+        result="cross_model_correlation",
         readout="Lens_Final",
         saliency_input_dir=saliency_input_dir,
         raw_data_dir=raw_data_dir,
@@ -487,7 +266,7 @@ def figure_S34_generation(
         evaluator_results_dir=evaluator_results_dir,
     )
     rpe_classes_saliency_results = get_saliency_results(
-        result="region_votes_summary",
+        result="cross_model_correlation",
         readout="RPE_classes",
         saliency_input_dir=saliency_input_dir,
         raw_data_dir=raw_data_dir,
@@ -502,7 +281,7 @@ def figure_S34_generation(
         evaluator_results_dir=evaluator_results_dir,
     )
     lens_classes_saliency_results = get_saliency_results(
-        result="region_votes_summary",
+        result="cross_model_correlation",
         readout="Lens_classes",
         saliency_input_dir=saliency_input_dir,
         raw_data_dir=raw_data_dir,

@@ -62,12 +62,20 @@ def _generate_main_figure(
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
         sns.lineplot(
-            data=data,
+            data=data[~data["classifier"].str.contains("Baseline")],
             x="hours",
             y="F1",
             hue="classifier",
             ax=accuracy_plot,
             errorbar="se",
+        )
+        sns.lineplot(
+            data=data[data["classifier"].str.contains("Baseline")],
+            x="hours",
+            y="F1",
+            hue="classifier",
+            ax=accuracy_plot,
+            errorbar=None,
         )
 
         accuracy_plot.axhline(
@@ -148,12 +156,20 @@ def _generate_main_figure(
 
         accuracy_plot = fig.add_subplot(fig_sgs[0])
         sns.lineplot(
-            data=data,
+            data=data[~data["classifier"].str.contains("Baseline")],
             x="hours",
             y="F1",
             hue="classifier",
             ax=accuracy_plot,
             errorbar="se",
+        )
+        sns.lineplot(
+            data=data[data["classifier"].str.contains("Baseline")],
+            x="hours",
+            y="F1",
+            hue="classifier",
+            ax=accuracy_plot,
+            errorbar=None,
         )
 
         accuracy_plot.axhline(

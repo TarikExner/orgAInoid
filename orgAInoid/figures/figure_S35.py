@@ -31,12 +31,13 @@ def _generate_main_figure(
         readout = "RPE emergence"
 
         data = rpe_sal.copy()
-        data = data[data["time"] != 1].copy()
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
         # mean across experiments + wells
-        agg = data.groupby(["model", "hours", "method"], as_index=False)["drift"].mean()
+        agg = data.groupby(["model", "hours", "method"], as_index=False)[
+            "entropy"
+        ].mean()
 
         models = sorted(agg["model"].unique())
 
@@ -56,7 +57,7 @@ def _generate_main_figure(
             sns.lineplot(
                 data=dat,
                 x="hours",
-                y="drift",
+                y="entropy",
                 hue="method",
                 errorbar="se",
                 marker="",
@@ -64,15 +65,13 @@ def _generate_main_figure(
                 palette=palette,
                 ax=axm,
             )
-            axm.set_title(
-                f"Spatial drift of saliency\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE
-            )
+            axm.set_title(f"Entropy Diffusion\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE)
             axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
             axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
 
             if i == 0:
                 axm.set_ylabel(
-                    "center of mass displacement [pixels]", fontsize=cfg.AXIS_LABEL_SIZE
+                    "Entropy (lower = more focused)", fontsize=cfg.AXIS_LABEL_SIZE
                 )
                 handles, labels = axm.get_legend_handles_labels()
             else:
@@ -106,18 +105,18 @@ def _generate_main_figure(
         readout = "Lens emergence"
 
         data = lens_sal.copy()
-        data = data[data["time"] != 1].copy()
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
         # mean across experiments + wells
-        agg = data.groupby(["model", "hours", "method"], as_index=False)["drift"].mean()
+        agg = data.groupby(["model", "hours", "method"], as_index=False)[
+            "entropy"
+        ].mean()
 
         models = sorted(agg["model"].unique())
 
         sub = gs.subgridspec(1, 4, wspace=0)
 
-        n_methods = agg["method"].nunique()
         palette = "tab10"
 
         axes = []
@@ -131,7 +130,7 @@ def _generate_main_figure(
             sns.lineplot(
                 data=dat,
                 x="hours",
-                y="drift",
+                y="entropy",
                 hue="method",
                 errorbar="se",
                 marker="",
@@ -139,15 +138,13 @@ def _generate_main_figure(
                 palette=palette,
                 ax=axm,
             )
-            axm.set_title(
-                f"Spatial drift of saliency\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE
-            )
+            axm.set_title(f"Entropy Diffusion\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE)
             axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
             axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
 
             if i == 0:
                 axm.set_ylabel(
-                    "center of mass displacement [pixels]", fontsize=cfg.AXIS_LABEL_SIZE
+                    "Entropy (lower = more focused)", fontsize=cfg.AXIS_LABEL_SIZE
                 )
                 handles, labels = axm.get_legend_handles_labels()
             else:
@@ -181,18 +178,18 @@ def _generate_main_figure(
         readout = "RPE area"
 
         data = rpe_classes_sal.copy()
-        data = data[data["time"] != 1].copy()
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
         # mean across experiments + wells
-        agg = data.groupby(["model", "hours", "method"], as_index=False)["drift"].mean()
+        agg = data.groupby(["model", "hours", "method"], as_index=False)[
+            "entropy"
+        ].mean()
 
         models = sorted(agg["model"].unique())
 
         sub = gs.subgridspec(1, 4, wspace=0)
 
-        n_methods = agg["method"].nunique()
         palette = "tab10"
 
         axes = []
@@ -206,7 +203,7 @@ def _generate_main_figure(
             sns.lineplot(
                 data=dat,
                 x="hours",
-                y="drift",
+                y="entropy",
                 hue="method",
                 errorbar="se",
                 marker="",
@@ -214,15 +211,13 @@ def _generate_main_figure(
                 palette=palette,
                 ax=axm,
             )
-            axm.set_title(
-                f"Spatial drift of saliency\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE
-            )
+            axm.set_title(f"Entropy Diffusion\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE)
             axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
             axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
 
             if i == 0:
                 axm.set_ylabel(
-                    "center of mass displacement [pixels]", fontsize=cfg.AXIS_LABEL_SIZE
+                    "Entropy (lower = more focused)", fontsize=cfg.AXIS_LABEL_SIZE
                 )
                 handles, labels = axm.get_legend_handles_labels()
             else:
@@ -258,18 +253,18 @@ def _generate_main_figure(
         readout = "Lens sizes"
 
         data = lens_classes_sal.copy()
-        data = data[data["time"] != 1].copy()
         data["loop"] = data["time"].astype(int)
         data["hours"] = data["loop"] / 2.0
 
         # mean across experiments + wells
-        agg = data.groupby(["model", "hours", "method"], as_index=False)["drift"].mean()
+        agg = data.groupby(["model", "hours", "method"], as_index=False)[
+            "entropy"
+        ].mean()
 
         models = sorted(agg["model"].unique())
 
         sub = gs.subgridspec(1, 4, wspace=0)
 
-        n_methods = agg["method"].nunique()
         palette = "tab10"
 
         axes = []
@@ -283,7 +278,7 @@ def _generate_main_figure(
             sns.lineplot(
                 data=dat,
                 x="hours",
-                y="drift",
+                y="entropy",
                 hue="method",
                 errorbar="se",
                 marker="",
@@ -291,15 +286,13 @@ def _generate_main_figure(
                 palette=palette,
                 ax=axm,
             )
-            axm.set_title(
-                f"Spatial drift of saliency\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE
-            )
+            axm.set_title(f"Entropy Diffusion\n{readout}\n{m}", fontsize=cfg.TITLE_SIZE)
             axm.set_xlabel("hours", fontsize=cfg.AXIS_LABEL_SIZE)
             axm.tick_params(labelsize=cfg.AXIS_LABEL_SIZE)
 
             if i == 0:
                 axm.set_ylabel(
-                    "center of mass displacement [pixels]", fontsize=cfg.AXIS_LABEL_SIZE
+                    "Entropy (lower = more focused)", fontsize=cfg.AXIS_LABEL_SIZE
                 )
                 handles, labels = axm.get_legend_handles_labels()
             else:

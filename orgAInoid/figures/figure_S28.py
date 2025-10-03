@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -7,199 +6,328 @@ from matplotlib.gridspec import GridSpec, SubplotSpec
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
-from typing import Literal
-
 from . import figure_config as cfg
 from . import figure_utils as utils
 
-from .figure_data_generation import get_classification_f1_data_raw, f1_vs_distance_plot
+
+def _prep_data(df):
+    df = df.copy()
+    df = df[df["ExperimentID"] != "ExperimentID"]
+    df["n_experiments"] = df["n_experiments"].astype(int)
+    df["ValF1"] = df["ValF1"].astype(float)
+    return df
 
 
-def _generate_main_figure(
-    rpe_classes_test: pd.DataFrame,
-    rpe_classes_val: pd.DataFrame,
-    lens_classes_test: pd.DataFrame,
-    lens_classes_val: pd.DataFrame,
-    classifier: Literal["CNN", "CLF"],
-    figure_output_dir: str = "",
-    figure_name: str = "",
-):
-    def generate_subfigure_a(
-        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
-    ) -> None:
-        readout = "RPE area"
-        eval_set = "validation"
+def generate_subfigure_a(
+    fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+) -> None:
+    ax.axis("off")
+    utils._figure_label(ax, subfigure_label, x=-0.4)
 
-        ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x=-0.4)
+    neural_net_data = pd.read_csv(
+        "./figure_data/RPE_classification/RPE_Final_nexp.txt", index_col=False
+    )
+    neural_net_data = _prep_data(neural_net_data)
+    neural_net_data = neural_net_data.sort_values(
+        ["ValExpID", "n_experiments"], ascending=[True, True]
+    )
+    neural_net_data["ValExpID"] = neural_net_data["ValExpID"].map(cfg.EXPERIMENT_MAP)
 
-        fig_sgs = gs.subgridspec(1, 1)
+    classifier_data = pd.read_csv(
+        "./figure_data/classifier_n_experiments.log", index_col=False
+    )
+    classifier_data = classifier_data[classifier_data["readout"] == "RPE_Final"]
+    classifier_data = classifier_data.sort_values(
+        ["experiment", "n_experiments"], ascending=[True, True]
+    )
+    classifier_data["experiment"] = classifier_data["experiment"].map(
+        cfg.EXPERIMENT_MAP
+    )
 
-        data = rpe_classes_test
-        data["val_experiment"] = data["val_experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("val_experiment", ascending=True)
-        data["val_experiment"] = data["val_experiment"].astype("category")
+    fig_sgs = gs.subgridspec(1, 2)
 
-        accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(
-            data=data,
-            x="dist_center",
-            y="f1_weighted",
-            hue="val_experiment",
-            palette="tab20",
-            ax=accuracy_plot,
-        )
+    nn_plot = fig.add_subplot(fig_sgs[0])
+    sns.lineplot(
+        data=neural_net_data,
+        x="n_experiments",
+        y="ValF1",
+        hue="ValExpID",
+        ax=nn_plot,
+        errorbar="se",
+        palette=cfg.EXPERIMENT_LEGEND_CMAP,
+    )
+    nn_plot.set_title(
+        "Prediction accuracy: Emergence of RPE\nin validation organoids by deep learning",
+        fontsize=cfg.TITLE_SIZE,
+    )
+    nn_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
+    nn_plot.set_ylim(-0.1, 1.1)
+    nn_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    nn_plot.set_xlabel("n experiments used for training", fontsize=cfg.AXIS_LABEL_SIZE)
+    nn_plot.legend().remove()
 
-        accuracy_plot.legend(
-            bbox_to_anchor=(1.01, 0.5),
-            loc="center left",
-            fontsize=cfg.AXIS_LABEL_SIZE,
-            ncols=2,
-        )
-        accuracy_plot.set_title(
-            f"{classifier} F1 distribution over bin center distance for\n{readout} in {eval_set} organoids",
-            fontsize=cfg.TITLE_SIZE,
-        )
-        accuracy_plot.set_xlabel(
-            "bin center distance [0=center, 1=edge]", fontsize=cfg.AXIS_LABEL_SIZE
-        )
-        accuracy_plot.set_ylabel("F1-score", fontsize=cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    clf_plot = fig.add_subplot(fig_sgs[1])
+    sns.lineplot(
+        data=classifier_data,
+        x="n_experiments",
+        y="f1_score",
+        hue="experiment",
+        ax=clf_plot,
+        errorbar="se",
+        palette=cfg.EXPERIMENT_LEGEND_CMAP,
+    )
 
-        return
+    clf_plot.set_title(
+        "Prediction accuracy: Emergence of RPE\nin validation organoids by morphometrics",
+        fontsize=cfg.TITLE_SIZE,
+    )
+    clf_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
+    clf_plot.set_ylim(-0.1, 1.1)
+    clf_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    clf_plot.set_xlabel("n experiments used for training", fontsize=cfg.AXIS_LABEL_SIZE)
+    clf_plot.legend(
+        bbox_to_anchor=(1.01, 0.5),
+        loc="center left",
+        fontsize=cfg.TITLE_SIZE,
+        **cfg.TWO_COL_LEGEND,
+    )
 
-    def generate_subfigure_b(
-        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
-    ) -> None:
-        readout = "RPE area"
-        eval_set = "test"
+    return
 
-        ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x=-0.4)
 
-        fig_sgs = gs.subgridspec(1, 1)
+def generate_subfigure_b(
+    fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+) -> None:
+    ax.axis("off")
+    utils._figure_label(ax, subfigure_label, x=-0.4)
 
-        data = rpe_classes_val
-        data["val_experiment"] = data["val_experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("val_experiment", ascending=True)
-        data["val_experiment"] = data["val_experiment"].astype("category")
+    neural_net_data = pd.read_csv(
+        "./figure_data/Lens_classification/Lens_Final_nexp.txt", index_col=False
+    )
+    neural_net_data = _prep_data(neural_net_data)
+    neural_net_data = neural_net_data.sort_values(
+        ["ValExpID", "n_experiments"], ascending=[True, True]
+    )
+    neural_net_data["ValExpID"] = neural_net_data["ValExpID"].map(cfg.EXPERIMENT_MAP)
 
-        accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(
-            data=data,
-            x="dist_center",
-            y="f1_weighted",
-            hue="val_experiment",
-            palette="tab20",
-            ax=accuracy_plot,
-        )
+    classifier_data = pd.read_csv(
+        "./figure_data/classifier_n_experiments.log", index_col=False
+    )
+    classifier_data = classifier_data[classifier_data["readout"] == "Lens_Final"]
+    classifier_data = classifier_data.sort_values(
+        ["experiment", "n_experiments"], ascending=[True, True]
+    )
+    classifier_data["experiment"] = classifier_data["experiment"].map(
+        cfg.EXPERIMENT_MAP
+    )
 
-        accuracy_plot.legend(
-            bbox_to_anchor=(1.01, 0.5),
-            loc="center left",
-            fontsize=cfg.AXIS_LABEL_SIZE,
-            ncols=2,
-        )
-        accuracy_plot.set_title(
-            f"{classifier} F1 distribution over bin center distance for\n{readout} in {eval_set} organoids",
-            fontsize=cfg.TITLE_SIZE,
-        )
-        accuracy_plot.set_xlabel(
-            "bin center distance [0=center, 1=edge]", fontsize=cfg.AXIS_LABEL_SIZE
-        )
-        accuracy_plot.set_ylabel("F1-score", fontsize=cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    fig_sgs = gs.subgridspec(1, 2)
 
-        return
+    nn_plot = fig.add_subplot(fig_sgs[0])
+    sns.lineplot(
+        data=neural_net_data,
+        x="n_experiments",
+        y="ValF1",
+        hue="ValExpID",
+        ax=nn_plot,
+        errorbar="se",
+        palette=cfg.EXPERIMENT_LEGEND_CMAP,
+    )
+    nn_plot.set_title(
+        "Prediction accuracy: Emergence of lenses\nin validation organoids by deep learning",
+        fontsize=cfg.TITLE_SIZE,
+    )
+    nn_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
+    nn_plot.set_ylim(-0.1, 1.1)
+    nn_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    nn_plot.set_xlabel("n experiments used for training", fontsize=cfg.AXIS_LABEL_SIZE)
+    nn_plot.legend().remove()
 
-    def generate_subfigure_c(
-        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
-    ) -> None:
-        readout = "Lens sizes"
-        eval_set = "validation"
+    clf_plot = fig.add_subplot(fig_sgs[1])
+    sns.lineplot(
+        data=classifier_data,
+        x="n_experiments",
+        y="f1_score",
+        hue="experiment",
+        ax=clf_plot,
+        errorbar="se",
+        palette=cfg.EXPERIMENT_LEGEND_CMAP,
+    )
 
-        ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x=-0.4)
+    clf_plot.set_title(
+        "Prediction accuracy: Emergence of lenses\nin validation organoids by morphometrics",
+        fontsize=cfg.TITLE_SIZE,
+    )
+    clf_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
+    clf_plot.set_ylim(-0.1, 1.1)
+    clf_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    clf_plot.set_xlabel("n experiments used for training", fontsize=cfg.AXIS_LABEL_SIZE)
+    clf_plot.legend(
+        bbox_to_anchor=(1.01, 0.5),
+        loc="center left",
+        fontsize=cfg.TITLE_SIZE,
+        **cfg.TWO_COL_LEGEND,
+    )
 
-        fig_sgs = gs.subgridspec(1, 1)
+    return
 
-        data = lens_classes_test
-        data["val_experiment"] = data["val_experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("val_experiment", ascending=True)
-        data["val_experiment"] = data["val_experiment"].astype("category")
 
-        accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(
-            data=data,
-            x="dist_center",
-            y="f1_weighted",
-            hue="val_experiment",
-            palette="tab20",
-            ax=accuracy_plot,
-        )
+def generate_subfigure_c(
+    fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+) -> None:
+    ax.axis("off")
+    utils._figure_label(ax, subfigure_label, x=-0.4)
 
-        accuracy_plot.legend(
-            bbox_to_anchor=(1.01, 0.5),
-            loc="center left",
-            fontsize=cfg.AXIS_LABEL_SIZE,
-            ncols=2,
-        )
-        accuracy_plot.set_title(
-            f"{classifier} F1 distribution over bin center distance for\n{readout} in {eval_set} organoids",
-            fontsize=cfg.TITLE_SIZE,
-        )
-        accuracy_plot.set_xlabel(
-            "bin center distance [0=center, 1=edge]", fontsize=cfg.AXIS_LABEL_SIZE
-        )
-        accuracy_plot.set_ylabel("F1-score", fontsize=cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    neural_net_data = pd.read_csv(
+        "./figure_data/RPE_classes_classification/RPE_classes_nexp.txt", index_col=False
+    )
+    neural_net_data = _prep_data(neural_net_data)
+    neural_net_data = neural_net_data.sort_values(
+        ["ValExpID", "n_experiments"], ascending=[True, True]
+    )
+    neural_net_data["ValExpID"] = neural_net_data["ValExpID"].map(cfg.EXPERIMENT_MAP)
 
-        return
+    classifier_data = pd.read_csv(
+        "./figure_data/classifier_n_experiments.log", index_col=False
+    )
+    classifier_data = classifier_data[classifier_data["readout"] == "RPE_classes"]
+    classifier_data = classifier_data.sort_values(
+        ["experiment", "n_experiments"], ascending=[True, True]
+    )
+    classifier_data["experiment"] = classifier_data["experiment"].map(
+        cfg.EXPERIMENT_MAP
+    )
 
-    def generate_subfigure_d(
-        fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
-    ) -> None:
-        readout = "Lens sizes"
-        eval_set = "test"
+    fig_sgs = gs.subgridspec(1, 2)
 
-        ax.axis("off")
-        utils._figure_label(ax, subfigure_label, x=-0.4)
+    nn_plot = fig.add_subplot(fig_sgs[0])
+    sns.lineplot(
+        data=neural_net_data,
+        x="n_experiments",
+        y="ValF1",
+        hue="ValExpID",
+        ax=nn_plot,
+        errorbar="se",
+        palette=cfg.EXPERIMENT_LEGEND_CMAP,
+    )
+    nn_plot.set_title(
+        "Prediction accuracy: Area of RPE\nin validation organoids by deep learning",
+        fontsize=cfg.TITLE_SIZE,
+    )
+    nn_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
+    nn_plot.set_ylim(-0.1, 1.1)
+    nn_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    nn_plot.set_xlabel("n experiments used for training", fontsize=cfg.AXIS_LABEL_SIZE)
+    nn_plot.legend().remove()
 
-        fig_sgs = gs.subgridspec(1, 1)
+    clf_plot = fig.add_subplot(fig_sgs[1])
+    sns.lineplot(
+        data=classifier_data,
+        x="n_experiments",
+        y="f1_score",
+        hue="experiment",
+        ax=clf_plot,
+        errorbar="se",
+        palette=cfg.EXPERIMENT_LEGEND_CMAP,
+    )
 
-        data = lens_classes_val
-        data["val_experiment"] = data["val_experiment"].map(cfg.EXPERIMENT_MAP)
-        data = data.sort_values("val_experiment", ascending=True)
-        data["val_experiment"] = data["val_experiment"].astype("category")
+    clf_plot.set_title(
+        "Prediction accuracy: Area of RPE\nin validation organoids by morphometrics",
+        fontsize=cfg.TITLE_SIZE,
+    )
+    clf_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
+    clf_plot.set_ylim(-0.1, 1.1)
+    clf_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    clf_plot.set_xlabel("n experiments used for training", fontsize=cfg.AXIS_LABEL_SIZE)
+    clf_plot.legend(
+        bbox_to_anchor=(1.01, 0.5),
+        loc="center left",
+        fontsize=cfg.TITLE_SIZE,
+        **cfg.TWO_COL_LEGEND,
+    )
 
-        accuracy_plot = fig.add_subplot(fig_sgs[0])
-        sns.lineplot(
-            data=data,
-            x="dist_center",
-            y="f1_weighted",
-            hue="val_experiment",
-            palette="tab20",
-            ax=accuracy_plot,
-        )
+    return
 
-        accuracy_plot.legend(
-            bbox_to_anchor=(1.01, 0.5),
-            loc="center left",
-            fontsize=cfg.AXIS_LABEL_SIZE,
-            ncols=2,
-        )
-        accuracy_plot.set_title(
-            f"{classifier} F1 distribution over bin center distance for\n{readout} in {eval_set} organoids",
-            fontsize=cfg.TITLE_SIZE,
-        )
-        accuracy_plot.set_xlabel(
-            "bin center distance [0=center, 1=edge]", fontsize=cfg.AXIS_LABEL_SIZE
-        )
-        accuracy_plot.set_ylabel("F1-score", fontsize=cfg.AXIS_LABEL_SIZE)
-        accuracy_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
 
-        return
+def generate_subfigure_d(
+    fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
+) -> None:
+    ax.axis("off")
+    utils._figure_label(ax, subfigure_label, x=-0.4)
 
+    neural_net_data = pd.read_csv(
+        "./figure_data/Lens_classes_classification/Lens_classes_nexp.txt",
+        index_col=False,
+    )
+    neural_net_data = _prep_data(neural_net_data)
+    neural_net_data = neural_net_data.sort_values(
+        ["ValExpID", "n_experiments"], ascending=[True, True]
+    )
+    neural_net_data["ValExpID"] = neural_net_data["ValExpID"].map(cfg.EXPERIMENT_MAP)
+
+    classifier_data = pd.read_csv(
+        "./figure_data/classifier_n_experiments.log", index_col=False
+    )
+    classifier_data = classifier_data[classifier_data["readout"] == "Lens_classes"]
+    classifier_data = classifier_data.sort_values(
+        ["experiment", "n_experiments"], ascending=[True, True]
+    )
+    classifier_data["experiment"] = classifier_data["experiment"].map(
+        cfg.EXPERIMENT_MAP
+    )
+
+    fig_sgs = gs.subgridspec(1, 2)
+
+    nn_plot = fig.add_subplot(fig_sgs[0])
+    sns.lineplot(
+        data=neural_net_data,
+        x="n_experiments",
+        y="ValF1",
+        hue="ValExpID",
+        ax=nn_plot,
+        errorbar="se",
+        palette=cfg.EXPERIMENT_LEGEND_CMAP,
+    )
+    nn_plot.set_title(
+        "Prediction accuracy: Area of lenses\nin validation organoids by deep learning",
+        fontsize=cfg.TITLE_SIZE,
+    )
+    nn_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
+    nn_plot.set_ylim(-0.1, 1.1)
+    nn_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    nn_plot.set_xlabel("n experiments used for training", fontsize=cfg.AXIS_LABEL_SIZE)
+    nn_plot.legend().remove()
+
+    clf_plot = fig.add_subplot(fig_sgs[1])
+    sns.lineplot(
+        data=classifier_data,
+        x="n_experiments",
+        y="f1_score",
+        hue="experiment",
+        ax=clf_plot,
+        errorbar="se",
+        palette=cfg.EXPERIMENT_LEGEND_CMAP,
+    )
+
+    clf_plot.set_title(
+        "Prediction accuracy: Area of lenses\nin validation organoids by morphometrics",
+        fontsize=cfg.TITLE_SIZE,
+    )
+    clf_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
+    clf_plot.set_ylim(-0.1, 1.1)
+    clf_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
+    clf_plot.set_xlabel("n experiments used for training", fontsize=cfg.AXIS_LABEL_SIZE)
+    clf_plot.legend(
+        bbox_to_anchor=(1.01, 0.5),
+        loc="center left",
+        fontsize=cfg.TITLE_SIZE,
+        **cfg.TWO_COL_LEGEND,
+    )
+
+    return
+
+
+if __name__ == "__main__":
     fig = plt.figure(
         layout="constrained", figsize=(cfg.FIGURE_WIDTH_FULL, cfg.FIGURE_HEIGHT_FULL)
     )
@@ -219,91 +347,6 @@ def _generate_main_figure(
     generate_subfigure_c(fig, fig_c, c_coords, "C")
     generate_subfigure_d(fig, fig_d, d_coords, "D")
 
-    output_dir = os.path.join(figure_output_dir, f"{figure_name}.pdf")
-    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
-
-    output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
-    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
-
-    return
-
-
-def figure_S28_generation(
-    sketch_dir: str,
-    figure_output_dir: str,
-    raw_data_dir: str,
-    morphometrics_dir: str,
-    hyperparameter_dir: str,
-    rpe_classes_classification_dir: str,
-    lens_classes_classification_dir: str,
-    figure_data_dir: str,
-    evaluator_results_dir: str,
-    **kwargs,
-) -> None:
-    rpe_classes = get_classification_f1_data_raw(
-        readout="RPE_classes",
-        output_dir=figure_data_dir,
-        proj="",
-        hyperparameter_dir=hyperparameter_dir,
-        classification_dir=rpe_classes_classification_dir,
-        baseline_dir=None,
-        morphometrics_dir=morphometrics_dir,
-        raw_data_dir=raw_data_dir,
-        evaluator_results_dir=evaluator_results_dir,
-    )
-    lens_classes = get_classification_f1_data_raw(
-        readout="Lens_classes",
-        output_dir=figure_data_dir,
-        proj="",
-        hyperparameter_dir=hyperparameter_dir,
-        classification_dir=lens_classes_classification_dir,
-        baseline_dir=None,
-        morphometrics_dir=morphometrics_dir,
-        raw_data_dir=raw_data_dir,
-        evaluator_results_dir=evaluator_results_dir,
-    )
-
-    BIN_EDGES_RPE = [0, 956.9, 1590.4]
-    BIN_EDGES_LENS = [0, 16324.85763, 29083.23]
-
-    def subset_for_classifier(
-        df: pd.DataFrame, classifier: Literal["CNN", "CLF"]
-    ) -> pd.DataFrame:
-        return df[df["classifier"] == classifier].copy()
-
-    f1d_rpe_classes_val = f1_vs_distance_plot(
-        subset_for_classifier(rpe_classes, "CNN"),
-        bin_edges=BIN_EDGES_RPE,
-        set_name="val",
-        n_distance_bins=15,
-    )
-    f1d_rpe_classes_test = f1_vs_distance_plot(
-        subset_for_classifier(rpe_classes, "CNN"),
-        bin_edges=BIN_EDGES_RPE,
-        set_name="test",
-        n_distance_bins=15,
-    )
-    f1d_lens_classes_val = f1_vs_distance_plot(
-        subset_for_classifier(lens_classes, "CNN"),
-        bin_edges=BIN_EDGES_LENS,
-        set_name="val",
-        value_col="Lens_area",
-        n_distance_bins=15,
-    )
-    f1d_lens_classes_test = f1_vs_distance_plot(
-        subset_for_classifier(lens_classes, "CNN"),
-        bin_edges=BIN_EDGES_LENS,
-        set_name="test",
-        value_col="Lens_area",
-        n_distance_bins=15,
-    )
-
-    _generate_main_figure(
-        rpe_classes_test=f1d_rpe_classes_test,
-        rpe_classes_val=f1d_rpe_classes_val,
-        lens_classes_test=f1d_lens_classes_test,
-        lens_classes_val=f1d_lens_classes_val,
-        figure_output_dir=figure_output_dir,
-        classifier="CNN",
-        figure_name="Supplementary_Figure_S28",
-    )
+    plt.savefig("./prefinal_figures/FigureS11.pdf", dpi=300, bbox_inches="tight")
+    plt.savefig("./prefinal_figures/FigureS11.png", dpi=300, bbox_inches="tight")
+    plt.show()
