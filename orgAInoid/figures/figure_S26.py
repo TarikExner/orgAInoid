@@ -115,7 +115,7 @@ def _generate_main_figure(
     def generate_subfigure_c(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
     ) -> None:
-        readout = "Lens sizes"
+        readout = "lens sizes"
         eval_set = "validation"
 
         ax.axis("off")
@@ -159,7 +159,7 @@ def _generate_main_figure(
     def generate_subfigure_d(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
     ) -> None:
-        readout = "Lens sizes"
+        readout = "lens sizes"
         eval_set = "test"
 
         ax.axis("off")

@@ -184,7 +184,7 @@ def _generate_main_figure(
         distance_plot.set_ylabel("jaccard score", fontsize=cfg.AXIS_LABEL_SIZE)
         distance_plot.tick_params(**cfg.TICKPARAMS_PARAMS)
         distance_plot.set_title(
-            "Jaccard scores of 30 neighbors in UMAP space vs. 30 neighbors in raw_data space (euclidean distance)",
+            "Jaccard scores of 30 neighbors in UMAP space vs. 30 neighbors in raw data space (euclidean distance)",
             fontsize=cfg.TITLE_SIZE,
         )
 

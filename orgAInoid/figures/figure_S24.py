@@ -106,7 +106,7 @@ def _generate_main_figure(
             x=40, y=0.27, s="Random Prediction", fontsize=cfg.TITLE_SIZE, color="black"
         )
         accuracy_plot_test.set_title(
-            "Prediction accuracy: RPE area\nin test organoids by deep learning",
+            "Prediction accuracy: RPE area\nin validation organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot_test.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
@@ -132,7 +132,7 @@ def _generate_main_figure(
             x=40, y=0.27, s="Random Prediction", fontsize=cfg.TITLE_SIZE, color="black"
         )
         accuracy_plot_val.set_title(
-            "Prediction accuracy: RPE area\nin validation organoids by deep learning",
+            "Prediction accuracy: RPE area\nin test organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot_val.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
@@ -151,8 +151,6 @@ def _generate_main_figure(
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x=-0.4)
 
-        # These must be your new wide DataFrames with MultiIndex columns:
-        # level 0: class0..class3, level 1: tn,tp,fn,fp
         test_wide = rpe_classes_clf_test_cm
         val_wide = rpe_classes_clf_val_cm
 
@@ -161,7 +159,6 @@ def _generate_main_figure(
 
         fig_sgs = gs.subgridspec(4, 2, hspace=0, wspace=0)
 
-        # left column: test
         for i in range(4):
             sub_ax = fig.add_subplot(fig_sgs[i, 0])
             cls = f"class{i}"
@@ -171,7 +168,7 @@ def _generate_main_figure(
 
             if i == 0:
                 sub_ax.set_title(
-                    "Confusion matrices: RPE area\nin test organoids by deep learning",
+                    "Confusion matrices: RPE area\nin validation organoids by deep learning",
                     fontsize=cfg.TITLE_SIZE,
                 )
             sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
@@ -196,7 +193,6 @@ def _generate_main_figure(
                 loc="center left",
             )
 
-        # right column: validation
         for i in range(4):
             sub_ax = fig.add_subplot(fig_sgs[i, 1])
             cls = f"class{i}"
@@ -206,7 +202,7 @@ def _generate_main_figure(
 
             if i == 0:
                 sub_ax.set_title(
-                    "Confusion matrices: RPE area\nin validation organoids by deep learning",
+                    "Confusion matrices: RPE area\nin test organoids by deep learning",
                     fontsize=cfg.TITLE_SIZE,
                 )
             sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
@@ -264,7 +260,7 @@ def _generate_main_figure(
             x=40, y=0.27, s="Random Prediction", fontsize=cfg.TITLE_SIZE, color="black"
         )
         accuracy_plot_test.set_title(
-            "Prediction accuracy: Lens sizes\nin test organoids by deep learning",
+            "Prediction accuracy: Lens sizes\nin validation organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot_test.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
@@ -291,7 +287,7 @@ def _generate_main_figure(
             x=40, y=0.27, s="Random Prediction", fontsize=cfg.TITLE_SIZE, color="black"
         )
         accuracy_plot_val.set_title(
-            "Prediction accuracy: Lens sizes\nin validation organoids by deep learning",
+            "Prediction accuracy: Lens sizes\nin test organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot_val.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
@@ -310,8 +306,6 @@ def _generate_main_figure(
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x=-0.4)
 
-        # These must be your new wide DataFrames with MultiIndex columns:
-        # level 0: class0..class3, level 1: tn,tp,fn,fp
         test_wide = lens_classes_clf_test_cm
         val_wide = lens_classes_clf_val_cm
 
@@ -320,7 +314,6 @@ def _generate_main_figure(
 
         fig_sgs = gs.subgridspec(4, 2, hspace=0, wspace=0)
 
-        # left column: test
         for i in range(4):
             sub_ax = fig.add_subplot(fig_sgs[i, 0])
             cls = f"class{i}"
@@ -330,7 +323,7 @@ def _generate_main_figure(
 
             if i == 0:
                 sub_ax.set_title(
-                    "Confusion matrices: Lens sizes\nin test organoids by deep learning",
+                    "Confusion matrices: Lens sizes\nin validation organoids by deep learning",
                     fontsize=cfg.TITLE_SIZE,
                 )
             sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)
@@ -355,7 +348,6 @@ def _generate_main_figure(
                 loc="center left",
             )
 
-        # right column: validation
         for i in range(4):
             sub_ax = fig.add_subplot(fig_sgs[i, 1])
             cls = f"class{i}"
@@ -365,7 +357,7 @@ def _generate_main_figure(
 
             if i == 0:
                 sub_ax.set_title(
-                    "Confusion matrices: Lens sizes\nin validation organoids by deep learning",
+                    "Confusion matrices: Lens sizes\nin test organoids by deep learning",
                     fontsize=cfg.TITLE_SIZE,
                 )
             sub_ax.set_ylabel(cls, fontsize=cfg.AXIS_LABEL_SIZE)

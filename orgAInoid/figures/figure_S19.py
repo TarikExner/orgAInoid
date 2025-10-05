@@ -57,7 +57,7 @@ def _generate_main_figure(
     def generate_subfigure_a(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
     ) -> None:
-        projection = "sum"
+        projection = "sum-intensity z-projection"
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x=-0.4)
 
@@ -147,7 +147,7 @@ def _generate_main_figure(
     def generate_subfigure_b(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
     ) -> None:
-        projection = "sum"
+        projection = "sum-intensity z-projection"
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x=-0.4)
 
@@ -241,7 +241,7 @@ def _generate_main_figure(
     def generate_subfigure_c(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
     ) -> None:
-        projection = "max"
+        projection = "max-intensity z-projection"
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x=-0.4)
 
@@ -332,7 +332,7 @@ def _generate_main_figure(
     def generate_subfigure_d(
         fig: Figure, ax: Axes, gs: SubplotSpec, subfigure_label
     ) -> None:
-        projection = "max"
+        projection = "max-intensity z-projection"
         ax.axis("off")
         utils._figure_label(ax, subfigure_label, x=-0.4)
 

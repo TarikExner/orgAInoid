@@ -56,7 +56,7 @@ def _generate_main_figure(
             x=40, y=0.52, s="Random Prediction", fontsize=cfg.TITLE_SIZE, color="black"
         )
         accuracy_plot_test.set_title(
-            "Prediction accuracy: Emergence of RPE\nin test organoids by deep learning",
+            "Prediction accuracy: Emergence of RPE\nin validation organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot_test.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
@@ -82,7 +82,7 @@ def _generate_main_figure(
             x=40, y=0.52, s="Random Prediction", fontsize=cfg.TITLE_SIZE, color="black"
         )
         accuracy_plot_val.set_title(
-            "Prediction accuracy: Emergence of RPE\nin validation organoids by deep learning",
+            "Prediction accuracy: Emergence of RPE\nin test organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot_val.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
@@ -142,7 +142,7 @@ def _generate_main_figure(
         test_conf_matrix.set_xlim(0, 72)
         test_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
         test_conf_matrix.set_title(
-            "Confusion matrix: Emergence of RPE\nin test organoids by deep learning",
+            "Confusion matrix: Emergence of RPE\nin validation organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
 
@@ -180,7 +180,7 @@ def _generate_main_figure(
         val_conf_matrix.set_xlim(0, 72)
         val_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
         val_conf_matrix.set_title(
-            "Confusion matrix: Emergence of RPE\nin validation organoids by deep learning",
+            "Confusion matrix: Emergence of RPE\nin test organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
 
@@ -215,7 +215,7 @@ def _generate_main_figure(
             x=40, y=0.52, s="Random Prediction", fontsize=cfg.TITLE_SIZE, color="black"
         )
         accuracy_plot_test.set_title(
-            "Prediction accuracy: Emergence of lenses\nin test organoids by deep learning",
+            "Prediction accuracy: Emergence of lenses\nin validation organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot_test.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
@@ -241,7 +241,7 @@ def _generate_main_figure(
             x=40, y=0.52, s="Random Prediction", fontsize=cfg.TITLE_SIZE, color="black"
         )
         accuracy_plot_val.set_title(
-            "Prediction accuracy: Emergence of lenses\nin validation organoids by deep learning",
+            "Prediction accuracy: Emergence of lenses\nin test organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot_val.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
@@ -301,7 +301,7 @@ def _generate_main_figure(
         test_conf_matrix.set_xlim(0, 72)
         test_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
         test_conf_matrix.set_title(
-            "Confusion matrix: Emergence of lenses\nin test organoids by deep learning",
+            "Confusion matrix: Emergence of lenses\nin validation organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
 
@@ -339,7 +339,7 @@ def _generate_main_figure(
         val_conf_matrix.set_xlim(0, 72)
         val_conf_matrix.tick_params(**cfg.TICKPARAMS_PARAMS)
         val_conf_matrix.set_title(
-            "Confusion matrix: Emergence of lenses\nin validation organoids by deep learning",
+            "Confusion matrix: Emergence of lenses\nin test organoids by deep learning",
             fontsize=cfg.TITLE_SIZE,
         )
 

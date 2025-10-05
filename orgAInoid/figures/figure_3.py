@@ -35,7 +35,7 @@ def _generate_main_figure(
         sketch = fig.add_subplot(fig_sgs[0])
         utils._prep_image_axis(sketch)
         # img = cv2.imread('./sketches/Figure_3.png')
-        img = cv2.imread(os.path.join(sketch_dir, "Figure_2.png"), cv2.IMREAD_UNCHANGED)
+        img = cv2.imread(os.path.join(sketch_dir, "Figure_3.png"), cv2.IMREAD_UNCHANGED)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         sketch.imshow(img)
         return

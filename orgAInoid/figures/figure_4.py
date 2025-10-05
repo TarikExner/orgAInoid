@@ -273,7 +273,6 @@ def _generate_main_figure(
         )
 
         handles, labels = accuracy_plot.get_legend_handles_labels()
-        projection = "single slice"
         labels_dict = {
             # we switch nomenclature for test and val sets
             "Morphometrics_test": "Decision Tree (morphometrics): Validation",
@@ -289,7 +288,7 @@ def _generate_main_figure(
             handles, labels, loc="lower right", fontsize=cfg.TITLE_SIZE
         )
         accuracy_plot.set_title(
-            f"Prediction accuracy: Morphometrics clusters\non image projection: {projection}",
+            "Prediction accuracy: Organoid morphology clusters at final timepoint",
             fontsize=cfg.TITLE_SIZE,
         )
         accuracy_plot.set_ylabel("F1 score", fontsize=cfg.AXIS_LABEL_SIZE)
