@@ -175,15 +175,27 @@ def figure_S15_generation(
         proj="SL3",
         output_dir=figure_data_dir,
     )
+
     lens_classes_clf = get_classifier_comparison(
         classifier_results_dir=classifier_results_dir,
         readout="Lens_classes",
         proj="SL3",
         output_dir=figure_data_dir,
     )
+
     _generate_main_figure(
         rpe_classes_res=rpe_classes_clf,
         lens_classes_res=lens_classes_clf,
         figure_output_dir=figure_output_dir,
         figure_name="Supplementary_Figure_S15",
     )
+
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_SF15a.csv")
+    rpe_classes_clf["experiment"] = rpe_classes_clf["experiment"].map(cfg.EXPERIMENT_MAP)
+    rpe_classes_clf.to_csv(rpe_output_dir, index = False)
+
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_SF15b.csv")
+    lens_classes_clf["experiment"] = lens_classes_clf["experiment"].map(cfg.EXPERIMENT_MAP)
+    lens_classes_clf.to_csv(lens_output_dir, index = False)
+
+    return

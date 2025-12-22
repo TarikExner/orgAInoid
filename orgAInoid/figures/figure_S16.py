@@ -191,3 +191,13 @@ def figure_S16_generation(
         figure_output_dir=figure_output_dir,
         figure_name="Supplementary_Figure_S16",
     )
+
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_SF16a.csv")
+    rpe_classes_clf["experiment"] = rpe_classes_clf["experiment"].map(cfg.EXPERIMENT_MAP)
+    rpe_classes_clf.to_csv(rpe_output_dir, index = False)
+
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_SF16b.csv")
+    lens_classes_clf["experiment"] = lens_classes_clf["experiment"].map(cfg.EXPERIMENT_MAP)
+    lens_classes_clf.to_csv(lens_output_dir, index = False)
+
+    return

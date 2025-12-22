@@ -342,6 +342,7 @@ def figure_S3_generation(
         data_cols=data_columns,
         output_dir=figure_data_dir,
     )
+
     jaccard_raw_tsne = compare_neighbors_by_experiment(
         dimreds,
         dimred="TSNE",
@@ -349,6 +350,7 @@ def figure_S3_generation(
         data_cols=data_columns,
         output_dir=figure_data_dir,
     )
+
 
     well_frac_pca_umap = neighbors_per_well_by_experiment(
         dimreds_pca,
@@ -365,6 +367,7 @@ def figure_S3_generation(
         output_dir=figure_data_dir,
     )
 
+
     _generate_main_figure(
         jaccard_tsne_pca=jaccard_pca_tsne,
         jaccard_tsne_raw=jaccard_raw_tsne,
@@ -375,4 +378,42 @@ def figure_S3_generation(
         figure_output_dir=figure_output_dir,
         figure_name="Supplementary_Figure_S3",
     )
+
+    jaccard_pca_umap["data_space"] = "pca"
+    jaccard_pca_umap["reduction"] = "umap"
+
+    jaccard_pca_tsne["data_space"] = "pca"
+    jaccard_pca_tsne["reduction"] = "umap"
+
+    jaccard_raw_umap["data_space"] = "raw"
+    jaccard_raw_umap["reduction"] = "umap"
+
+    jaccard_raw_tsne["data_space"] = "raw"
+    jaccard_raw_tsne["reduction"] = "umap"
+
+    jaccard_frame = pd.concat([
+        jaccard_pca_umap,
+        jaccard_pca_tsne,
+        jaccard_raw_umap,
+        jaccard_raw_tsne
+    ], axis = 0)
+
+    jaccard_output_dir = os.path.join(figure_output_dir, "Data_S1_SF3abcd.csv")
+    jaccard_frame["experiment"] = jaccard_frame["experiment"].map(cfg.EXPERIMENT_MAP)
+    jaccard_frame["hours"] = jaccard_frame["loop"] / 2
+    jaccard_frame.to_csv(jaccard_output_dir, index = False)
+
+    well_frac_pca_umap["data_space"] = "pca"
+    well_frac_raw_umap["data_space"] = "raw"
+
+    well_frac_frame = pd.concat([
+        well_frac_pca_umap,
+        well_frac_raw_umap,
+    ], axis = 0)
+
+    well_frac_output_dir = os.path.join(figure_output_dir, "Data_S1_SF3ef.csv")
+    well_frac_frame["experiment"] = well_frac_frame["experiment"].map(cfg.EXPERIMENT_MAP)
+    well_frac_frame["hours"] = well_frac_frame["loop"] / 2
+    well_frac_frame.to_csv(well_frac_output_dir, index = False)
+
     return

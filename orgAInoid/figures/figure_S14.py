@@ -454,3 +454,27 @@ def figure_S14_generation(
         figure_output_dir=figure_output_dir,
         figure_name="Supplementary_Figure_S14",
     )
+
+    rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S1_SF14a.csv")
+    rpe_final_f1s["experiment"]
+    rpe_final_f1s["experiment"] = rpe_final_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
+    rpe_final_f1s.to_csv(rpe_final_output_dir, index = False)
+
+    rpe_cnn_output_dir = os.path.join(figure_output_dir, "Data_S1_SF14b.csv")
+    rpe_cnn_test_cm["eval_set"] = "val"
+    rpe_cnn_val_cm["eval_set"] = "test"
+    rpe_cnn = pd.concat([rpe_cnn_test_cm, rpe_cnn_val_cm], axis = 0)
+    rpe_cnn.to_csv(rpe_cnn_output_dir, index = False)
+
+    lens_final_output_dir = os.path.join(figure_output_dir, "Data_S1_SF14c.csv")
+    lens_final_f1s["experiment"]
+    lens_final_f1s["experiment"] = lens_final_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
+    lens_final_f1s.to_csv(lens_final_output_dir, index = False)
+
+    lens_cnn_output_dir = os.path.join(figure_output_dir, "Data_S1_SF14d.csv")
+    lens_cnn_test_cm["eval_set"] = "val"
+    lens_cnn_val_cm["eval_set"] = "test"
+    lens_cnn = pd.concat([lens_cnn_test_cm, lens_cnn_val_cm], axis = 0)
+    lens_cnn.to_csv(lens_cnn_output_dir, index = False)
+
+    return

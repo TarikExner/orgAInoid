@@ -492,3 +492,28 @@ def figure_S20_generation(
         figure_output_dir=figure_output_dir,
         figure_name="Supplementary_Figure_S20",
     )
+
+
+    rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S1_SF20a.csv")
+    rpe_classes_f1s["experiment"]
+    rpe_classes_f1s["experiment"] = rpe_classes_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
+    rpe_classes_f1s.to_csv(rpe_final_output_dir, index = False)
+
+    rpe_clf_output_dir = os.path.join(figure_output_dir, "Data_S1_SF20b.csv")
+    rpe_classes_clf_test_cm["eval_set"] = "val"
+    rpe_classes_clf_val_cm["eval_set"] = "test"
+    rpe_classes_clf = pd.concat([rpe_classes_clf_test_cm, rpe_classes_clf_val_cm], axis = 0)
+    rpe_classes_clf.to_csv(rpe_clf_output_dir, index = False)
+
+    lens_final_output_dir = os.path.join(figure_output_dir, "Data_S1_SF20c.csv")
+    lens_classes_f1s["experiment"]
+    lens_classes_f1s["experiment"] = lens_classes_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
+    lens_classes_f1s.to_csv(lens_final_output_dir, index = False)
+
+    lens_clf_output_dir = os.path.join(figure_output_dir, "Data_S1_SF20d.csv")
+    lens_classes_clf_test_cm["eval_set"] = "val"
+    lens_classes_clf_val_cm["eval_set"] = "test"
+    lens_classes_clf = pd.concat([lens_classes_clf_test_cm, lens_classes_clf_val_cm], axis = 0)
+    lens_classes_clf.to_csv(lens_clf_output_dir, index = False)
+
+    return

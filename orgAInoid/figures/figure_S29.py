@@ -360,6 +360,12 @@ def figure_S29_generation(
         figure_data_dir=figure_data_dir,
         evaluator_results_dir=evaluator_results_dir,
     )
+
+    assert rpe_saliency_results is not None
+    assert lens_saliency_results is not None
+    assert rpe_classes_saliency_results is not None
+    assert lens_classes_saliency_results is not None
+
     _generate_main_figure(
         rpe_sal=rpe_saliency_results,
         lens_sal=lens_saliency_results,
@@ -368,3 +374,19 @@ def figure_S29_generation(
         figure_output_dir=figure_output_dir,
         figure_name="Supplementary_Figure_S29",
     )
+
+    rpe_saliency_results["readout"] = "RPE_Final"
+    lens_saliency_results["readout"] = "Lens_Final"
+    rpe_classes_saliency_results["readout"] = "RPE_classes"
+    lens_classes_saliency_results["readout"] = "Lens_classes"
+
+    final_frame_output_dir = os.path.join(figure_output_dir, "Data_S1_SF29.csv")
+    final_frame = pd.concat([
+        rpe_saliency_results,
+        lens_saliency_results,
+        rpe_classes_saliency_results,
+        lens_classes_saliency_results
+    ], axis = 0)
+    final_frame.to_csv(final_frame_output_dir, index = False)
+
+    return

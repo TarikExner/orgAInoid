@@ -522,4 +522,25 @@ def figure_S8_generation(
         figure_output_dir=figure_output_dir,
         sketch_dir=sketch_dir,
         figure_name="Supplementary_Figure_S8",
+
     )
+
+    # SuppData generation
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_SF8a.csv")
+    rpe_final_f1s_sum["hours"] = rpe_final_f1s_sum["loop"] / 2
+    rpe_final_f1s_sum.to_csv(rpe_output_dir, index = False)
+
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_SF8b.csv")
+    lens_final_f1s_sum["hours"] = lens_final_f1s_sum["loop"] / 2
+    lens_final_f1s_sum.to_csv(lens_output_dir, index = False)
+
+
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_SF8c.csv")
+    rpe_final_f1s_max["hours"] = rpe_final_f1s_max["loop"] / 2
+    rpe_final_f1s_max.to_csv(rpe_output_dir, index = False)
+
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_SF8d.csv")
+    lens_final_f1s_max["hours"] = lens_final_f1s_max["loop"] / 2
+    lens_final_f1s_max.to_csv(lens_output_dir, index = False)
+
+    return

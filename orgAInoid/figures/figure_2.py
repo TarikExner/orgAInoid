@@ -300,6 +300,9 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
+
     return
 
 
@@ -396,10 +399,12 @@ def figure_2_generation(
         sketch_dir=sketch_dir,
     )
 
-    # _generate_main_figure(dimred_data = dimreds,
-    #                       distance_data = organoid_distances,
-    #                       figure_output_dir = figure_output_dir,
-    #                       figure_name = "Reviewer_Figure_1",
-    #                       sketch_dir = sketch_dir)
+    dimred_output_dir = os.path.join(figure_output_dir, "Data_S1_F2b.csv")
+    dimreds_pca["experiment"] = dimreds_pca["experiment"].map(cfg.EXPERIMENT_MAP)
+    dimreds_pca.to_csv(dimred_output_dir, index = False)
+
+    dist_output_dir = os.path.join(figure_output_dir, "Data_S1_F2cd.csv")
+    organoid_distances_pca["experiment"] = organoid_distances_pca["experiment"].map(cfg.EXPERIMENT_MAP)
+    organoid_distances_pca.to_csv(dist_output_dir, index = False)
 
     return

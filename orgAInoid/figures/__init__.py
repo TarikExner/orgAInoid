@@ -31,7 +31,7 @@ from .figure_S24 import figure_S24_generation
 from .figure_S25 import figure_S25_generation
 from .figure_S26 import figure_S26_generation
 from .figure_S27 import figure_S27_generation
-# from .figure_S28 import figure_S28_generation
+from .figure_S28 import figure_S28_generation
 from .figure_S29 import figure_S29_generation
 from .figure_S30 import figure_S30_generation
 from .figure_S31 import figure_S31_generation
@@ -77,7 +77,7 @@ __all__ = [
     "figure_S25_generation",
     "figure_S26_generation",
     "figure_S27_generation",
-    # "figure_S28_generation",
+    "figure_S28_generation",
     "figure_S29_generation",
     "figure_S30_generation",
     "figure_S31_generation",
@@ -167,7 +167,7 @@ def generate_final_figures():
     figure_S25_generation(**DIRECTORIES)
     figure_S26_generation(**DIRECTORIES)
     figure_S27_generation(**DIRECTORIES)
-    # figure_S28_generation(**DIRECTORIES)
+    figure_S28_generation(**DIRECTORIES)
     figure_S29_generation(**DIRECTORIES)
     figure_S30_generation(**DIRECTORIES)
     figure_S31_generation(**DIRECTORIES)

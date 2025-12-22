@@ -307,3 +307,26 @@ def figure_S27_generation(
         classifier="CLF",
         figure_name="Supplementary_Figure_S27",
     )
+
+    f1d_rpe_classes_val["eval_set"] = "test"
+    f1d_rpe_classes_test["eval_set"] = "val"
+    f1d_lens_classes_val["eval_set"] = "test"
+    f1d_lens_classes_test["eval_set"] = "val"
+
+    f1d_rpe_classes_val["readout"] = "RPE_classes"
+    f1d_rpe_classes_test["readout"] = "RPE_classes"
+    f1d_lens_classes_val["readout"] = "Lens_classes"
+    f1d_lens_classes_test["readout"] = "Lens_classes"
+
+    final_frame_output_dir = os.path.join(figure_output_dir, "Data_S1_SF27.csv")
+    final_frame = pd.concat([
+        f1d_rpe_classes_val,
+        f1d_rpe_classes_test,
+        f1d_lens_classes_val,
+        f1d_lens_classes_test
+    ], axis = 0)
+
+    final_frame["val_experiment"] = final_frame["val_experiment"].map(cfg.EXPERIMENT_MAP)
+    final_frame.to_csv(final_frame_output_dir, index = False)
+
+    return

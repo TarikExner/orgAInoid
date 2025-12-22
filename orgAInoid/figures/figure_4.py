@@ -319,6 +319,11 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
+
+    return
+
 
 def figure_4_generation(
     sketch_dir: str,
@@ -375,3 +380,18 @@ def figure_4_generation(
         sketch_dir=sketch_dir,
         figure_name="Figure_4",
     )
+
+    # SuppData generation
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_F4a.csv")
+    rpe_classes_f1s["hours"] = rpe_classes_f1s["loop"] / 2
+    rpe_classes_f1s.to_csv(rpe_output_dir, index = False)
+
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_F4b.csv")
+    lens_classes_f1s["hours"] = lens_classes_f1s["loop"] / 2
+    lens_classes_f1s.to_csv(lens_output_dir, index = False)
+
+    morph_output_dir = os.path.join(figure_output_dir, "Data_S1_F4c.csv")
+    morph_classes_f1["hours"] = morph_classes_f1["loop"] / 2
+    morph_classes_f1.to_csv(morph_output_dir, index = False)
+
+    return

@@ -191,3 +191,13 @@ def figure_S5_generation(
         figure_output_dir=figure_output_dir,
         figure_name="Supplementary_Figure_S5",
     )
+
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_SF5a.csv")
+    rpe_final_clf["experiment"] = rpe_final_clf["experiment"].map(cfg.EXPERIMENT_MAP)
+    rpe_final_clf.to_csv(rpe_output_dir, index = False)
+
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_SF5b.csv")
+    lens_final_clf["experiment"] = lens_final_clf["experiment"].map(cfg.EXPERIMENT_MAP)
+    lens_final_clf.to_csv(lens_output_dir, index = False)
+
+    return

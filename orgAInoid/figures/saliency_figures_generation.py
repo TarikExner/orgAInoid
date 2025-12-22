@@ -365,25 +365,6 @@ def cross_model_consistency(
     return pd.DataFrame(rows)
 
 
-def dice_to_peak_timeseries(
-    consensus_by_time: Dict[int, np.ndarray], mask2d: np.ndarray, top_pct: float = 5.0
-) -> pd.DataFrame:
-    """Return DataFrame with columns: time, dice_to_peak."""
-    if not consensus_by_time:
-        return pd.DataFrame(columns=["time", "dice_to_peak"])
-    # pick peak map as pseudo-ROI: the time key with max time or provided upstream
-    # Upstream we will pass the loop of max F1.
-    items = list(consensus_by_time.items())
-    times = [t for t, _ in items]
-    # find peak is handled by caller
-    peak_time = max(times)
-    peak_map = consensus_by_time[peak_time]
-    peak_mask = topk_mask_from_abs(peak_map, top_pct, mask2d)
-    rows = []
-    for t, cmap in sorted(consensus_by_time.items()):
-        Mt = topk_mask_from_abs(cmap, top_pct, mask2d)
-        rows.append({"time": t, "dice_to_peak": dice(Mt, peak_mask)})
-    return pd.DataFrame(rows)
 
 
 def entropy_and_drift(

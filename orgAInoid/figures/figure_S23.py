@@ -436,7 +436,7 @@ def figure_S23_generation(
         raw_data_dir=raw_data_dir,
         evaluator_results_dir=evaluator_results_dir,
     )
-    rpe_classes_clf_test_cm = create_confusion_matrix_frame(
+    rpe_classes_cnn_test_cm = create_confusion_matrix_frame(
         readout="RPE_classes",
         classifier="neural_net",
         eval_set="test",
@@ -444,7 +444,7 @@ def figure_S23_generation(
         figure_data_dir=figure_data_dir,
         morphometrics_dir=morphometrics_dir,
     )
-    rpe_classes_clf_val_cm = create_confusion_matrix_frame(
+    rpe_classes_cnn_val_cm = create_confusion_matrix_frame(
         readout="RPE_classes",
         classifier="neural_net",
         eval_set="val",
@@ -464,7 +464,7 @@ def figure_S23_generation(
         raw_data_dir=raw_data_dir,
         evaluator_results_dir=evaluator_results_dir,
     )
-    lens_classes_clf_test_cm = create_confusion_matrix_frame(
+    lens_classes_cnn_test_cm = create_confusion_matrix_frame(
         readout="Lens_classes",
         classifier="neural_net",
         eval_set="test",
@@ -472,7 +472,7 @@ def figure_S23_generation(
         figure_data_dir=figure_data_dir,
         morphometrics_dir=morphometrics_dir,
     )
-    lens_classes_clf_val_cm = create_confusion_matrix_frame(
+    lens_classes_cnn_val_cm = create_confusion_matrix_frame(
         readout="Lens_classes",
         classifier="neural_net",
         eval_set="val",
@@ -484,10 +484,34 @@ def figure_S23_generation(
     _generate_main_figure(
         rpe_classes_f1_data=rpe_classes_f1s,
         lens_classes_f1_data=lens_classes_f1s,
-        rpe_classes_clf_test_cm=rpe_classes_clf_test_cm,
-        rpe_classes_clf_val_cm=rpe_classes_clf_val_cm,
-        lens_classes_clf_test_cm=lens_classes_clf_test_cm,
-        lens_classes_clf_val_cm=lens_classes_clf_val_cm,
+        rpe_classes_clf_test_cm=rpe_classes_cnn_test_cm,
+        rpe_classes_clf_val_cm=rpe_classes_cnn_val_cm,
+        lens_classes_clf_test_cm=lens_classes_cnn_test_cm,
+        lens_classes_clf_val_cm=lens_classes_cnn_val_cm,
         figure_output_dir=figure_output_dir,
         figure_name="Supplementary_Figure_S23",
     )
+
+    rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S1_SF23a.csv")
+    rpe_classes_f1s["experiment"]
+    rpe_classes_f1s["experiment"] = rpe_classes_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
+    rpe_classes_f1s.to_csv(rpe_final_output_dir, index = False)
+
+    rpe_cnn_output_dir = os.path.join(figure_output_dir, "Data_S1_SF23b.csv")
+    rpe_classes_cnn_test_cm["eval_set"] = "val"
+    rpe_classes_cnn_val_cm["eval_set"] = "test"
+    rpe_classes_cnn = pd.concat([rpe_classes_cnn_test_cm, rpe_classes_cnn_val_cm], axis = 0)
+    rpe_classes_cnn.to_csv(rpe_cnn_output_dir, index = False)
+
+    lens_final_output_dir = os.path.join(figure_output_dir, "Data_S1_SF23c.csv")
+    lens_classes_f1s["experiment"]
+    lens_classes_f1s["experiment"] = lens_classes_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
+    lens_classes_f1s.to_csv(lens_final_output_dir, index = False)
+
+    lens_cnn_output_dir = os.path.join(figure_output_dir, "Data_S1_SF23d.csv")
+    lens_classes_cnn_test_cm["eval_set"] = "val"
+    lens_classes_cnn_val_cm["eval_set"] = "test"
+    lens_classes_cnn = pd.concat([lens_classes_cnn_test_cm, lens_classes_cnn_val_cm], axis = 0)
+    lens_classes_cnn.to_csv(lens_cnn_output_dir, index = False)
+
+    return

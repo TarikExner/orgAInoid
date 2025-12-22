@@ -44,6 +44,9 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
+
 
 def figure_5_generation(sketch_dir: str, figure_output_dir: str, **kwargs):
     _generate_main_figure(

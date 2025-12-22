@@ -523,3 +523,22 @@ def figure_S19_generation(
         sketch_dir=sketch_dir,
         figure_name="Supplementary_Figure_S19",
     )
+
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_SF19a.csv")
+    rpe_classes_f1_sum["hours"] = rpe_classes_f1_sum["loop"] / 2
+    rpe_classes_f1_sum.to_csv(rpe_output_dir, index = False)
+
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_SF19b.csv")
+    lens_classes_f1_sum["hours"] = lens_classes_f1_sum["loop"] / 2
+    lens_classes_f1_sum.to_csv(lens_output_dir, index = False)
+
+
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_SF19c.csv")
+    rpe_classes_f1_max["hours"] = rpe_classes_f1_max["loop"] / 2
+    rpe_classes_f1_max.to_csv(rpe_output_dir, index = False)
+
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_SF19d.csv")
+    lens_classes_f1_max["hours"] = lens_classes_f1_max["loop"] / 2
+    lens_classes_f1_max.to_csv(lens_output_dir, index = False)
+
+    return

@@ -477,4 +477,11 @@ def figure_S1_generation(
         figure_name="Supplementary_Figure_S1",
     )
 
+    data_output_dir = os.path.join(figure_output_dir, "Data_S1_SF1aef.csv")
+    dataset_annotations["experiment"] = dataset_annotations["experiment"].map(cfg.EXPERIMENT_MAP)
+    dataset_annotations.to_csv(data_output_dir, index = False)
+
+    human_eval_output_dir = os.path.join(figure_output_dir, "Data_S1_SF1cd.csv")
+    human_evaluator_f1.to_csv(human_eval_output_dir, index = False)
+
     return

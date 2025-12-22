@@ -359,6 +359,9 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight")
+
     return
 
 
@@ -381,3 +384,8 @@ def figure_1_generation(
         figure_name="Figure_1",
         sketch_dir=sketch_dir,
     )
+
+    data_output_dir = os.path.join(figure_output_dir, "Data_S1_F1.csv")
+    dataset_annotations["experiment"] = dataset_annotations["experiment"].map(cfg.EXPERIMENT_MAP)
+    dataset_annotations.to_csv(data_output_dir, index = False)
+
