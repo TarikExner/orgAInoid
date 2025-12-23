@@ -477,10 +477,10 @@ def figure_S1_generation(
         figure_name="Supplementary_Figure_S1",
     )
 
-    data_output_dir = os.path.join(figure_output_dir, "Data_S10.csv")
+    data_output_dir = os.path.join(figure_output_dir, "S9_Data.csv")
     dataset_annotations.to_csv(data_output_dir, index = False)
 
-    human_eval_output_dir = os.path.join(figure_output_dir, "Data_S11.csv")
+    human_eval_output_dir = os.path.join(figure_output_dir, "S10_Data.csv")
     human_evaluator_f1.to_csv(human_eval_output_dir, index = False)
 
     return

@@ -96,3 +96,10 @@ data.save("./save/path", overwrite = True)
 
 ``` 
 
+## Underlying figure data have been deposited at Zenodo as well
+
+These dataframes have been generated from the figure generation code and can be used with the
+respective functions stored under orgAInoid.figures
+
+[Figure Source Data](https:/zenodo.org/records/XXXXXX)
+

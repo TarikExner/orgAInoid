@@ -318,7 +318,7 @@ def figure_S27_generation(
     f1d_lens_classes_val["readout"] = "Lens_classes"
     f1d_lens_classes_test["readout"] = "Lens_classes"
 
-    final_frame_output_dir = os.path.join(figure_output_dir, "Data_S87.csv")
+    final_frame_output_dir = os.path.join(figure_output_dir, "S86_Data.csv")
     final_frame = pd.concat([
         f1d_rpe_classes_val,
         f1d_rpe_classes_test,

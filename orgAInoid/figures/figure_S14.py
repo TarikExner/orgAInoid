@@ -455,19 +455,19 @@ def figure_S14_generation(
         figure_name="Supplementary_Figure_S14",
     )
 
-    rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S47.csv")
+    rpe_final_output_dir = os.path.join(figure_output_dir, "S46_Data.csv")
     rpe_final_f1s.to_csv(rpe_final_output_dir, index = False)
 
-    rpe_cnn_output_dir = os.path.join(figure_output_dir, "Data_S48.csv")
+    rpe_cnn_output_dir = os.path.join(figure_output_dir, "S47_Data.csv")
     rpe_cnn_test_cm["eval_set"] = "val"
     rpe_cnn_val_cm["eval_set"] = "test"
     rpe_cnn = pd.concat([rpe_cnn_test_cm, rpe_cnn_val_cm], axis = 0)
     rpe_cnn.to_csv(rpe_cnn_output_dir, index = False)
 
-    lens_final_output_dir = os.path.join(figure_output_dir, "Data_S49.csv")
+    lens_final_output_dir = os.path.join(figure_output_dir, "S48_Data.csv")
     lens_final_f1s.to_csv(lens_final_output_dir, index = False)
 
-    lens_cnn_output_dir = os.path.join(figure_output_dir, "Data_S50.csv")
+    lens_cnn_output_dir = os.path.join(figure_output_dir, "S49_Data.csv")
     lens_cnn_test_cm["eval_set"] = "val"
     lens_cnn_val_cm["eval_set"] = "test"
 

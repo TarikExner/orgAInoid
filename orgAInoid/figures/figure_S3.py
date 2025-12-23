@@ -398,7 +398,7 @@ def figure_S3_generation(
         jaccard_raw_tsne
     ], axis = 0)
 
-    jaccard_output_dir = os.path.join(figure_output_dir, "Data_S14.csv")
+    jaccard_output_dir = os.path.join(figure_output_dir, "S13_Data.csv")
     jaccard_frame["experiment"] = jaccard_frame["experiment"].map(cfg.EXPERIMENT_MAP)
     jaccard_frame["hours"] = jaccard_frame["loop"] / 2
     jaccard_frame.to_csv(jaccard_output_dir, index = False)
@@ -411,7 +411,7 @@ def figure_S3_generation(
         well_frac_raw_umap,
     ], axis = 0)
 
-    well_frac_output_dir = os.path.join(figure_output_dir, "Data_S15.csv")
+    well_frac_output_dir = os.path.join(figure_output_dir, "S14_Data.csv")
     well_frac_frame.to_csv(well_frac_output_dir, index = False)
 
     return
