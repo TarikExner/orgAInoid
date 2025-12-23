@@ -456,7 +456,6 @@ def figure_S13_generation(
     )
 
     rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S43.csv")
-    rpe_final_f1s["experiment"]
     rpe_final_f1s.to_csv(rpe_final_output_dir, index = False)
 
     rpe_cnn_output_dir = os.path.join(figure_output_dir, "Data_S44.csv")
@@ -466,7 +465,6 @@ def figure_S13_generation(
     rpe_cnn.to_csv(rpe_cnn_output_dir, index = False)
 
     lens_final_output_dir = os.path.join(figure_output_dir, "Data_S45.csv")
-    lens_final_f1s["experiment"]
     lens_final_f1s.to_csv(lens_final_output_dir, index = False)
 
     lens_cnn_output_dir = os.path.join(figure_output_dir, "Data_S46.csv")

@@ -493,8 +493,6 @@ def figure_S23_generation(
     )
 
     rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S74.csv")
-    rpe_classes_f1s["experiment"]
-    rpe_classes_f1s["experiment"] = rpe_classes_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
     rpe_classes_f1s.to_csv(rpe_final_output_dir, index = False)
 
     rpe_cnn_output_dir = os.path.join(figure_output_dir, "Data_S75.csv")
@@ -504,8 +502,6 @@ def figure_S23_generation(
     rpe_classes_cnn.to_csv(rpe_cnn_output_dir, index = False)
 
     lens_final_output_dir = os.path.join(figure_output_dir, "Data_S76.csv")
-    lens_classes_f1s["experiment"]
-    lens_classes_f1s["experiment"] = lens_classes_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
     lens_classes_f1s.to_csv(lens_final_output_dir, index = False)
 
     lens_cnn_output_dir = os.path.join(figure_output_dir, "Data_S77.csv")

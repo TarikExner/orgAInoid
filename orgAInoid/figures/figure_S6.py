@@ -193,11 +193,9 @@ def figure_S6_generation(
     )
 
     rpe_output_dir = os.path.join(figure_output_dir, "Data_S20.csv")
-    rpe_final_clf["experiment"] = rpe_final_clf["experiment"].map(cfg.EXPERIMENT_MAP)
     rpe_final_clf.to_csv(rpe_output_dir, index = False)
 
     lens_output_dir = os.path.join(figure_output_dir, "Data_S21.csv")
-    lens_final_clf["experiment"] = lens_final_clf["experiment"].map(cfg.EXPERIMENT_MAP)
     lens_final_clf.to_csv(lens_output_dir, index = False)
 
     return

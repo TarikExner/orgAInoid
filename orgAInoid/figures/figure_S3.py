@@ -412,8 +412,6 @@ def figure_S3_generation(
     ], axis = 0)
 
     well_frac_output_dir = os.path.join(figure_output_dir, "Data_S15.csv")
-    well_frac_frame["experiment"] = well_frac_frame["experiment"].map(cfg.EXPERIMENT_MAP)
-    well_frac_frame["hours"] = well_frac_frame["loop"] / 2
     well_frac_frame.to_csv(well_frac_output_dir, index = False)
 
     return

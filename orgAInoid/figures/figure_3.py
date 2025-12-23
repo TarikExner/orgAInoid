@@ -327,11 +327,9 @@ def figure_3_generation(
 
     # SuppData generation
     rpe_output_dir = os.path.join(figure_output_dir, "Data_S4.csv")
-    rpe_final_f1s["hours"] = rpe_final_f1s["loop"] / 2
     rpe_final_f1s.to_csv(rpe_output_dir, index = False)
 
     lens_output_dir = os.path.join(figure_output_dir, "Data_S5.csv")
-    lens_final_f1s["hours"] = lens_final_f1s["loop"] / 2
     lens_final_f1s.to_csv(lens_output_dir, index = False)
 
     return

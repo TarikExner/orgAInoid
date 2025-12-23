@@ -393,7 +393,6 @@ def figure_S28_generation(
     classifier_data = pd.read_csv(
         "./0_initial_submission_files/figure_data/classifier_n_experiments.log", index_col=False
     )
-    classifier_data["experiment"] = classifier_data["experiment"].map(cfg.EXPERIMENT_MAP)
 
     clf_data_output_dir = os.path.join(figure_output_dir, "Data_S88.csv")
     classifier_data.to_csv(clf_data_output_dir, index = False)

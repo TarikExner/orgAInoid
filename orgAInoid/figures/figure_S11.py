@@ -527,7 +527,6 @@ def figure_S11_generation(
 
     final_frame_output_dir = os.path.join(figure_output_dir, "Data_S38.csv")
     final_frame = pd.concat([rpe_final_output, lens_final_output], axis = 0)
-    final_frame["ValExpID"] = final_frame["ValExpID"].map(cfg.EXPERIMENT_MAP)
     final_frame.to_csv(final_frame_output_dir, index = False)
 
     return

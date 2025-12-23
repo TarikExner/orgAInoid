@@ -456,8 +456,6 @@ def figure_S10_generation(
     )
 
     rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S34.csv")
-    rpe_final_f1s["experiment"]
-    rpe_final_f1s["experiment"] = rpe_final_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
     rpe_final_f1s.to_csv(rpe_final_output_dir, index = False)
 
     rpe_clf_output_dir = os.path.join(figure_output_dir, "Data_S35.csv")
@@ -467,8 +465,6 @@ def figure_S10_generation(
     rpe_clf.to_csv(rpe_clf_output_dir, index = False)
 
     lens_final_output_dir = os.path.join(figure_output_dir, "Data_S36.csv")
-    lens_final_f1s["experiment"]
-    lens_final_f1s["experiment"] = lens_final_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
     lens_final_f1s.to_csv(lens_final_output_dir, index = False)
 
     lens_clf_output_dir = os.path.join(figure_output_dir, "Data_S37.csv")

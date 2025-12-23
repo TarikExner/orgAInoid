@@ -326,7 +326,6 @@ def figure_S27_generation(
         f1d_lens_classes_test
     ], axis = 0)
 
-    final_frame["val_experiment"] = final_frame["val_experiment"].map(cfg.EXPERIMENT_MAP)
     final_frame.to_csv(final_frame_output_dir, index = False)
 
     return
