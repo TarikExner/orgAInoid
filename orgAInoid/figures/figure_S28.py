@@ -385,9 +385,8 @@ def figure_S28_generation(
     rpe_classes_nn = _prep_data(rpe_classes_nn)
     lens_classes_nn= _prep_data(lens_classes_nn)
     nn_data = pd.concat([rpe_nn, lens_nn, rpe_classes_nn, lens_classes_nn], axis = 0)
-    nn_data["ValExpID"] = nn_data["ValExpID"].map(cfg.EXPERIMENT_MAP)
 
-    nn_data_output_dir = os.path.join(figure_output_dir, "Data_S88_NN.csv")
+    nn_data_output_dir = os.path.join(figure_output_dir, "Data_S88.csv")
     nn_data.to_csv(nn_data_output_dir, index = False)
 
     classifier_data = pd.read_csv(
