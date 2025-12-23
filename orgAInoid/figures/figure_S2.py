@@ -260,12 +260,12 @@ def figure_S2_generation(
         figure_name="Supplementary_Figure_S2",
     )
 
-    dist_output_dir = os.path.join(figure_output_dir, "Data_S1_SF2a.csv")
-    organoid_distances["experiment"] = organoid_distances["experiment"].map(cfg.EXPERIMENT_MAP)
-    organoid_distances.to_csv(dist_output_dir, index = False)
-
-    dimred_output_dir = os.path.join(figure_output_dir, "Data_S1_SF2bc.csv")
+    dimred_output_dir = os.path.join(figure_output_dir, "Data_S12.csv")
     dimreds["experiment"] = dimreds["experiment"].map(cfg.EXPERIMENT_MAP)
     dimreds.to_csv(dimred_output_dir, index = False)
+
+    dist_output_dir = os.path.join(figure_output_dir, "Data_S13.csv")
+    organoid_distances["experiment"] = organoid_distances["experiment"].map(cfg.EXPERIMENT_MAP)
+    organoid_distances.to_csv(dist_output_dir, index = False)
 
     return

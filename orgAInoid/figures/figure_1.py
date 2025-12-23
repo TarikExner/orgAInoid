@@ -385,7 +385,7 @@ def figure_1_generation(
         sketch_dir=sketch_dir,
     )
 
-    data_output_dir = os.path.join(figure_output_dir, "Data_S1_F1.csv")
+    data_output_dir = os.path.join(figure_output_dir, "Data_S1.csv")
     dataset_annotations["experiment"] = dataset_annotations["experiment"].map(cfg.EXPERIMENT_MAP)
     dataset_annotations.to_csv(data_output_dir, index = False)
 

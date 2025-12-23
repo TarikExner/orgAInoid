@@ -455,23 +455,23 @@ def figure_S9_generation(
         figure_name="Supplementary_Figure_S9",
     )
 
-    rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S1_SF9a.csv")
+    rpe_final_output_dir = os.path.join(figure_output_dir, "Data_S30.csv")
     rpe_final_f1s["experiment"]
     rpe_final_f1s["experiment"] = rpe_final_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
     rpe_final_f1s.to_csv(rpe_final_output_dir, index = False)
 
-    rpe_clf_output_dir = os.path.join(figure_output_dir, "Data_S1_SF9b.csv")
+    rpe_clf_output_dir = os.path.join(figure_output_dir, "Data_S31.csv")
     rpe_clf_test_cm["eval_set"] = "val"
     rpe_clf_val_cm["eval_set"] = "test"
     rpe_clf = pd.concat([rpe_clf_test_cm, rpe_clf_val_cm], axis = 0)
     rpe_clf.to_csv(rpe_clf_output_dir, index = False)
 
-    lens_final_output_dir = os.path.join(figure_output_dir, "Data_S1_SF9c.csv")
+    lens_final_output_dir = os.path.join(figure_output_dir, "Data_S32.csv")
     lens_final_f1s["experiment"]
     lens_final_f1s["experiment"] = lens_final_f1s["experiment"].map(cfg.EXPERIMENT_MAP)
     lens_final_f1s.to_csv(lens_final_output_dir, index = False)
 
-    lens_clf_output_dir = os.path.join(figure_output_dir, "Data_S1_SF9d.csv")
+    lens_clf_output_dir = os.path.join(figure_output_dir, "Data_S33.csv")
     lens_clf_test_cm["eval_set"] = "val"
     lens_clf_val_cm["eval_set"] = "test"
     lens_clf = pd.concat([lens_clf_test_cm, lens_clf_val_cm], axis = 0)

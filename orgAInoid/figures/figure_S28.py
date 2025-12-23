@@ -395,7 +395,7 @@ def figure_S28_generation(
     )
     classifier_data["experiment"] = classifier_data["experiment"].map(cfg.EXPERIMENT_MAP)
 
-    clf_data_output_dir = os.path.join(figure_output_dir, "Data_S1_SF28_CLF.csv")
+    clf_data_output_dir = os.path.join(figure_output_dir, "Data_S88.csv")
     classifier_data.to_csv(clf_data_output_dir, index = False)
 
     return

@@ -539,7 +539,7 @@ def figure_S22_generation(
         figure_name="Supplementary_Figure_S22",
     )
 
-    final_frame_output_dir = os.path.join(figure_output_dir, "Data_S1_SF22.csv")
+    final_frame_output_dir = os.path.join(figure_output_dir, "Data_S73.csv")
     final_frame = pd.concat([rpe_classes_output, lens_classes_output], axis = 0)
     final_frame["ValExpID"] = final_frame["ValExpID"].map(cfg.EXPERIMENT_MAP)
     final_frame.to_csv(final_frame_output_dir, index = False)

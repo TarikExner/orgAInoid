@@ -315,7 +315,7 @@ def figure_S34_generation(
     rpe_classes_saliency_results["readout"] = "RPE_classes"
     lens_classes_saliency_results["readout"] = "Lens_classes"
 
-    final_frame_output_dir = os.path.join(figure_output_dir, "Data_S1_SF34.csv")
+    final_frame_output_dir = os.path.join(figure_output_dir, "Data_S90.csv")
     final_frame = pd.concat([
         rpe_saliency_results,
         lens_saliency_results,

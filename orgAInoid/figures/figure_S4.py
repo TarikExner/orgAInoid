@@ -188,11 +188,11 @@ def figure_S4_generation(
         figure_name="Supplementary_Figure_S4",
     )
 
-    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_SF4a.csv")
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S16.csv")
     rpe_final_clf["experiment"] = rpe_final_clf["experiment"].map(cfg.EXPERIMENT_MAP)
     rpe_final_clf.to_csv(rpe_output_dir, index = False)
 
-    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_SF4b.csv")
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S17.csv")
     lens_final_clf["experiment"] = lens_final_clf["experiment"].map(cfg.EXPERIMENT_MAP)
     lens_final_clf.to_csv(lens_output_dir, index = False)
 

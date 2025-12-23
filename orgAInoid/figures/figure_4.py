@@ -382,15 +382,15 @@ def figure_4_generation(
     )
 
     # SuppData generation
-    rpe_output_dir = os.path.join(figure_output_dir, "Data_S1_F4a.csv")
+    rpe_output_dir = os.path.join(figure_output_dir, "Data_S7.csv")
     rpe_classes_f1s["hours"] = rpe_classes_f1s["loop"] / 2
     rpe_classes_f1s.to_csv(rpe_output_dir, index = False)
 
-    lens_output_dir = os.path.join(figure_output_dir, "Data_S1_F4b.csv")
+    lens_output_dir = os.path.join(figure_output_dir, "Data_S8.csv")
     lens_classes_f1s["hours"] = lens_classes_f1s["loop"] / 2
     lens_classes_f1s.to_csv(lens_output_dir, index = False)
 
-    morph_output_dir = os.path.join(figure_output_dir, "Data_S1_F4c.csv")
+    morph_output_dir = os.path.join(figure_output_dir, "Data_S9.csv")
     morph_classes_f1["hours"] = morph_classes_f1["loop"] / 2
     morph_classes_f1.to_csv(morph_output_dir, index = False)
 

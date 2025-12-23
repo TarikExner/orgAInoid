@@ -399,11 +399,11 @@ def figure_2_generation(
         sketch_dir=sketch_dir,
     )
 
-    dimred_output_dir = os.path.join(figure_output_dir, "Data_S1_F2b.csv")
+    dimred_output_dir = os.path.join(figure_output_dir, "Data_S2.csv")
     dimreds_pca["experiment"] = dimreds_pca["experiment"].map(cfg.EXPERIMENT_MAP)
     dimreds_pca.to_csv(dimred_output_dir, index = False)
 
-    dist_output_dir = os.path.join(figure_output_dir, "Data_S1_F2cd.csv")
+    dist_output_dir = os.path.join(figure_output_dir, "Data_S3.csv")
     organoid_distances_pca["experiment"] = organoid_distances_pca["experiment"].map(cfg.EXPERIMENT_MAP)
     organoid_distances_pca.to_csv(dist_output_dir, index = False)
 
