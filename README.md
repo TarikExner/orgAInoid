@@ -58,9 +58,9 @@ classifier experiments with algorithms of "classical" machine learning.
 ## Use the classification datasets
 
 The datasets have been deposited at Zenodo:
-- [Single slice](https://zenodo.org/records/17202714)  
-- [SUM projections](https://zenodo.org/records/17205312)  
-- [Maximum projections](https://zenodo.org/records/17205321)
+- [Single slice](https://zenodo.org/records/17202714) DOI: 10.5281/zenodo.17202714
+- [SUM projections](https://zenodo.org/records/17205312)  DOI: 10.5281/zenodo.17205312
+- [Maximum projections](https://zenodo.org/records/17205321) DOI: 10.5281/zenodo.17205321
 
 In order to use it, you will have to clone the repository.
 
@@ -101,5 +101,5 @@ data.save("./save/path", overwrite = True)
 These dataframes have been generated from the figure generation code and can be used with the
 respective functions stored under orgAInoid.figures
 
-[Figure Source Data](https:/zenodo.org/records/XXXXXX)
+[Figure Source Data](https://zenodo.org/records/18033610). DOI: 10.5281/zenodo.18033610
 
