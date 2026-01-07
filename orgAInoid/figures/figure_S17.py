@@ -166,6 +166,9 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight", transparent = True)
+
     return
 
 
@@ -189,7 +192,7 @@ def figure_S17_generation(
         lens_classes_res=lens_classes_clf,
         proj="MAX",
         figure_output_dir=figure_output_dir,
-        figure_name="Supplementary_Figure_S17",
+        figure_name="S17_Fig",
     )
 
     rpe_output_dir = os.path.join(figure_output_dir, "S54_Data.csv")

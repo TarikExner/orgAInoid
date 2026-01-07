@@ -356,13 +356,16 @@ def _generate_main_figure(figure_output_dir: str,
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight", transparent = True)
+
     return
 
 def figure_S28_generation(
     figure_output_dir: str,
     **kwargs
 ) -> None:
-    _generate_main_figure(figure_output_dir, "Supplementary_Figure_S28")
+    _generate_main_figure(figure_output_dir, "S28_Fig")
 
     rpe_nn = pd.read_csv(
         "./0_initial_submission_files/figure_data/RPE_classification/RPE_Final_nexp.txt",

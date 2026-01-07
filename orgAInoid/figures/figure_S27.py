@@ -225,6 +225,9 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight", transparent = True)
+
     return
 
 
@@ -305,7 +308,7 @@ def figure_S27_generation(
         lens_classes_val=f1d_lens_classes_val,
         figure_output_dir=figure_output_dir,
         classifier="CLF",
-        figure_name="Supplementary_Figure_S27",
+        figure_name="S27_Fig",
     )
 
     f1d_rpe_classes_val["eval_set"] = "test"

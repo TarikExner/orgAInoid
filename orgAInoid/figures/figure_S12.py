@@ -370,6 +370,9 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight", transparent = True)
+
     return
 
 
@@ -452,7 +455,7 @@ def figure_S12_generation(
         lens_cnn_test_cm=lens_cnn_test_cm,
         lens_cnn_val_cm=lens_cnn_val_cm,
         figure_output_dir=figure_output_dir,
-        figure_name="Supplementary_Figure_S12",
+        figure_name="S12_Fig",
     )
 
     rpe_final_output_dir = os.path.join(figure_output_dir, "S38_Data.csv")

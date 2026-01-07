@@ -276,6 +276,10 @@ def visualize_models_at_loops(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.pdf")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight", transparent = True)
+
+    return
 
 def figure_S31_generation(figure_output_dir, **kwargs):
     visualize_models_at_loops(
@@ -291,5 +295,5 @@ def figure_S31_generation(figure_output_dir, **kwargs):
         clip_sigma=3.0,
         include_input=True,
         figure_output_dir=figure_output_dir,
-        figure_name="Supplementary_Figure_S31",
+        figure_name="S31_Fig",
     )

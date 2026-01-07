@@ -302,6 +302,9 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight", transparent = True)
+
     return
 
 
@@ -376,7 +379,7 @@ def figure_S3_generation(
         well_enrichment_raw=well_frac_raw_umap,
         well_enrichment_pca=well_frac_pca_umap,
         figure_output_dir=figure_output_dir,
-        figure_name="Supplementary_Figure_S3",
+        figure_name="S3_Fig",
     )
 
     jaccard_pca_umap["data_space"] = "pca"

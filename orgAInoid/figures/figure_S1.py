@@ -439,6 +439,9 @@ def _generate_main_figure(
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.png")
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
+    output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
+    plt.savefig(output_dir, dpi=300, bbox_inches="tight", transparent = True)
+
     return
 
 
@@ -474,7 +477,7 @@ def figure_S1_generation(
         human_f1_data=human_evaluator_f1,
         conf_matrix=conf_matrix,
         figure_output_dir=figure_output_dir,
-        figure_name="Supplementary_Figure_S1",
+        figure_name="S1_Fig",
     )
 
     data_output_dir = os.path.join(figure_output_dir, "S9_Data.csv")

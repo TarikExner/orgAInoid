@@ -452,7 +452,7 @@ def figure_S10_generation(
         lens_clf_test_cm=lens_clf_test_cm,
         lens_clf_val_cm=lens_clf_val_cm,
         figure_output_dir=figure_output_dir,
-        figure_name="Supplementary_Figure_S10",
+        figure_name="S10_Fig",
     )
 
     rpe_final_output_dir = os.path.join(figure_output_dir, "S33_Data.csv")
