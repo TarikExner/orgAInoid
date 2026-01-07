@@ -167,7 +167,14 @@ def _generate_main_figure(
     plt.savefig(output_dir, dpi=300, bbox_inches="tight")
 
     output_dir = os.path.join(figure_output_dir, f"{figure_name}.tif")
-    plt.savefig(output_dir, dpi=300, bbox_inches="tight", transparent = True)
+    plt.savefig(
+        output_dir,
+        dpi=300,
+        facecolor="white",
+        bbox_inches="tight",
+        transparent=False,
+        pil_kwargs={"compression": "tiff_lzw"}
+    )
 
     return
 
