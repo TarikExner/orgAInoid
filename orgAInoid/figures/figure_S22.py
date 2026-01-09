@@ -549,7 +549,7 @@ def figure_S22_generation(
         figure_name="S22_Fig",
     )
 
-    final_frame_output_dir = os.path.join(figure_output_dir, "S72_Data.csv")
+    final_frame_output_dir = os.path.join(figure_output_dir, "Extended_Data_72.csv")
     final_frame = pd.concat([rpe_classes_output, lens_classes_output], axis = 0)
     final_frame.to_csv(final_frame_output_dir, index = False)
 

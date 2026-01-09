@@ -503,19 +503,19 @@ def figure_S20_generation(
     )
 
 
-    rpe_final_output_dir = os.path.join(figure_output_dir, "S64_Data.csv")
+    rpe_final_output_dir = os.path.join(figure_output_dir, "Extended_Data_64.csv")
     rpe_classes_f1s.to_csv(rpe_final_output_dir, index = False)
 
-    rpe_clf_output_dir = os.path.join(figure_output_dir, "S65_Data.csv")
+    rpe_clf_output_dir = os.path.join(figure_output_dir, "Extended_Data_65.csv")
     rpe_classes_clf_test_cm["eval_set"] = "val"
     rpe_classes_clf_val_cm["eval_set"] = "test"
     rpe_classes_clf = pd.concat([rpe_classes_clf_test_cm, rpe_classes_clf_val_cm], axis = 0)
     rpe_classes_clf.to_csv(rpe_clf_output_dir, index = False)
 
-    lens_final_output_dir = os.path.join(figure_output_dir, "S66_Data.csv")
+    lens_final_output_dir = os.path.join(figure_output_dir, "Extended_Data_66.csv")
     lens_classes_f1s.to_csv(lens_final_output_dir, index = False)
 
-    lens_clf_output_dir = os.path.join(figure_output_dir, "S67_Data.csv")
+    lens_clf_output_dir = os.path.join(figure_output_dir, "Extended_Data_67.csv")
     lens_classes_clf_test_cm["eval_set"] = "val"
     lens_classes_clf_val_cm["eval_set"] = "test"
     lens_classes_clf = pd.concat([lens_classes_clf_test_cm, lens_classes_clf_val_cm], axis = 0)

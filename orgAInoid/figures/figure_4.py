@@ -390,13 +390,13 @@ def figure_4_generation(
     )
 
     # SuppData generation
-    rpe_output_dir = os.path.join(figure_output_dir, "S6_Data.csv")
+    rpe_output_dir = os.path.join(figure_output_dir, "Extended_Data_6.csv")
     rpe_classes_f1s.to_csv(rpe_output_dir, index = False)
 
-    lens_output_dir = os.path.join(figure_output_dir, "S7_Data.csv")
+    lens_output_dir = os.path.join(figure_output_dir, "Extended_Data_7.csv")
     lens_classes_f1s.to_csv(lens_output_dir, index = False)
 
-    morph_output_dir = os.path.join(figure_output_dir, "S8_Data.csv")
+    morph_output_dir = os.path.join(figure_output_dir, "Extended_Data_8.csv")
     morph_classes_f1.to_csv(morph_output_dir, index = False)
 
     return

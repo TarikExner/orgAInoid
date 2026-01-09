@@ -406,10 +406,10 @@ def figure_2_generation(
         sketch_dir=sketch_dir,
     )
 
-    dimred_output_dir = os.path.join(figure_output_dir, "S2_Data.csv")
+    dimred_output_dir = os.path.join(figure_output_dir, "Extended_Data_2.csv")
     dimreds_pca.to_csv(dimred_output_dir, index = False)
 
-    dist_output_dir = os.path.join(figure_output_dir, "S3_Data.csv")
+    dist_output_dir = os.path.join(figure_output_dir, "Extended_Data_3.csv")
     organoid_distances_pca.to_csv(dist_output_dir, index = False)
 
     return

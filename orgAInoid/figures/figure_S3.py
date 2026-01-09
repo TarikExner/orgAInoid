@@ -421,7 +421,7 @@ def figure_S3_generation(
         well_frac_raw_umap,
     ], axis = 0)
 
-    well_frac_output_dir = os.path.join(figure_output_dir, "S14_Data.csv")
+    well_frac_output_dir = os.path.join(figure_output_dir, "Extended_Data_14.csv")
     well_frac_frame.to_csv(well_frac_output_dir, index = False)
 
     return

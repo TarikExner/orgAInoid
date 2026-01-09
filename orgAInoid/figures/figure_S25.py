@@ -501,19 +501,19 @@ def figure_S25_generation(
         figure_name="S25_Fig",
     )
 
-    rpe_final_output_dir = os.path.join(figure_output_dir, "S81_Data.csv")
+    rpe_final_output_dir = os.path.join(figure_output_dir, "Extended_Data_81.csv")
     rpe_classes_f1s.to_csv(rpe_final_output_dir, index = False)
 
-    rpe_cnn_output_dir = os.path.join(figure_output_dir, "S82_Data.csv")
+    rpe_cnn_output_dir = os.path.join(figure_output_dir, "Extended_Data_82.csv")
     rpe_classes_cnn_test_cm["eval_set"] = "val"
     rpe_classes_cnn_val_cm["eval_set"] = "test"
     rpe_classes_cnn = pd.concat([rpe_classes_cnn_test_cm, rpe_classes_cnn_val_cm], axis = 0)
     rpe_classes_cnn.to_csv(rpe_cnn_output_dir, index = False)
 
-    lens_final_output_dir = os.path.join(figure_output_dir, "S83_Data.csv")
+    lens_final_output_dir = os.path.join(figure_output_dir, "Extended_Data_83.csv")
     lens_classes_f1s.to_csv(lens_final_output_dir, index = False)
 
-    lens_cnn_output_dir = os.path.join(figure_output_dir, "S84_Data.csv")
+    lens_cnn_output_dir = os.path.join(figure_output_dir, "Extended_Data_84.csv")
     lens_classes_cnn_test_cm["eval_set"] = "val"
     lens_classes_cnn_val_cm["eval_set"] = "test"
     lens_classes_cnn = pd.concat([lens_classes_cnn_test_cm, lens_classes_cnn_val_cm], axis = 0)

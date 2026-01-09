@@ -536,16 +536,16 @@ def figure_S8_generation(
     )
 
     # SuppData generation
-    rpe_output_dir = os.path.join(figure_output_dir, "S25_Data.csv")
+    rpe_output_dir = os.path.join(figure_output_dir, "Extended_Data_25.csv")
     rpe_final_f1s_sum.to_csv(rpe_output_dir, index = False)
 
-    lens_output_dir = os.path.join(figure_output_dir, "S26_Data.csv")
+    lens_output_dir = os.path.join(figure_output_dir, "Extended_Data_26.csv")
     lens_final_f1s_sum.to_csv(lens_output_dir, index = False)
 
-    rpe_output_dir = os.path.join(figure_output_dir, "S27_Data.csv")
+    rpe_output_dir = os.path.join(figure_output_dir, "Extended_Data_27.csv")
     rpe_final_f1s_max.to_csv(rpe_output_dir, index = False)
 
-    lens_output_dir = os.path.join(figure_output_dir, "S28_Data.csv")
+    lens_output_dir = os.path.join(figure_output_dir, "Extended_Data_28.csv")
     lens_final_f1s_max.to_csv(lens_output_dir, index = False)
 
     return

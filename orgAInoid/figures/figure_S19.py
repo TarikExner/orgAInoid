@@ -534,17 +534,17 @@ def figure_S19_generation(
         figure_name="S19_Fig",
     )
 
-    rpe_output_dir = os.path.join(figure_output_dir, "S60_Data.csv")
+    rpe_output_dir = os.path.join(figure_output_dir, "Extended_Data_60.csv")
     rpe_classes_f1_sum.to_csv(rpe_output_dir, index = False)
 
-    lens_output_dir = os.path.join(figure_output_dir, "S61_Data.csv")
+    lens_output_dir = os.path.join(figure_output_dir, "Extended_Data_61.csv")
     lens_classes_f1_sum.to_csv(lens_output_dir, index = False)
 
 
-    rpe_output_dir = os.path.join(figure_output_dir, "S62_Data.csv")
+    rpe_output_dir = os.path.join(figure_output_dir, "Extended_Data_62.csv")
     rpe_classes_f1_max.to_csv(rpe_output_dir, index = False)
 
-    lens_output_dir = os.path.join(figure_output_dir, "S63_Data.csv")
+    lens_output_dir = os.path.join(figure_output_dir, "Extended_Data_63.csv")
     lens_classes_f1_max.to_csv(lens_output_dir, index = False)
 
     return

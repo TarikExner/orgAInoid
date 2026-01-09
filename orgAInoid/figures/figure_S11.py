@@ -535,7 +535,7 @@ def figure_S11_generation(
         figure_name="S11_Fig",
     )
 
-    final_frame_output_dir = os.path.join(figure_output_dir, "S37_Data.csv")
+    final_frame_output_dir = os.path.join(figure_output_dir, "Extended_Data_37.csv")
     final_frame = pd.concat([rpe_final_output, lens_final_output], axis = 0)
     final_frame.to_csv(final_frame_output_dir, index = False)
 

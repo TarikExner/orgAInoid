@@ -201,10 +201,10 @@ def figure_S16_generation(
         figure_name="S16_Fig",
     )
 
-    rpe_output_dir = os.path.join(figure_output_dir, "S52_Data.csv")
+    rpe_output_dir = os.path.join(figure_output_dir, "Extended_Data_52.csv")
     rpe_classes_clf.to_csv(rpe_output_dir, index = False)
 
-    lens_output_dir = os.path.join(figure_output_dir, "S53_Data.csv")
+    lens_output_dir = os.path.join(figure_output_dir, "Extended_Data_53.csv")
     lens_classes_clf.to_csv(lens_output_dir, index = False)
 
     return

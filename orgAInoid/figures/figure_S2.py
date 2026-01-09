@@ -270,10 +270,10 @@ def figure_S2_generation(
         figure_name="S2_Fig",
     )
 
-    dimred_output_dir = os.path.join(figure_output_dir, "S11_Data.csv")
+    dimred_output_dir = os.path.join(figure_output_dir, "Extended_Data_11.csv")
     dimreds.to_csv(dimred_output_dir, index = False)
 
-    dist_output_dir = os.path.join(figure_output_dir, "S12_Data.csv")
+    dist_output_dir = os.path.join(figure_output_dir, "Extended_Data_12.csv")
     organoid_distances.to_csv(dist_output_dir, index = False)
 
     return
